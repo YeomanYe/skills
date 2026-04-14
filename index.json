@@ -1,1 +1,86 @@
-{}
+{
+  "agent-browser": {
+    "destination": [
+      "${HOME}/.config/skillshare/skills/agent-browser"
+    ],
+    "source": "${HOME}/.agents/skills/agent-browser"
+  },
+  "committing-clean-changes": {
+    "destination": [
+      "${HOME}/.config/skillshare/skills/committing-clean-changes"
+    ],
+    "source": "${HOME}/.agents/skills/committing-clean-changes"
+  },
+  "find-skills": {
+    "destination": [
+      "${HOME}/.config/skillshare/skills/find-skills"
+    ],
+    "source": "${HOME}/.agents/skills/find-skills"
+  },
+  "frontend-design": {
+    "destination": [
+      "${HOME}/.config/skillshare/skills/frontend-design"
+    ],
+    "source": "${HOME}/.agents/skills/frontend-design"
+  },
+  "orchestrating-skill-development": {
+    "destination": [
+      "${HOME}/.config/skillshare/skills/orchestrating-skill-development"
+    ],
+    "source": "${HOME}/.agents/skills/orchestrating-skill-development"
+  },
+  "skill-behavior-testing": {
+    "destination": [
+      "${HOME}/.config/skillshare/skills/skill-behavior-testing"
+    ],
+    "source": "${HOME}/.agents/skills/skill-behavior-testing"
+  },
+  "skill-install-tool": {
+    "destination": [
+      "${HOME}/.config/skillshare/skills/skill-install-tool"
+    ],
+    "source": "${HOME}/.openclaw/workspace/skills/skill-install-tool"
+  },
+  "skill-integration-testing": {
+    "destination": [
+      "${HOME}/.config/skillshare/skills/skill-integration-testing"
+    ],
+    "source": "${HOME}/.agents/skills/skill-integration-testing"
+  },
+  "skillshare": {
+    "destination": [
+      "${HOME}/.config/skillshare/skills/skillshare"
+    ],
+    "source": "${HOME}/.agents/skills/skillshare"
+  },
+  "software-uninstall-guide": {
+    "destination": [
+      "${HOME}/.config/skillshare/skills/software-uninstall-guide"
+    ],
+    "source": "${HOME}/.openclaw/workspace/skills/software-uninstall-guide"
+  },
+  "sync-skill-to-center": {
+    "destination": [
+      "${HOME}/.config/skillshare/skills/sync-skill-to-center"
+    ],
+    "source": "${HOME}/.agents/skills/sync-skill-to-center"
+  },
+  "ui-ux-pro-max": {
+    "destination": [
+      "${HOME}/.config/skillshare/skills/ui-ux-pro-max"
+    ],
+    "source": "${HOME}/.agents/skills/ui-ux-pro-max"
+  },
+  "vercel-react-best-practices": {
+    "destination": [
+      "${HOME}/.config/skillshare/skills/vercel-react-best-practices"
+    ],
+    "source": "${HOME}/.agents/skills/vercel-react-best-practices"
+  },
+  "web-design-guidelines": {
+    "destination": [
+      "${HOME}/.config/skillshare/skills/web-design-guidelines"
+    ],
+    "source": "${HOME}/.agents/skills/web-design-guidelines"
+  }
+}
