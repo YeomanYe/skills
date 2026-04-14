@@ -39,6 +39,7 @@ description: Use when creating or substantially updating a skill and you need a 
 - 真实创建或修改目标 `tests/` 用例
 - 真实执行行为测试
 - 命中 gate 时真实执行集成测试
+- 当目标 skill 需要进入全局复用范围时，调用 `sync-skill-to-center`
 - 输出最终报告
 
 不要停留在：
@@ -64,7 +65,8 @@ description: Use when creating or substantially updating a skill and you need a 
 4. 运行 `skill-behavior-testing`
 5. 判定是否需要 `skill-integration-testing`
 6. 若需要，则运行 `skill-integration-testing`
-7. 输出最终报告
+7. 判定是否需要调用 `sync-skill-to-center`
+8. 输出最终报告
 
 在最终报告完成前，不得宣称该 skill 已准备就绪。
 除非命中暂停条件，否则不要在中途停下来等待用户二次确认。
@@ -175,6 +177,27 @@ description: Use when creating or substantially updating a skill and you need a 
 
 不要把“理论上应该能衔接”当作集成测试通过；至少要完成一次基于真实 skill 文件和测试资产的链路检查。
 
+## Step 7: Sync To Center When Needed
+
+`sync-skill-to-center` 不是一律必跑，而是条件必跑。
+
+若满足以下任一条件，应在收尾阶段调用 `sync-skill-to-center`：
+
+- 用户明确希望该 skill 进入全局复用范围
+- 该 skill 不仅用于当前项目，还应在其他上下文中复用
+- 本次工作目标明确包含“发布到全局”或“纳入 skillshare source”
+
+若满足以下任一条件，则不要调用：
+
+- 该 skill 明确只应保留在当前项目内
+- 当前产物仍是半成品，不应覆盖全局版本
+- 用户明确表示本次只做本地迭代，不做全局发布
+
+若调用该 skill，默认只同步到 `~/.config/skillshare/skills/`。
+不要把“同步到编辑器或 agent 自己的全局目录”视为该步骤的职责。
+
+若跳过该步骤，必须在最终报告中明确说明原因。
+
 ## Missing Dependency Fallbacks
 
 如果目标环境缺少某个依赖 skill，不要直接中断；应退化为最小可执行流程，并在最终报告中明确说明。
@@ -227,7 +250,7 @@ description: Use when creating or substantially updating a skill and you need a 
 
 这种情况不得标记为“完整通过的集成测试”，只能标记为“手工链路检查已完成”。
 
-## Step 7: Write the Final Report
+## Step 8: Write the Final Report
 
 始终以书面报告收尾，使用以下结构：
 
@@ -265,6 +288,13 @@ description: Use when creating or substantially updating a skill and you need a 
 - 原因:
 - 发现:
 
+### 中心同步
+- 是否需要:
+- 状态:
+- 测试方式: sync-skill-to-center | skipped
+- 目标路径:
+- 原因:
+
 ### 风险
 - 风险 1:
 - 风险 2:
@@ -281,6 +311,7 @@ description: Use when creating or substantially updating a skill and you need a 
 - 是否真实落盘
 - 是否真实执行了行为测试
 - 是否真实执行了集成测试，或为何跳过
+- 是否真实执行了中心同步，或为何跳过
 
 ## Completion Rules
 
@@ -290,6 +321,7 @@ description: Use when creating or substantially updating a skill and you need a 
 - 没有运行 `skill-behavior-testing`
 - 集成测试是必需项但没有执行
 - 跳过了集成测试但没有给出理由
+- 需要进入全局复用范围但没有调用 `sync-skill-to-center`
 - 缺少最终报告
 - 只输出建议，没有实际创建或修改 skill 文件
 - 只写了测试思路，没有实际执行测试
