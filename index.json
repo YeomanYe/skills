@@ -29,6 +29,12 @@
     ],
     "source": "${HOME}/.agents/skills/orchestrating-skill-development"
   },
+  "orchestrating-skill-research": {
+    "destination": [
+      "${HOME}/.config/skillshare/skills/orchestrating-skill-research"
+    ],
+    "source": "${HOME}/.agents/skills/orchestrating-skill-research"
+  },
   "skill-behavior-testing": {
     "destination": [
       "${HOME}/.config/skillshare/skills/skill-behavior-testing"
@@ -64,6 +70,12 @@
       "${HOME}/.config/skillshare/skills/sync-skill-to-center"
     ],
     "source": "${HOME}/.agents/skills/sync-skill-to-center"
+  },
+  "ui-component-extraction": {
+    "destination": [
+      "${HOME}/.config/skillshare/skills/ui-component-extraction"
+    ],
+    "source": "${HOME}/.agents/skills/ui-component-extraction"
   },
   "ui-ux-pro-max": {
     "destination": [

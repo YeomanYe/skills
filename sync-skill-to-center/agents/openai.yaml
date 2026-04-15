@@ -1,5 +1,5 @@
 interface:
-  display_name: "同步 Skill 到中心目录"
+  display_name: "sync-skill-to-center"
   short_description: "把完成的 skill 同步到全局 skillshare source"
   default_prompt: "使用 $sync-skill-to-center 将一个已完成的 skill 同步到 `~/.config/skillshare/skills/`。支持显式路径或默认当前目录，默认覆盖同名目标。请输出 `source`、`destination`（数组）和 `overwrote`，其中路径使用 `${HOME}` 变量形式，并给出建议下一步命令 `skillshare sync`。"
 policy:
