@@ -23,11 +23,23 @@
     ],
     "source": "${HOME}/.agents/skills/frontend-design"
   },
+  "jsx-ui-authoring": {
+    "destination": [
+      "${HOME}/.config/skillshare/skills/jsx-ui-authoring"
+    ],
+    "source": "${HOME}/.agents/skills/jsx-ui-authoring"
+  },
   "orchestrating-skill-development": {
     "destination": [
       "${HOME}/.config/skillshare/skills/orchestrating-skill-development"
     ],
     "source": "${HOME}/.agents/skills/orchestrating-skill-development"
+  },
+  "orchestrating-jsx-ui-development": {
+    "destination": [
+      "${HOME}/.config/skillshare/skills/orchestrating-jsx-ui-development"
+    ],
+    "source": "${HOME}/.agents/skills/orchestrating-jsx-ui-development"
   },
   "orchestrating-skill-research": {
     "destination": [
