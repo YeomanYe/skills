@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Rules Architecture"
+  short_description: "Design and restructure a project's rule system"
+  default_prompt: "Use $project-rules-architecture to audit or design a project's rule system by first inventorying current rule docs, classifying rules into the correct domains, designing a CONTRIBUTING plus domain-index structure, and then either proposing or applying a content-based reorganization."

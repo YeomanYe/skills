@@ -106,5 +106,11 @@
       "${HOME}/.config/skillshare/skills/web-design-guidelines"
     ],
     "source": "${HOME}/.agents/skills/web-design-guidelines"
+  },
+  "project-rules-architecture": {
+    "source": "${HOME}/.agents/skills/project-rules-architecture",
+    "destination": [
+      "${HOME}/.config/skillshare/skills/project-rules-architecture"
+    ]
   }
 }
