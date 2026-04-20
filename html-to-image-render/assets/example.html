@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        --card-width: 720px;
+        --bg-top: #bfeff0;
+        --bg-bottom: #e9f7f7;
+        --card-bg: #ffffff;
+        --text: #2a2a2a;
+        --muted: #8b8b8b;
+        --accent: #6b9bd2;
+        --border: #ececec;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 28px 20px 36px;
+        background: linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+        font-family: "Noto Sans CJK SC", "Noto Sans SC", "Noto Sans",
+          sans-serif;
+        color: var(--text);
+      }
+      #card {
+        width: 100%;
+        max-width: var(--card-width);
+        margin: 0 auto;
+        background: var(--card-bg);
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+      }
+      .header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--border);
+      }
+      .logo {
+        width: 52px;
+        height: 52px;
+        border-radius: 12px;
+        background: #f6f6f6;
+        display: block;
+        object-fit: cover;
+      }
+      .brand-name {
+        font-size: 22px;
+        color: #2a2a2a;
+        font-weight: 600;
+        letter-spacing: 0;
+        word-spacing: 0;
+      }
+      .article-title {
+        padding: 16px 36px;
+        border-bottom: 1px solid var(--border);
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--accent);
+        letter-spacing: 0;
+        word-spacing: 0;
+        text-align: left;
+      }
+      .reading-meta {
+        padding: 12px 36px;
+        font-size: 18px;
+        color: var(--muted);
+        letter-spacing: 0;
+        word-spacing: 0;
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+      }
+      .content {
+        padding: 16px 36px 36px;
+      }
+      .section-title {
+        font-size: 24px;
+        font-weight: 700;
+        margin: 0 0 12px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .summary {
+        font-size: 22px;
+        line-height: 1.7;
+        margin: 0 0 24px 0;
+        color: #3a3a3a;
+        letter-spacing: 0;
+        word-spacing: 0;
+        text-align: left;
+      }
+      .highlights {
+        margin: 0 0 24px 0;
+        padding: 0;
+        list-style: none;
+        font-size: 22px;
+        line-height: 1.7;
+        letter-spacing: 0;
+        word-spacing: 0;
+        text-align: left;
+      }
+      .highlights li {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+      .highlight-index {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #2f2f2f;
+        color: #fff;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 24px;
+        margin-top: 6px;
+      }
+      .tags {
+        margin-top: 16px;
+        font-size: 20px;
+        color: #4f7aa8;
+        letter-spacing: 0;
+        word-spacing: 0;
+        text-align: left;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="card">
+      <div class="article-title">{{title_text}}</div>
+      <div class="reading-meta">⏱️ {{reading_meta}}</div>
+      <div class="content">
+        <h2 class="section-title">📌 内容摘要</h2>
+        <p class="summary">{{summary}}</p>
+        <h2 class="section-title">🔑 关键要点</h2>
+        <ul class="highlights">
+          {{highlight_items}}
+        </ul>
+        <div class="tags">🏷️ {{tag_line}}</div>
+      </div>
+      <div class="header">
+        <img class="logo" src="https://wechat.hanfangyuan.cn/files/summary_card_logo.jpg" alt="logo" />
+        <div class="brand-name">方圆AI分享</div>
+      </div>
+    </div>
+  </body>
+</html>

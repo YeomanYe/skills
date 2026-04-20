@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        --card-width: 2680px;
+        --card-height: 800px;
+        --left-width: 1880px;
+        --right-width: 800px;
+        --bg: #f0f0ec;
+        --block: #2979ff;
+        --panel: #00d68f;
+        --main-text: #1a1a1a;
+        --bubble-text: #ffffff;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Noto Sans CJK SC", "Noto Sans SC", "Noto Sans",
+          sans-serif;
+        display: grid;
+        place-items: start center;
+      }
+
+      #card {
+        width: var(--card-width);
+        height: var(--card-height);
+        overflow: hidden;
+        display: flex;
+      }
+
+      .cover-left {
+        position: relative;
+        width: var(--left-width);
+        height: 100%;
+        background: var(--bg);
+      }
+
+      .cover-right {
+        position: relative;
+        width: var(--right-width);
+        height: 100%;
+        background: var(--bg);
+      }
+
+      .panel-bubble {
+        position: absolute;
+        top: 56px;
+        right: 56px;
+        bottom: 56px;
+        left: 72px;
+        background: var(--panel);
+        border-radius: 48px;
+        overflow: visible;
+      }
+
+      .panel-bubble::before {
+        content: "";
+        position: absolute;
+        bottom: -20px;
+        right: 96px;
+        width: 0;
+        height: 0;
+        border-left: 20px solid transparent;
+        border-right: 20px solid transparent;
+        border-top: 22px solid var(--panel);
+      }
+
+      .color-block {
+        position: absolute;
+        bottom: 0;
+        left: 16px;
+        width: 480px;
+        height: 400px;
+        background: var(--block);
+        border-radius: 0 40px 0 0;
+      }
+
+      .category {
+        position: absolute;
+        top: 56px;
+        left: 72px;
+        font-size: 36px;
+        font-weight: 700;
+        color: var(--main-text);
+        letter-spacing: 2px;
+      }
+
+      .headline {
+        position: absolute;
+        top: 47%;
+        left: 72px;
+        transform: translateY(-50%);
+        font-size: 220px;
+        font-weight: 900;
+        line-height: 1.15;
+        color: var(--main-text);
+        letter-spacing: 4px;
+        -webkit-text-stroke: 2px var(--main-text);
+      }
+
+      .tag {
+        position: absolute;
+        top: 24%;
+        right: 72px;
+        transform: translateY(-50%);
+        border: 3px solid var(--main-text);
+        border-radius: 40px;
+        padding: 14px 38px;
+        font-size: 30px;
+        font-weight: 700;
+        color: var(--main-text);
+        white-space: nowrap;
+      }
+
+      .bubble {
+        position: absolute;
+        top: 44px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--main-text);
+        color: var(--bubble-text);
+        padding: 20px 44px;
+        border-radius: 18px;
+        font-size: 40px;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+
+      .bubble::after {
+        content: "";
+        position: absolute;
+        bottom: -16px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-left: 16px solid transparent;
+        border-right: 16px solid transparent;
+        border-top: 16px solid var(--main-text);
+      }
+
+      .accent-text {
+        position: absolute;
+        top: 52%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 180px;
+        font-weight: 900;
+        line-height: 1.15;
+        color: var(--main-text);
+        letter-spacing: 4px;
+        -webkit-text-stroke: 2px var(--main-text);
+        text-align: center;
+        white-space: nowrap;
+      }
+
+      .brand {
+        position: absolute;
+        bottom: 40px;
+        right: 40px;
+        font-size: 36px;
+        font-weight: 700;
+        color: var(--main-text);
+        letter-spacing: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="card">
+      <div class="cover-left">
+        <div class="color-block"></div>
+        <div class="category">API模式配置实战</div>
+        <div class="headline">企业微信<br />智能机器人</div>
+        <div class="tag">CLI配置</div>
+      </div>
+
+      <div class="cover-right">
+        <div class="panel-bubble">
+          <div class="bubble">快速上手</div>
+          <div class="accent-text">创建<br />指南</div>
+          <div class="brand">WeCom</div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

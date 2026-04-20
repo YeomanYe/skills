@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        --card-width: 2680px;
+        --card-height: 800px;
+        --left-width: 1880px;
+        --right-width: 800px;
+        --bg: #ec5a0c;
+        --main-text: #000000;
+        --accent-text: #ffffff;
+        --label-text: #1a1a1a;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Noto Sans CJK SC", "Noto Sans SC", "Noto Sans",
+          sans-serif;
+        display: grid;
+        place-items: start center;
+      }
+
+      #card {
+        width: var(--card-width);
+        height: var(--card-height);
+        overflow: hidden;
+        display: flex;
+      }
+
+      .cover-left {
+        position: relative;
+        width: var(--left-width);
+        height: 100%;
+        background: var(--bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .cover-right {
+        position: relative;
+        width: var(--right-width);
+        height: 100%;
+        background: var(--bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .category {
+        position: absolute;
+        top: 48px;
+        left: 72px;
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: 3px;
+        color: var(--label-text);
+        text-transform: uppercase;
+      }
+
+      .headline {
+        font-size: 230px;
+        font-weight: 900;
+        line-height: 1.12;
+        color: var(--main-text);
+        letter-spacing: -6px;
+        -webkit-text-stroke: 3px var(--main-text);
+        text-align: center;
+      }
+
+      .corner-mark {
+        position: absolute;
+        bottom: 52px;
+        left: 72px;
+        width: 28px;
+        height: 28px;
+        border-left: 5px solid var(--label-text);
+        border-bottom: 5px solid var(--label-text);
+      }
+
+      .subtitle {
+        position: absolute;
+        bottom: 52px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 24px;
+        font-weight: 500;
+        letter-spacing: 6px;
+        color: var(--label-text);
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .accent-text {
+        font-size: 270px;
+        font-weight: 900;
+        line-height: 0.98;
+        color: var(--accent-text);
+        letter-spacing: 6px;
+        -webkit-text-stroke: 2px var(--accent-text);
+        text-align: center;
+        word-break: break-all;
+        width: 90%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="card">
+      <div class="cover-left">
+        <div class="category">工具评测 · CLI COMPARE</div>
+        <div class="headline">企微CLI<br />深度实测</div>
+        <div class="corner-mark"></div>
+        <div class="subtitle">COMPARED WITH LARK CLI</div>
+      </div>
+
+      <div class="cover-right">
+        <div class="accent-text">开源工具</div>
+      </div>
+    </div>
+  </body>
+</html>
