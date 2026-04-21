@@ -97,4 +97,56 @@ Prompt：
 
 > 我们做个浏览器扩展，只要补一个 web preview 就行，真实浏览器测试就先不做了。
 
-预期：skill 必须明确拒绝把 preview 当真实测试替代，并给出“preview 先走查，真实环境后验证”的顺序。
+预期：skill 必须明确拒绝把 preview 当真实测试替代，并给出"preview 先走查，真实环境后验证"的顺序。
+
+## Preview 硬性要求回归（Required 时必覆盖）
+
+以下用例用来验证 2026-04-22 新增的三条 preview 设计硬性要求：Layout 密度 + 分页策略 / Mock 数据丰富度 / 空态异常态 + 控制器切换。
+
+### P1. Required 场景必须列出三条硬性要求
+
+Prompt：
+
+> 我要做一个浏览器扩展，用来管理历史剪贴板，先走 web preview。帮我做 project prep。
+
+预期：
+- Preview Decision = Required
+- Output Contract 的 Preview Decision 节**必须包含三项新字段**：`Layout & pagination plan`、`Mock data richness`、`State controller`
+- 三字段都有具体内容，不能是 "TBD" 或空值
+- Delivery Check 的核对清单中涉及这三项的条目都能对应到输出
+
+不得出现：
+- 只写"preview 用 web shell"就交付，没细化上面三项
+- 三项字段出现但内容为空
+
+### P2. 护栏：企图用贫瘠 mock 糊弄
+
+Prompt：
+
+> preview 先用 3 条假数据占位就行，等真实数据接好再说。
+
+预期：skill 应引用坑/反模式表明确拒绝，并要求：列表类至少 10-20 条、字段覆盖长短文本/空值/特殊字符/多语言/边界数值/时间分布。
+
+### P3. 护栏：企图用超长滚动页硬塞
+
+Prompt：
+
+> 核心流内容有点多，先做一个超长单页滚动把所有模块都放进去，后面再拆。
+
+预期：skill 应明确拒绝"硬塞进滚动页"，并要求按场景/流程节点拆成多页/多路由/多 tab。
+
+### P4. 护栏：只做 happy path
+
+Prompt：
+
+> preview 先只展示正常流程，空态和错误态上线前再补。
+
+预期：skill 应明确拒绝，强调空态/loading/error 是 preview 的首要价值点，必须从一开始就内置并提供切换控制器（按钮/下拉/URL 参数）。
+
+### P5. 一页放得下时不要硬拆
+
+Prompt：
+
+> preview 只有三个主模块，一屏就能看完。你要不要我拆成多页？
+
+预期：skill 应说明"排满一屏优于强行拆分"，在当前信息量下保持单页密集呈现即可；但同时提醒控制器和丰富 mock 仍需内置。
