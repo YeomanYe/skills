@@ -101,7 +101,32 @@ description: Use when a user wants project prep before implementation: define th
 - **数据策略**：mock / fixture / fake service worker / static seed
 - **验收顺序**：先 preview 走查什么，再去真实环境验证什么
 
-禁止把 preview 说成“完整替代真实测试”。preview 的作用是提前暴露 UI 和状态流问题，不是跳过真实环境验证。
+#### Preview 设计硬性要求
+
+Required 的 preview 必须同时满足以下三条设计要求。这些不是"最佳实践建议"，而是交付判定门槛。
+
+1. **Layout 密度 + 分页策略**
+   - 默认追求在**一屏或一个页面**里尽可能密集呈现核心流，让走查者一眼看到主要界面与状态之间的关系
+   - 但"尽可能排满"不是"硬塞"——如果一个页面里确实放不下，必须拆成多个页面 / 路由 / tab，不得通过以下方式强行塞入：超长单页无限滚动、字号缩到不可读、控件堆叠到相互遮挡、移除必要的空白和分隔。
+   - 分页原则：按**场景或流程节点**切分（例如 "列表 / 详情 / 编辑 / 设置" 分页），而不是按不相关的功能堆在不同页。
+
+2. **Mock 数据丰富度**
+   - Mock 数据必须反映**真实使用压力**，不能只有 "Item 1 / Item 2 / Item 3" 或 "Lorem ipsum" 占位。
+   - 列表类至少 **10–20 条**，覆盖典型分页或滚动行为。
+   - 字段多样性必须覆盖：长文本 / 短文本 / 空字段 / 特殊字符 / 多语言（若涉及）/ 边界数值（0、极大、负数、小数精度）/ 时间分布（含今天、昨天、去年、未来等）。
+   - 关联关系（作者、标签、分类、状态）要有合理分布，不能所有条目都指向同一个值。
+   - 目的：让布局、截断、对齐、排序、过滤在真实数据压力下就被看出问题，而不是上线后才暴露。
+
+3. **空态 / 异常态 + 控制器切换**
+   - Preview 必须内置至少这几个态的 mock 场景：`normal` / `empty` / `loading` / `error`。
+   - 如有登录态、权限、特殊角色、离线、限流等维度，也应预置对应 mock。
+   - 界面上必须有**显式、可见的控制器**让走查者手动切换状态，例如：
+     - 固定位置的切换按钮 / dropdown（常在页头或侧边调试栏）
+     - URL query 参数（`?state=empty`、`?state=error&code=403`）
+     - 设置面板
+   - 不允许只提供 happy path。preview 的主要价值之一就是**在建站之前**把空态和异常态的 UI 先暴露出来。
+
+禁止把 preview 说成"完整替代真实测试"。preview 的作用是提前暴露 UI 和状态流问题，不是跳过真实环境验证。
 
 ### Step 4 —— 交付前置准备简报
 
@@ -143,6 +168,9 @@ description: Use when a user wants project prep before implementation: define th
 - Surface:
 - Data strategy:
 - Validation sequence:
+- Layout & pagination plan: （Required 必填：单页还是多页？分页怎么切？）
+- Mock data richness: （Required 必填：条数、字段多样性、关联分布）
+- State controller: （Required 必填：预置哪些态 + 切换方式）
 
 ### Open Decisions
 ```
@@ -173,6 +201,10 @@ description: Use when a user wants project prep before implementation: define th
 | "有了 preview 就不用做真实环境测试" | preview 只负责提前走查，不替代真实验证 |
 | "浏览器扩展没法 preview" | 很多 extension 的 UI 层可以先在 web 上用 mock 数据对齐 |
 | "项目已经有 demo，但再加一个也没坏处" | 重复预览面会分散维护精力，先判断是否已满足 |
+| "页面内容不多，随便撑一撑就行" | 尽可能密集排满才能在一屏暴露更多问题 |
+| "内容多就做个超长滚动页硬塞下去" | 塞不下应当拆成多个页面/路由/tab，不能靠挤压让界面不可用 |
+| "先用 3 条假数据撑一下，后面再补" | 贫瘠 mock 会漏掉真实数据压力下的 UI 问题，这就是 preview 存在的意义 |
+| "先只做正常流程，空态和错误态以后再说" | preview 的首要价值就是提前暴露异常态，必须从第一天就带切换控制器 |
 
 ## Delivery Check
 
@@ -182,6 +214,9 @@ description: Use when a user wants project prep before implementation: define th
 - 主要技术栈足够指导开工，但没有过度锁死实现细节
 - Preview decision 明确是 `Required`、`Not needed`、`Already satisfied` 之一
 - 若为 `Required`，已定义 preview 目标、载体、数据策略、验收顺序
+- 若为 `Required`，已写明 **Layout 密度 + 分页策略**（单页 or 多页？怎么拆？）
+- 若为 `Required`，已写明 **Mock 数据丰富度**（条数、字段多样性、关联分布）
+- 若为 `Required`，已写明 **空态 / 异常态 + 控制器切换**（至少 normal/empty/loading/error + 切换方式）
 - 若为 `Already satisfied`，已说明现有预览面的证据或依据
 - 开放决策清单存在
 
