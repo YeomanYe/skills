@@ -120,6 +120,8 @@ description: Use when creating or substantially updating a skill and you need a 
 
 执行时强制遵守以下规则：
 
+- **语言约定**：SKILL.md 正文、`tests/` 用例、`references/` 等附加资产默认使用中文；技术术语、工具名、命令、配置键、文件路径、代码、frontmatter 字段名保持英文原文不翻译
+- **description 语言**：frontmatter 的 `description` 允许中英文并存——可以纯中文、纯英文或中英混合列出触发短语，目的是提升跨语言召回（例如同时写 "项目初始化" 与 "bootstrap this project"）
 - frontmatter 的 description 只写触发条件，不要摘要化流程
 - 正文保持简洁、偏流程化
 - 不要把下游测试 skill 的完整内容复制进来

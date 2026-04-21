@@ -50,7 +50,7 @@
 用户消息：
 > 帮我设计一下扩展图标。
 
-期望：属于设计任务，不触发本 skill（但可能触发 text-card / frontend-design）。
+期望：属于设计任务，不触发本 skill（但可能触发 `ai-image-generation` / `frontend-design`）。
 
 ## 主流程成功
 
@@ -58,8 +58,9 @@
 输入：preflight 报告 Chrome 平台缺 promo tile (440×280) + 1 张截图 + 描述文本。
 
 验证：
-- Step 2 把 promo tile 分流给 text-card（有尺寸、有文案来源）
-- 截图列入 user-must-provide，不用占位图糊弄
+- Step 2 先判断 promo tile 是否属于位图宣传图还是精确排版图
+- 可生成的位图宣传图才分流给 `ai-image-generation`
+- 截图与精确排版图列入 user-must-provide，不用占位图糊弄
 - 描述文本若 README 有就抽取，没有就写「待用户填」
 - Step 3 输出结构化清单并询问确认
 - Step 4 payload 完整
@@ -116,8 +117,8 @@
 ### I1-handoff-to-preflight
 验证：Step 1 真的调 `ext-publishing-preflight`，不自己发明 checklist。
 
-### I2-handoff-to-text-card
-验证：可生成图片转交时，给 text-card 足够的 brief（尺寸 / 平台 / 文案 / 样式 / 落位），不只是一句「帮我做个 promo tile」。
+### I2-handoff-to-image-generation
+验证：可生成位图转交时，给 `ai-image-generation` 足够的 brief（尺寸 / 平台 / 主题 / 品牌资产 / 落位），不只是一句「帮我做个 promo tile」。
 
 ### I3-no-redundant-question
 验证：preflight 已经报告缺失项、manifest 已经有 name/version/description，本 skill 不应再向用户重复追问这些已知信息。

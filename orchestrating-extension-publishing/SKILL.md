@@ -9,10 +9,10 @@ description: Use when preparing to publish or update a browser extension to web 
 
 这个 skill 编排「浏览器扩展从 preflight 到提交」的完整链路。
 
-它不替代 `ext-publishing-preflight`、`text-card` 或各平台上传工具。它的职责是：
+它不替代 `ext-publishing-preflight`、`ai-image-generation`、`frontend-design` 或各平台上传工具。它的职责是：
 
 - 先用 preflight 查出所有待完成项
-- 对可以自动生成的图片素材转交 `text-card`
+- 对可以自动生成的位图宣传素材转交 `ai-image-generation`
 - 在所有缺口补齐前阻止发布
 - 用户明确确认后，按项目约定方式整理提交 payload
 
@@ -44,7 +44,7 @@ description: Use when preparing to publish or update a browser extension to web 
 按顺序执行：
 
 1. 运行 `ext-publishing-preflight`
-2. 分类缺失项 → 图片接力给 `text-card` / 非图片列入 user-must-provide
+2. 分类缺失项 → 可生成位图交给 `ai-image-generation` / 精确排版与真实截图列入 user-must-provide / 非图片列入 checklist
 3. 输出缺口清单 + 注意事项 → 等待用户明确确认「全部就绪」
 4. 按项目约定整理分平台提交 payload
 
@@ -73,35 +73,39 @@ Step 3 前不得进入 Step 4。不允许「看起来都 OK」就自己补全再
 
 对 preflight 的缺失清单做三路分流：
 
-### A. text-card 可生成
+### A. `ai-image-generation` 可生成
 
-满足以下条件的图片交给 `text-card`：
+满足以下条件的图片交给 `ai-image-generation`：
 
-- 文字为主的卡片：promo tile、hero banner、标题卡、slogan 图
-- 尺寸 / 背景 / 排版可由 text-card 直接产出
+- 以视觉氛围、插画、背景图、图标延展为主的宣传图
+- 文案很少，或者即使有文字也不要求像素级精确排版
 - 不需要扩展真实运行截图
 
-交接给 text-card 时必须提供：
+交接给 `ai-image-generation` 时必须提供：
 
 - 目标尺寸（例：Chrome promo tile 440×280、marquee 1400×560）
-- **目标场景 = 浏览器扩展商店素材**（绕过 text-card 默认的"公众号 / 小红书"平台反问）
-- **模板选择提示**：若 text-card 的 `references/` 下没有匹配尺寸模板（当前版本就没有 440×280 / 1400×560），显式声明"本次属于 from-scratch 场景，不要硬套 rednote / wechat 模板"
-- 文案（从 manifest `name` / `description` / 项目 README 抽取，不要瞎编）
-- 样式约束（暗色 / 亮色 / 品牌色；若 `assets/` 有 icon，告知主色调）
+- 目标场景 = 浏览器扩展商店素材
+- 主题、卖点和视觉方向
+- 可用的品牌资产（如 `assets/` 里的 icon、主色）
+- 若要带文字，只允许短标题或 slogan；长文案排版不要硬交给生成模型
 - 输出文件名与落位目录
 
-### B. 需要真实截图
+### B. 必须用户提供的图片
 
-扩展运行后的 UI 截图、popup 截图、options 页截图。`text-card` 无法生成。
+以下图片不要交给生成 skill，直接列入 **user-must-provide**：
 
-这一类直接列入 **user-must-provide** 清单，给出：
+- 扩展运行后的 UI 截图、popup 截图、options 页截图
+- 需要精确产品文案排版的 promo tile、hero banner、标题卡
+- 必须与真实 UI 一致的营销图
+
+给用户时列清：
 
 - 需要几张
 - 每张的尺寸要求
-- 建议的取景（例：「显示 popup 的主功能页」）
+- 建议的取景或排版重点
 - 落位目录
 
-不要替用户用占位图蒙混过关。
+不要替用户用占位图蒙混过关，也不要把精确排版强塞给图像生成模型。
 
 ### C. 非图片缺口
 
@@ -124,7 +128,7 @@ Step 3 前不得进入 Step 4。不允许「看起来都 OK」就自己补全再
 - Firefox AMO: ...
 - Edge Add-ons: ...
 
-### 已通过 text-card 生成
+### 已通过生成工具补齐
 - <文件路径>: <用途>
 
 ### 需要你手动提供
@@ -222,7 +226,7 @@ Step 3 前不得进入 Step 4。不允许「看起来都 OK」就自己补全再
 - 建议: ...
 
 ### 素材补齐情况
-- text-card 生成: ...
+- 生成工具补齐: ...
 - 用户提供: ...
 - 非图片缺口: ...
 
@@ -239,7 +243,7 @@ Step 3 前不得进入 Step 4。不允许「看起来都 OK」就自己补全再
 ## Fallbacks
 
 - `ext-publishing-preflight` 不可用 → 手工对照每个平台官方 checklist 做最小集检查，报告中注明降级
-- `text-card` 不可用 → 把「可生成图片」转为 user-must-provide，一并交用户
+- `ai-image-generation` 不可用 → 把「可生成位图宣传图」转为 user-must-provide，一并交用户
 - 项目没有任何 publish script / CI 配置 → 给出每个平台官方 CLI 的最小命令示例，不替用户决定
 - manifest 与 package.json 版本不一致 → 停在 Step 2，先让用户对齐版本，再继续
 - 用户只发一个平台 → 只输出该平台 payload，不生成其它平台内容
