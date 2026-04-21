@@ -86,6 +86,64 @@ done
 
 SOURCE_PATH_FMT="$(path_with_home_var "$SOURCE_DIR")"
 
+# --- IM-origin auto commit & push ---------------------------------------
+# Trigger: CC_SESSION_KEY starts with "feishu:" (a Feishu-origin cc-connect
+# session). Other IM platforms are left untouched per user request. The
+# skillshare skills dir is expected to be a git repo with a remote configured.
+#
+# Env overrides:
+#   NICHE_AUTOSYNC_GIT=0     → disable entirely
+#   NICHE_AUTOSYNC_GIT=1     → force on regardless of CC_SESSION_KEY
+GIT_STATUS="skipped"
+GIT_REASON=""
+GIT_COMMIT=""
+
+should_git=0
+if [[ "${NICHE_AUTOSYNC_GIT:-}" == "0" ]]; then
+  GIT_REASON="disabled via NICHE_AUTOSYNC_GIT=0"
+elif [[ "${NICHE_AUTOSYNC_GIT:-}" == "1" ]]; then
+  should_git=1
+elif [[ "${CC_SESSION_KEY:-}" == feishu:* ]]; then
+  should_git=1
+else
+  GIT_REASON="non-feishu session (CC_SESSION_KEY=${CC_SESSION_KEY:-unset})"
+fi
+
+if [[ "$should_git" -eq 1 ]]; then
+  if ! command -v git >/dev/null 2>&1; then
+    GIT_STATUS="failed"
+    GIT_REASON="git not found in PATH"
+  elif [[ ! -d "$SKILLSHARE_ROOT/.git" ]]; then
+    GIT_STATUS="failed"
+    GIT_REASON="skillshare root is not a git repository: $SKILLSHARE_ROOT"
+  else
+    pushd "$SKILLSHARE_ROOT" >/dev/null
+    git add -- "$SKILL_NAME" >/dev/null 2>&1 || true
+    if git diff --cached --quiet -- "$SKILL_NAME"; then
+      GIT_STATUS="no-op"
+      GIT_REASON="no changes to commit"
+    else
+      platform="${CC_SESSION_KEY%%:*}"
+      platform="${platform:-im}"
+      commit_msg="feat($SKILL_NAME): sync from $platform session"
+      if git commit -m "$commit_msg" >/dev/null 2>&1; then
+        GIT_COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo '')"
+        if git push >/dev/null 2>&1; then
+          GIT_STATUS="pushed"
+        else
+          GIT_STATUS="committed"
+          GIT_REASON="git push failed (check remote/credentials)"
+        fi
+      else
+        GIT_STATUS="failed"
+        GIT_REASON="git commit failed"
+      fi
+    fi
+    popd >/dev/null
+  fi
+fi
+# ------------------------------------------------------------------------
+
 printf 'source=%s\n' "$SOURCE_PATH_FMT"
 printf 'destination=['
 for idx in "${!DEST_PATHS_FMT[@]}"; do
@@ -96,3 +154,10 @@ for idx in "${!DEST_PATHS_FMT[@]}"; do
 done
 printf ']\n'
 printf 'overwrote=%s\n' "$OVERWROTE"
+printf 'git_status=%s\n' "$GIT_STATUS"
+if [[ -n "$GIT_COMMIT" ]]; then
+  printf 'git_commit=%s\n' "$GIT_COMMIT"
+fi
+if [[ -n "$GIT_REASON" ]]; then
+  printf 'git_reason=%s\n' "$GIT_REASON"
+fi

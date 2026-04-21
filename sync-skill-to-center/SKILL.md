@@ -52,7 +52,27 @@ description: Use when a finished skill should be synced into the global `skillsh
    - `~/.config/skillshare/skills/<skill-name>/`
    - 以及所有已探测到的其他全局 skill 根目录（默认排除 `~/.codex/skills/`）
 6. 若目标已存在，默认覆盖
-7. 输出 `source`、`destination`、`overwrote`
+7. 若当前是飞书来源的 cc-connect 会话（`CC_SESSION_KEY` 以 `feishu:` 开头），且 `~/.config/skillshare/skills/` 是 git 仓库，则自动在该目录 `git add <skill-name> && git commit && git push`
+8. 输出 `source`、`destination`、`overwrote`、`git_status`
+
+## 飞书来源自动提交
+
+当本 skill 由飞书消息驱动运行时，自动把中心目录的 skill 变更提交并推送到 remote，避免每次都需要手动到 `~/.config/skillshare/skills/` 下跑 `git commit && git push`。
+
+- **触发条件**：环境变量 `CC_SESSION_KEY` 以 `feishu:` 开头（cc-connect 为飞书会话设置的格式）
+- **作用对象**：仅 `~/.config/skillshare/skills/`（中心目录）；其他 AI 工具的全局目录不参与 git 操作
+- **前置要求**：中心目录已是 git 仓库并配置了 remote（脚本不会自动 `git init`，也不会自动配 remote）
+- **Commit message**：`feat(<skill-name>): sync from feishu session`
+- **Env 覆盖**：
+  - `NICHE_AUTOSYNC_GIT=0`：强制禁用 git 步骤，即使当前是飞书会话
+  - `NICHE_AUTOSYNC_GIT=1`：强制启用，即使当前不是飞书会话
+- **结果字段**（在脚本 stdout）：
+  - `git_status=skipped`：非飞书会话或被显式禁用
+  - `git_status=no-op`：飞书会话但 skill 内容无变化
+  - `git_status=pushed`：成功 `git commit && git push`（带 `git_commit=<shortsha>`）
+  - `git_status=committed`：commit 成功但 push 失败（`git_reason` 含原因；本地已写入，不回滚）
+  - `git_status=failed`：前置条件不满足（非 git 仓 / 未装 git / commit 失败）
+- **非飞书会话不触发**：其他平台（Telegram / Discord / 本地 CLI 直接调用）均走原有流程，不做 git 动作
 
 ## 输入规则
 
@@ -104,6 +124,9 @@ bash scripts/sync_skill_to_center.sh "<source-dir>"
 - `source=<path>`
 - `destination=["<path>"]`
 - `overwrote=<0|1>`
+- `git_status=<skipped|no-op|pushed|committed|failed>`
+- `git_commit=<shortsha>`（仅当有 commit 产生时）
+- `git_reason=<detail>`（当 status 非 pushed 时可选）
 
 ## 约束
 
