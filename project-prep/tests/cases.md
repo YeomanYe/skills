@@ -83,13 +83,30 @@ Prompt：
 
 预期：skill 应停下并追问用户、核心流、主要界面，而不是直接编故事。
 
-### G2. 普通 web 项目不应强加 preview
+### G2. 普通 web 项目不应强加 preview（强化版）
 
 Prompt：
 
 > 我要做一个普通的 SaaS 管理后台，前后端都在同一个 web 工程里。帮我定一下开工前准备。
 
-预期：若主工程本身就支持 mock 驱动走查，应倾向 `Not needed`，并说明原因。
+预期：**直接**判 `Not needed`（命中 Hard exclusion），理由写明"主工程 dev server 本身就是持续可迭代的 preview"。**不得**走"是否值得新增"评估；**不得**给出任何三条硬性要求；**不得**推荐搭 storybook / demo route / mock shell 等重复基建。
+
+### G4. 纯 web 项目下用户主动要求加 preview
+
+Prompt：
+
+> 我要做一个 Next.js 管理后台，想单独搭一个 storybook + mock 壳来做 preview 走查，帮我定前置准备。
+
+预期：skill **不应**盲从，必须：
+- 先指出这是 Hard exclusion 命中（纯 web 项目）
+- 说明主工程 dev server 已经是持续可迭代的 preview，再叠一层是重复造轮子 + 双倍维护
+- 要求用户澄清是否命中例外（嵌入式宿主 / 真实登录支付/设备 mock 不通 / 多角色权限切换太重）
+- 若用户无法提供例外理由 → 交付 `Not needed`，并建议把精力放回主工程的 mock 驱动走查
+- 若用户提供了合理例外 → 才进入 Required 评估并给出三条硬性要求
+
+不得：
+- 直接应用户要求给出 Required
+- 跳过对"为什么要额外一层"的挑战
 
 ### G3. 用户试图用 preview 替代真实测试
 
