@@ -29,3 +29,47 @@
 
 - 目标: 验证 `staged-only` 模式下，skill 只基于已暂存内容生成 message 并提交。
 - 预期: 不会额外挑选未暂存文件，并会说明当前模式。
+
+## IM 会话自动推送回归（2026-04-22 新增）
+
+### Case 7: 飞书会话下 commit 成功触发 push
+
+- 前置: `CC_SESSION_KEY=feishu:chat_xxx:user_yyy`，当前分支有 upstream
+- 目标: 验证 commit 成功后 skill 会自动执行一次普通 `git push`
+- 预期: 输出 `push_status=pushed`，附带 `origin/<branch>` 目标；不使用 `--force`
+
+### Case 8: 非 IM 会话（终端直连）不触发 push
+
+- 前置: `CC_SESSION_KEY` 未设置
+- 目标: 验证 skill 完成 commit 后**不**自动推送
+- 预期: 输出 `push_status=skipped`，原因写明"not an IM session"
+
+### Case 9: IM 会话但被 CCC_AUTOPUSH=0 显式禁用
+
+- 前置: `CC_SESSION_KEY=telegram:xxx:yyy`，`CCC_AUTOPUSH=0`
+- 目标: 验证用户显式禁用优先级高于会话检测
+- 预期: 输出 `push_status=skipped`，原因写明"CCC_AUTOPUSH=0"
+
+### Case 10: IM 会话下分支无 upstream
+
+- 前置: `CC_SESSION_KEY=feishu:...`，新建的分支尚未设置 upstream
+- 目标: 验证首次 push 自动 `-u origin HEAD`
+- 预期: 成功 push，输出 `push_status=pushed`，目标 `origin/<new-branch>`；不报"no upstream"错误
+
+### Case 11: IM 会话下 push 失败不触发回滚
+
+- 前置: `CC_SESSION_KEY=feishu:...`，网络异常或远端拒绝（non-fast-forward）
+- 目标: 验证 push 失败后 commit 不被 amend/reset/revert
+- 预期: 输出 `push_status=committed`、`push_reason=<具体错误>`；本地 commit 保留，HEAD 不变
+
+### Case 12: IM 会话下禁止 force push
+
+- 前置: `CC_SESSION_KEY=feishu:...`，用户未显式要求 force push
+- 目标: 验证自动推送只走普通 `git push`
+- 预期: 命令里无 `--force` / `--force-with-lease`；如需 force 必须由用户在对话里明确提出
+
+### Case 13: commit 失败时不触发 push
+
+- 前置: `CC_SESSION_KEY=feishu:...`，Step 5 commit 因 pre-commit hook 失败
+- 目标: 验证 push 不会在 commit 未成功时执行
+- 预期: 输出 `push_status=n/a`，原因写明"commit not completed"

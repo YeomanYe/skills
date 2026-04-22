@@ -55,6 +55,7 @@ description: Use when a task's code changes are ready to be recorded as one clea
 3. 排除不应进入这次提交的文件
 4. 生成一次 commit message
 5. 执行一次 `git add` 与一次 `git commit`
+6. 若本次会话来自 IM 通道（见下方 "IM 会话自动推送"），在 commit 成功后执行一次 `git push`
 
 除非用户明确要求拆分提交，否则不要创建多个 commit。
 
@@ -162,6 +163,39 @@ description: Use when a task's code changes are ready to be recorded as one clea
 - force push
 - 自动拆成多个 commit
 
+## Step 6: IM 会话自动推送
+
+当本次调用来自 IM 通道的 cc-connect 会话时，在 commit 成功后应立刻把 commit 推送到 remote，避免用户每次都要到终端再跑一次 `git push`。
+
+**触发条件**：环境变量 `CC_SESSION_KEY` 非空。cc-connect 会为每个 IM 会话设置 `<platform>:<chat>:<user>` 格式的 key，涵盖 `feishu` / `lark` / `telegram` / `discord` / `wecom` / `weixin` / `qq` / `ding` / `slack` 等所有已接入的通道。直接终端调用（无 cc-connect 代理）时 `CC_SESSION_KEY` 不存在，则跳过本步骤。
+
+**执行规则**：
+
+- 仅在 Step 5 的 commit **成功**后触发
+- 使用普通 `git push`，不带 `--force` 或 `--force-with-lease`
+- 若当前分支**没有 upstream**，使用 `git push -u origin HEAD` 首次建立追踪
+- 不检出分支，不切换分支，不修改 remote 配置
+- 不重试；一次 push 失败就把原因记录到 push_status，不做隐式回滚
+
+**Env 覆盖**：
+
+- `CCC_AUTOPUSH=0`：强制禁用自动推送，即使在 IM 会话中
+- `CCC_AUTOPUSH=1`：强制启用自动推送，即使 `CC_SESSION_KEY` 未设置
+
+**结果状态**：
+
+- `pushed`：commit 成功 + push 成功
+- `committed`：commit 成功但 push 失败（远端拒绝、无网络、凭证问题等）；本地改动保持不动
+- `skipped`：非 IM 会话，或被 `CCC_AUTOPUSH=0` 显式禁用
+- `n/a`：commit 本身未成功（上游流程已终止在更早步骤）
+
+**安全边界**（不得突破）：
+
+- 不允许 force push，无论 IM 会话还是终端直连
+- 不允许推送到用户未明确工作过的分支（默认 `origin` 是唯一目标）
+- commit 失败不触发 push；push 失败不触发 amend/reset/revert
+- 用户若在本次对话里显式要求"只提交不推送"，该指令优先于 IM 自动推送规则
+
 ## Output Contract
 
 完成后至少要明确说明：
@@ -172,6 +206,9 @@ description: Use when a task's code changes are ready to be recorded as one clea
 - commit message
 - 是否成功创建 commit
 - 若成功，附上 commit SHA
+- `push_status`: `pushed` / `committed` / `skipped` / `n/a`
+- 若 push 失败，附上失败原因（push_reason）
+- 若 push 成功，附上目标分支 + remote（例如 `origin/main`）
 
 如果未提交成功，也要明确说明停在哪一步。
 
@@ -208,6 +245,22 @@ description: Use when a task's code changes are ready to be recorded as one clea
 
 处理：
 显式选择文件，不做整仓全加。
+
+### 5. IM 会话下漏推送
+
+问题：
+在飞书/Telegram/Discord 等 IM 会话里完成了 commit，但忘记 push，导致用户在手机上看到"commit 成功"却以为已经推送到 remote。
+
+处理：
+在 IM 会话（`CC_SESSION_KEY` 非空）中，commit 后必须跑一次 `git push`，并把 push_status 写进输出契约。不要默认"commit = 推送"但实际上未推送。
+
+### 6. IM 会话下强行 force push
+
+问题：
+把 IM 自动推送误解为"什么都可以自动做"，包括 `--force`。
+
+处理：
+自动推送只做普通 push；force push 仍需要用户在对话里显式要求。
 
 ## Minimal Operating Principle
 
