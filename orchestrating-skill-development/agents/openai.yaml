@@ -1,4 +1,0 @@
-interface:
-  display_name: "Skill Development Orchestrator"
-  short_description: "Create skills with tests and delivery reports"
-  default_prompt: "Use $orchestrating-skill-development to create or substantially update a skill, write its files, run the required tests, and produce a delivery report."

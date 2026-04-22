@@ -1,0 +1,7 @@
+interface:
+  display_name: "Web Image"
+  short_description: "HTML/CSS fixed-size image generation"
+  default_prompt: "Use $web-image to generate or revise a fixed-size marketing image with HTML/CSS rendering."
+
+policy:
+  allow_implicit_invocation: true

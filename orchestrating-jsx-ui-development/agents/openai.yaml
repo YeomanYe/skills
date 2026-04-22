@@ -1,4 +1,0 @@
-interface:
-  display_name: "JSX UI Development Orchestrator"
-  short_description: "Orchestrate JSX UI scope, rules, implementation, and review"
-  default_prompt: "Use $orchestrating-jsx-ui-development to handle JSX UI creation or refactoring by first determining component boundaries, then using jsx-ui-authoring as a decision gate, routing implementation to the right best-practice source, and looping through review until the result is acceptable."

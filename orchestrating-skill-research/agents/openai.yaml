@@ -1,4 +1,0 @@
-interface:
-  display_name: "Skill Research Orchestrator"
-  short_description: "Research, inspect, compare, and recommend agent skills"
-  default_prompt: "Use $orchestrating-skill-research to research existing skills for a domain or workflow, inspect shortlisted SKILL.md contents, compare candidates, and recommend install commands without installing until explicitly requested."
