@@ -8,7 +8,7 @@ fi
 
 SOURCE_INPUT="${1:-.}"
 
-if ! SOURCE_DIR="$(cd "$SOURCE_INPUT" 2>/dev/null && pwd)"; then
+if ! SOURCE_DIR="$(cd "$SOURCE_INPUT" 2>/dev/null && pwd -P)"; then
   echo "source directory not found: $SOURCE_INPUT" >&2
   exit 1
 fi
@@ -28,6 +28,20 @@ path_with_home_var() {
     "$HOME"/*) printf '${HOME}%s\n' "${p#"$HOME"}" ;;
     *) printf '%s\n' "$p" ;;
   esac
+}
+
+# Resolve symlinks and return the physical path. If the path doesn't exist,
+# returns empty string (caller should then treat as "new target").
+canonicalize() {
+  local p="$1"
+  if [[ -d "$p" ]]; then
+    ( cd "$p" 2>/dev/null && pwd -P ) || return 0
+  elif [[ -L "$p" ]]; then
+    # Broken or loop symlink: canonicalize via parent.
+    local parent
+    parent="$(dirname "$p")"
+    ( cd "$parent" 2>/dev/null && printf '%s/%s\n' "$(pwd -P)" "$(basename "$p")" ) || return 0
+  fi
 }
 
 mkdir -p "$SKILLSHARE_ROOT"
@@ -70,12 +84,36 @@ for root in "${UNIQUE_TARGET_ROOTS[@]}"; do
   mkdir -p "$root"
   dest="$root/$SKILL_NAME"
 
-  if [[ "$dest" == "$SOURCE_DIR" ]]; then
+  # Skip when dest and source resolve to the same physical path. This covers:
+  #   - dest == source (literal equality)
+  #   - dest is a symlink pointing to source (or vice-versa), common when
+  #     skillshare manages `~/.claude/skills/<name>` as a symlink into the
+  #     center dir `~/.config/skillshare/skills/<name>`.
+  # Without this, `rm -rf dest` destroys the real skill dir and `cp -R`
+  # produces a self-referencing symlink loop.
+  dest_canon="$(canonicalize "$dest" 2>/dev/null || true)"
+  if [[ -n "$dest_canon" && "$dest_canon" == "$SOURCE_DIR" ]]; then
     DEST_PATHS_FMT+=("$(path_with_home_var "$dest")")
     continue
   fi
 
-  if [[ -e "$dest" ]]; then
+  # Defense in depth: if dest is a symlink, resolve the link target and bail
+  # out if it ends up at source. Covers edge cases where canonicalize above
+  # returned empty (e.g. dangling symlink that happened to point at source).
+  if [[ -L "$dest" ]]; then
+    link_target="$(readlink "$dest")"
+    case "$link_target" in
+      /*) link_abs="$link_target" ;;
+      *)  link_abs="$(dirname "$dest")/$link_target" ;;
+    esac
+    link_canon="$(canonicalize "$link_abs" 2>/dev/null || true)"
+    if [[ -n "$link_canon" && "$link_canon" == "$SOURCE_DIR" ]]; then
+      DEST_PATHS_FMT+=("$(path_with_home_var "$dest")")
+      continue
+    fi
+  fi
+
+  if [[ -e "$dest" || -L "$dest" ]]; then
     OVERWROTE=1
   fi
 

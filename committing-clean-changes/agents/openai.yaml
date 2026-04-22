@@ -1,0 +1,4 @@
+interface:
+  display_name: "Commit Clean Changes"
+  short_description: "Prepare one clean git commit safely"
+  default_prompt: "Use $committing-clean-changes to select the files for this task, compose one commit message, and create a single clean git commit."
