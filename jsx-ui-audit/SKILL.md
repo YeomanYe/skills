@@ -7,11 +7,11 @@ description: Use when writing or refactoring JSX-based UI in React, Preact, Fres
 
 ## 概览
 
-这个 skill 用于指导 Codex 在编写、修改或重构 JSX UI 之前，先判断项目中是否已经存在明确的 UI 编写约定，再决定应该复用什么模式、参考什么例子，以及当前实现是否需要回退到某类 best-practice 重写。
+这个 skill 用于指导 agent 在编写、修改或重构 JSX UI 之前，先判断项目中是否已经存在明确的 UI 编写约定，再决定应该复用什么模式、参考什么例子，以及当前实现是否需要回退到某类 best-practice 重写。
 
 它是判定器，不是主写作规则库，也不是设计生成器。
 
-它的职责是帮助 Codex 在“开始写组件之前”和“写完之后复查”做出一致、可维护、可扩展的 UI 编码判断。
+它的职责是帮助 agent 在“开始写组件之前”和“写完之后复查”做出一致、可维护、可扩展的 UI 编码判断。
 
 ## 适用时机
 
@@ -22,7 +22,7 @@ description: Use when writing or refactoring JSX-based UI in React, Preact, Fres
 - 项目中风格不完全明确，需要先判断规范再写
 - 用户要求参照 antd、shadcn、radix 等成熟项目
 - 项目在 Tailwind、shadcn 风格、design system、组件库封装之间需要做取舍
-- Codex 需要先看项目有没有“特殊约定风格”
+- agent 需要先看项目有没有“特殊约定风格”
 
 以下情况通常不要使用：
 

@@ -7,7 +7,7 @@ description: Use when refactoring UI code by extracting visual and interactive c
 
 ## 概览
 
-这个 skill 用于指导 Codex 抽取包含视觉和交互的 UI 组件。
+这个 skill 用于指导 agent 抽取包含视觉和交互的 UI 组件。
 
 核心方法是：先从最内侧可交互焦点出发，向外寻找最近的视觉、交互、状态和语义边界，形成组件候选；再根据业务语义、复用性和 API 稳定性决定组件归属层级。
 
@@ -20,7 +20,7 @@ description: Use when refactoring UI code by extracting visual and interactive c
 - AI 复刻页面后代码臃肿、JSX 过长、难以维护
 - 用户要求做 UI 组件抽取、组件拆分、组件边界整理
 - 页面中存在输入框、卡片、弹窗、表单、CTA、列表项、价格卡、功能块等可视交互单元
-- Codex 需要判断哪些组件应该是页面局部组件、业务组件、公共组件或基础 UI 组件
+- agent 需要判断哪些组件应该是页面局部组件、业务组件、公共组件或基础 UI 组件
 - 重构目标是提升可读性、可维护性、复用性和测试边界
 
 以下情况不要使用：
