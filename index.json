@@ -5,11 +5,11 @@
     ],
     "source": "${HOME}/.agents/skills/agent-browser"
   },
-  "committing-clean-changes": {
+  "clean-commit": {
     "destination": [
-      "${HOME}/.config/skillshare/skills/committing-clean-changes"
+      "${HOME}/.config/skillshare/skills/clean-commit"
     ],
-    "source": "${HOME}/.agents/skills/committing-clean-changes"
+    "source": "${HOME}/.agents/skills/clean-commit"
   },
   "find-skills": {
     "destination": [
@@ -23,11 +23,11 @@
     ],
     "source": "${HOME}/.agents/skills/frontend-design"
   },
-  "jsx-ui-authoring": {
+  "jsx-ui-audit": {
     "destination": [
-      "${HOME}/.config/skillshare/skills/jsx-ui-authoring"
+      "${HOME}/.config/skillshare/skills/jsx-ui-audit"
     ],
-    "source": "${HOME}/.agents/skills/jsx-ui-authoring"
+    "source": "${HOME}/.agents/skills/jsx-ui-audit"
   },
   "flow-skill-dev": {
     "destination": [
@@ -47,23 +47,23 @@
     ],
     "source": "${HOME}/.agents/skills/flow-skill-research"
   },
-  "skill-behavior-testing": {
+  "skill-behavior-test": {
     "destination": [
-      "${HOME}/.config/skillshare/skills/skill-behavior-testing"
+      "${HOME}/.config/skillshare/skills/skill-behavior-test"
     ],
-    "source": "${HOME}/.agents/skills/skill-behavior-testing"
+    "source": "${HOME}/.agents/skills/skill-behavior-test"
   },
-  "skill-install-tool": {
+  "software-install": {
     "destination": [
-      "${HOME}/.config/skillshare/skills/skill-install-tool"
+      "${HOME}/.config/skillshare/skills/software-install"
     ],
-    "source": "${HOME}/.openclaw/workspace/skills/skill-install-tool"
+    "source": "${HOME}/.openclaw/workspace/skills/software-install"
   },
-  "skill-integration-testing": {
+  "skill-integration-test": {
     "destination": [
-      "${HOME}/.config/skillshare/skills/skill-integration-testing"
+      "${HOME}/.config/skillshare/skills/skill-integration-test"
     ],
-    "source": "${HOME}/.agents/skills/skill-integration-testing"
+    "source": "${HOME}/.agents/skills/skill-integration-test"
   },
   "skillshare": {
     "destination": [
@@ -71,23 +71,23 @@
     ],
     "source": "${HOME}/.agents/skills/skillshare"
   },
-  "software-uninstall-guide": {
+  "software-uninstall": {
     "destination": [
-      "${HOME}/.config/skillshare/skills/software-uninstall-guide"
+      "${HOME}/.config/skillshare/skills/software-uninstall"
     ],
-    "source": "${HOME}/.openclaw/workspace/skills/software-uninstall-guide"
+    "source": "${HOME}/.openclaw/workspace/skills/software-uninstall"
   },
-  "sync-skill-to-center": {
+  "sync-skills": {
     "destination": [
-      "${HOME}/.config/skillshare/skills/sync-skill-to-center"
+      "${HOME}/.config/skillshare/skills/sync-skills"
     ],
-    "source": "${HOME}/.agents/skills/sync-skill-to-center"
+    "source": "${HOME}/.agents/skills/sync-skills"
   },
-  "ui-component-extraction": {
+  "ui-extract": {
     "destination": [
-      "${HOME}/.config/skillshare/skills/ui-component-extraction"
+      "${HOME}/.config/skillshare/skills/ui-extract"
     ],
-    "source": "${HOME}/.agents/skills/ui-component-extraction"
+    "source": "${HOME}/.agents/skills/ui-extract"
   },
   "ui-ux-pro-max": {
     "destination": [
@@ -107,10 +107,10 @@
     ],
     "source": "${HOME}/.agents/skills/web-design-guidelines"
   },
-  "project-rules-architecture": {
-    "source": "${HOME}/.agents/skills/project-rules-architecture",
+  "project-rules-design": {
+    "source": "${HOME}/.agents/skills/project-rules-design",
     "destination": [
-      "${HOME}/.config/skillshare/skills/project-rules-architecture"
+      "${HOME}/.config/skillshare/skills/project-rules-design"
     ]
   }
 }

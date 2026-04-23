@@ -9,7 +9,7 @@ description: Use when preparing to publish or update a browser extension to web 
 
 这个 skill 编排「浏览器扩展从 preflight 到提交」的完整链路。
 
-它不替代 `ext-publishing-preflight`、`web-image` 或各平台上传工具。它的职责是：
+它不替代 `ext-preflight`、`web-image` 或各平台上传工具。它的职责是：
 
 - 先用 preflight 查出所有待完成项
 - 对缺失的商店营销位图默认直接进入补齐分支，并将固定尺寸网页出图工作路由给 `web-image`
@@ -30,7 +30,7 @@ description: Use when preparing to publish or update a browser extension to web 
 - 只讨论扩展代码实现，不涉及发布
 - 只做扩展内部功能调试
 - 发布 VSCode extension / Obsidian plugin / 其他非浏览器扩展（本 skill 锁定浏览器扩展）
-- 只是想跑一次 preflight 看看状态（直接用 `ext-publishing-preflight` 即可）
+- 只是想跑一次 preflight 看看状态（直接用 `ext-preflight` 即可）
 
 ## Execution Default
 
@@ -43,7 +43,7 @@ description: Use when preparing to publish or update a browser extension to web 
 
 按顺序执行：
 
-1. 运行 `ext-publishing-preflight`
+1. 运行 `ext-preflight`
 2. 分类缺失项 → 对缺失的营销位图默认直接补齐：可基于项目素材补齐的位图交给 `web-image` 在当前工作区生成 / 素材不足项列入 user-must-provide / 非图片列入 checklist
 3. 输出已生成素材 + 缺口清单 + 注意事项 → 等待用户明确确认「生成结果可用且全部就绪」
 4. 按项目约定整理分平台提交 payload
@@ -52,7 +52,7 @@ Step 3 前不得进入 Step 4。不允许「看起来都 OK」就自己补全再
 
 ## Step 1: 运行 preflight
 
-调用 `ext-publishing-preflight`，拿到待完成项清单。
+调用 `ext-preflight`，拿到待完成项清单。
 
 调用时把已知信息显式传入，避免下游重复追问：
 
@@ -103,8 +103,8 @@ Step 3 前不得进入 Step 4。不允许「看起来都 OK」就自己补全再
 - `web-image` 的输入中必须显式带上尺寸、平台槽位、项目素材路径、目标输出目录、信息层级约束和截图约束
 - 视觉目标是“展示效果舒服，特色能力重点突出”，优先强调数字、速度、效率、规模感等可感知信号
 - 文案和视觉都必须从项目内现有资产抽取，不得引入项目外的新主视觉
-- `1280×800` 成品**必须**使用至少一张项目中已有的真实截图，不能只放文字、icon、抽象背景
-- 若项目没有可复用的真实截图，则 `1280×800` 直接降级为 user-must-provide，不得伪造
+- `1280×800` 成品**必须以项目中真实截图为主体**，围绕截图做排版、标注、文字、装饰、设备框都可以，但主体不能是纯文字、icon、假 UI 或抽象背景
+- 若项目没有可复用的真实截图，`1280×800` 直接降级为 user-must-provide，不得伪造或用 stock 图顶替
 - 生成完成后必须把 HTML 源文件和导出的 PNG 一并保存回项目目录
 - 生成完成后必须记录每张图的用途、尺寸、源素材路径和输出路径，供 Step 3 给用户确认
 
@@ -272,7 +272,7 @@ Step 3 前不得进入 Step 4。不允许「看起来都 OK」就自己补全再
 
 ## Fallbacks
 
-- `ext-publishing-preflight` 不可用 → 手工对照每个平台官方 checklist 做最小集检查，报告中注明降级
+- `ext-preflight` 不可用 → 手工对照每个平台官方 checklist 做最小集检查，报告中注明降级
 - 项目内截图 / 文字 / icon / 背景不足以支撑 HTML 渲染素材 → 把对应图片列入 user-must-provide，并明确缺的是哪些原始素材
 - 缺失的是营销图本身，但项目内已有足够截图 / 文案 / icon → 不要先问用户要不要做，直接先生成第一版再进入确认
 - 项目没有任何 publish script / CI 配置 → 给出每个平台官方 CLI 的最小命令示例，不替用户决定

@@ -82,7 +82,7 @@ description: Use when a task is about to be claimed complete and you need a proj
 
 - 只要存在任意 `must-fix`，就停止完成流程并回流到 `writing-plans`
 - 若不存在 `must-fix`，才允许继续进入 `verification-before-completion`
-- `verification-before-completion` 通过后的下一 skill 由项目决定；若项目未定义，默认为 `committing-clean-changes`
+- `verification-before-completion` 通过后的下一 skill 由项目决定；若项目未定义，默认为 `clean-commit`
 
 `should-fix` 不阻断最终验证，但仍必须被报告。
 
@@ -293,7 +293,7 @@ description: Use when a task is about to be claimed complete and you need a proj
   - 当前结果: `pass` 或 `fail`
   - 下一 skill: `verification-before-completion` 或 `writing-plans`
 - 若结果为 `pass`，还必须显式写出：
-  - `verification-before-completion` 通过后的下一 skill（项目指定 > 默认 `committing-clean-changes`）
+  - `verification-before-completion` 通过后的下一 skill（项目指定 > 默认 `clean-commit`）
 - 禁止只写"我已经做了验证"或"建议后续修复"这种模糊表述
 - 如果"必修项"非空：
   - 下一步必须是 `writing-plans`

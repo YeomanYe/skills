@@ -1,0 +1,223 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700;800&family=Space+Grotesk:wght@500;700&display=swap");
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 440px;
+        height: 280px;
+        overflow: hidden;
+      }
+
+      body {
+        font-family: "JetBrains Mono", monospace;
+        background: #0a0e1f;
+        color: #e8ecff;
+      }
+
+      .card {
+        position: relative;
+        width: 440px;
+        height: 280px;
+        padding: 28px 30px;
+        background:
+          radial-gradient(ellipse 600px 300px at 20% 30%, rgba(28, 216, 229, 0.18), transparent 60%),
+          radial-gradient(ellipse 500px 280px at 100% 100%, rgba(255, 67, 167, 0.18), transparent 60%),
+          linear-gradient(135deg, #0a0e1f 0%, #131a35 100%);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+
+      /* subtle grid overlay */
+      .card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(28, 216, 229, 0.06) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(28, 216, 229, 0.06) 1px, transparent 1px);
+        background-size: 22px 22px;
+        opacity: 0.6;
+        pointer-events: none;
+      }
+
+      .row {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 26px;
+        height: 100%;
+      }
+
+      /* ICON BLOCK */
+      .icon {
+        width: 108px;
+        height: 108px;
+        flex-shrink: 0;
+        position: relative;
+        background: #0e1430;
+        border: 3px solid #1cd8e5;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        box-shadow:
+          0 0 0 4px rgba(28, 216, 229, 0.12),
+          0 12px 30px rgba(28, 216, 229, 0.25),
+          inset 0 0 28px rgba(28, 216, 229, 0.18);
+      }
+
+      .icon .glyph {
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 800;
+        font-size: 64px;
+        color: #1cd8e5;
+        line-height: 1;
+        letter-spacing: -2px;
+        text-shadow: 0 0 18px rgba(28, 216, 229, 0.7);
+      }
+
+
+      /* TEXT */
+      .copy {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding-top: 4px;
+      }
+
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        align-self: flex-start;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        color: #1cd8e5;
+        background: rgba(28, 216, 229, 0.1);
+        border: 1px solid rgba(28, 216, 229, 0.45);
+        padding: 4px 8px;
+        border-radius: 4px;
+        text-transform: uppercase;
+      }
+      .tag .dot {
+        width: 5px;
+        height: 5px;
+        background: #1cd8e5;
+        border-radius: 50%;
+        box-shadow: 0 0 6px #1cd8e5;
+      }
+
+      .title {
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 800;
+        font-size: 26px;
+        line-height: 1.05;
+        color: #ffffff;
+        letter-spacing: -0.5px;
+        text-transform: uppercase;
+      }
+
+      .title .accent {
+        color: #1cd8e5;
+      }
+
+      .desc {
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 500;
+        font-size: 12px;
+        line-height: 1.45;
+        color: rgba(232, 236, 255, 0.78);
+        max-width: 260px;
+      }
+
+      .desc strong {
+        color: #ff43a7;
+        font-weight: 700;
+      }
+
+      /* BOTTOM-RIGHT SWITCH */
+      .switch {
+        position: absolute;
+        right: 22px;
+        bottom: 18px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        color: #1cd8e5;
+        text-transform: uppercase;
+      }
+
+      .toggle {
+        position: relative;
+        width: 44px;
+        height: 22px;
+        background: linear-gradient(90deg, #1cd8e5 0%, #00b4c4 100%);
+        border-radius: 22px;
+        border: 1.5px solid rgba(28, 216, 229, 0.9);
+        box-shadow:
+          0 0 12px rgba(28, 216, 229, 0.55),
+          inset 0 0 8px rgba(0, 0, 0, 0.35);
+      }
+      .toggle::after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        width: 14px;
+        height: 14px;
+        background: #f5fbff;
+        border-radius: 50%;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+      }
+      .toggle::before {
+        content: "ON";
+        position: absolute;
+        top: 50%;
+        left: 7px;
+        transform: translateY(-50%);
+        font-size: 8px;
+        font-weight: 800;
+        color: #0a0e1f;
+        letter-spacing: 0.5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="row">
+        <div class="icon">
+          <span class="glyph">E</span>
+        </div>
+
+        <div class="copy">
+          <span class="tag"><span class="dot"></span>Browser Extension Manager</span>
+          <h1 class="title">EXT <span class="accent">HELPER</span></h1>
+          <p class="desc">
+            <strong>Group · Automate · Bisect</strong> — toggle, schedule, and debug
+            extensions in one click. Tame extension chaos.
+          </p>
+        </div>
+      </div>
+
+      <div class="switch">
+        <span>TOGGLE</span>
+        <span class="toggle"></span>
+      </div>
+    </div>
+  </body>
+</html>

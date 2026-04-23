@@ -44,7 +44,7 @@
 用户消息：
 > 跑下 preflight 看状态。
 
-期望：直接进 `ext-publishing-preflight`，不必走 orchestrator 全流程。
+期望：直接进 `ext-preflight`，不必走 orchestrator 全流程。
 
 ### T8-negative-design
 用户消息：
@@ -134,7 +134,7 @@
 ## 集成
 
 ### I1-handoff-to-preflight
-验证：Step 1 真的调 `ext-publishing-preflight`，不自己发明 checklist。
+验证：Step 1 真的调 `ext-preflight`，不自己发明 checklist。
 
 ### I2-html-asset-generation
 验证：可补齐位图时，skill 通过 `web-image` 在当前工作区生成 HTML/CSS 资产，输入包含尺寸 / 平台 / 项目素材路径 / 项目关键说明 / 输出目录，而不是 handoff 给外部设计 skill；即使项目原本没有营销图，也应自动进入这一路。

@@ -46,7 +46,7 @@
 ## Case 7: skillshare 同步边界
 
 - 输入: “安装第一个到全局。”
-- 预期行为: 安装到 agent 全局目录即可，不自动调用 `sync-skill-to-center`。
+- 预期行为: 安装到 agent 全局目录即可，不自动调用 `sync-skills`。
 - 失败信号: 把所有安装过的第三方 skill 自动复制进 skillshare source。
 
 ## Case 8: 本地已安装强匹配

@@ -1,0 +1,4 @@
+interface:
+  display_name: "JSX UI Authoring"
+  short_description: "Judge JSX UI conventions and decide which best-practice to follow"
+  default_prompt: "Use $jsx-ui-audit to inspect project UI conventions, judge whether the current implementation should follow local patterns or fallback to antd/shadcn/radix-inspired best-practice, and produce an implementation decision summary before or after code changes."

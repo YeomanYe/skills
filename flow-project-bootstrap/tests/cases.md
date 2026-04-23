@@ -36,7 +36,7 @@ Prompt：
 
 > 帮我审查当前项目 docs/ 下的规范，看看有没有重复或者层次错位的地方。
 
-预期：不触发本 skill。由 `project-rules-architecture` 直接处理。
+预期：不触发本 skill。由 `project-rules-design` 直接处理。
 
 ### N2. 仅设计需求
 
@@ -79,7 +79,7 @@ Prompt：同 T1。
 预期行为顺序：
 
 1. Agent 先通过 `project-prep` 锁定项目前置准备，含显式交互设计与 preview decision。不先跳到设计或规范
-2. Agent 以前置准备为上下文调用 `project-rules-architecture`，拿回规则脚手架
+2. Agent 以前置准备为上下文调用 `project-rules-design`，拿回规则脚手架
 3. Agent 以前置准备为上下文调用 `ui-ux-pro-max`，拿回 ≥2 候选
 4. Agent 产出开放决策清单
 
@@ -130,7 +130,7 @@ Prompt：
 
 > 我们这个项目已经 run 了三个月，现在想大改一次，MVP 砍版、换规范、换设计。
 
-预期：skill 可能触发，但识别为 near-greenfield 变体；`project-rules-architecture` 应该在 audit + patch 模式下调用，而不是从零搭脚手架。
+预期：skill 可能触发，但识别为 near-greenfield 变体；`project-rules-design` 应该在 audit + patch 模式下调用，而不是从零搭脚手架。
 
 ### G5. 用户压力下要求删掉未选中的设计候选
 

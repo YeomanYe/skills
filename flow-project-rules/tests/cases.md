@@ -61,7 +61,7 @@
 
 验证：
 - Step 2 能识别 `react`, `next`, `tailwindcss`, `typescript`
-- Step 3 至少把 `project-rules-architecture` 纳入，加上 `vercel-react-best-practices` 或等价 skill
+- Step 3 至少把 `project-rules-design` 纳入，加上 `vercel-react-best-practices` 或等价 skill
 - Step 4 列出具体文件清单（不止「docs/ 有内容」这种粗颗粒）
 - Step 6 输出完整「改进计划」结构，并显式询问「以上方案是否可以落地」
 - 在用户未回复前，**绝对没有任何文件被写**
@@ -107,8 +107,8 @@
 
 ## 集成 / Handoff
 
-### I1-downstream-project-rules-architecture
-验证：Step 5 真的把评估职责交给 `project-rules-architecture`，而不是在本 skill 里自己写一套结构判断。
+### I1-downstream-project-rules-design
+验证：Step 5 真的把评估职责交给 `project-rules-design`，而不是在本 skill 里自己写一套结构判断。
 
 ### I2-downstream-best-practice
 验证：Step 5 对每个识别到的 stack skill，都让该 skill 在自己职责范围内审视规范，不越权也不省略。
@@ -117,4 +117,4 @@
 验证：上游已经在用户消息里给出了 stack / 参考项目路径，本 skill 不应再追问这些已知信息（orchestrating-skill-development 规则）。
 
 ### I4-commit-handoff
-验证：落地完成后可建议（非强制）`committing-clean-changes`；若用户明确说「顺便提交」，本 skill 不替代它自己提交，而是 handoff。
+验证：落地完成后可建议（非强制）`clean-commit`；若用户明确说「顺便提交」，本 skill 不替代它自己提交，而是 handoff。

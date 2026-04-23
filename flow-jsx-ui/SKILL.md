@@ -9,7 +9,7 @@ description: Use when handling JSX UI creation, modification, or refactoring in 
 
 这个 skill 用于编排完整的 JSX UI 开发闭环。
 
-它不替代 `ui-component-extraction`、`jsx-ui-authoring` 或任意 best-practice skill。
+它不替代 `ui-extract`、`jsx-ui-audit` 或任意 best-practice skill。
 它的职责是决定何时调用这些能力、何时回环复查，以及在什么情况下继续修正。
 
 默认行为是执行到“可交付 UI 修改方案”，不是只给流程建议。
@@ -35,16 +35,16 @@ description: Use when handling JSX UI creation, modification, or refactoring in 
 
 这个编排 skill 必须遵守以下分工：
 
-- `ui-component-extraction`
+- `ui-extract`
   - 负责确定范围和组件边界
-- `jsx-ui-authoring`
+- `jsx-ui-audit`
   - 负责判定项目规范、参考源和当前实现问题
 - best-practice skill
   - 负责具体写法
   - 例如 `vercel-react-best-practices`
   - 也可以是未来新增的其他 React / Preact / UI 编写规则源
 
-不要让 `jsx-ui-authoring` 直接承担完整写法。
+不要让 `jsx-ui-audit` 直接承担完整写法。
 不要让 best-practice skill 直接跳过范围判断。
 
 ## 必要流程
@@ -53,11 +53,11 @@ description: Use when handling JSX UI creation, modification, or refactoring in 
 
 1. 判定任务类型
 2. 判断是否需要先做组件边界分析
-3. 若需要，先走 `ui-component-extraction`
-4. 调用 `jsx-ui-authoring` 做项目规范和问题判定
+3. 若需要，先走 `ui-extract`
+4. 调用 `jsx-ui-audit` 做项目规范和问题判定
 5. 选择合适的 best-practice skill
 6. 执行真实代码修改
-7. 再次调用 `jsx-ui-authoring` 复查结果
+7. 再次调用 `jsx-ui-audit` 复查结果
 8. 若复查不通过，回到 best-practice 修正
 9. 直到复查通过或明确卡点
 
@@ -78,7 +78,7 @@ description: Use when handling JSX UI creation, modification, or refactoring in 
 
 ## Step 2: 是否需要先做组件边界分析
 
-满足以下任一条件时，必须先走 `ui-component-extraction`：
+满足以下任一条件时，必须先走 `ui-extract`：
 
 - 页面或组件明显臃肿
 - 用户明确提到组件拆分、组件抽取、边界不清
@@ -93,7 +93,7 @@ description: Use when handling JSX UI creation, modification, or refactoring in 
 
 若跳过，必须在最终报告中说明为什么能跳过。
 
-## Step 3: 用 `ui-component-extraction` 确定范围
+## Step 3: 用 `ui-extract` 确定范围
 
 当边界分析是必需项时，至少要产出：
 
@@ -104,9 +104,9 @@ description: Use when handling JSX UI creation, modification, or refactoring in 
 
 没有这一层输入时，不要直接进入 best-practice 写法阶段。
 
-## Step 4: 用 `jsx-ui-authoring` 做判定
+## Step 4: 用 `jsx-ui-audit` 做判定
 
-在动代码前，必须让 `jsx-ui-authoring` 判断：
+在动代码前，必须让 `jsx-ui-audit` 判断：
 
 - 项目规范强度
 - 是否已有可直接复用的本地模式
@@ -118,20 +118,20 @@ description: Use when handling JSX UI creation, modification, or refactoring in 
 
 ## Step 5: 选择 best-practice skill
 
-根据 `jsx-ui-authoring` 的判定，选择下游写法来源。
+根据 `jsx-ui-audit` 的判定，选择下游写法来源。
 
 示例：
 
 - React / Next.js 侧重性能、状态和实现细节
   - `vercel-react-best-practices`
 - Tailwind / primitive / variant / shadcn 风格
-  - 由 `jsx-ui-authoring` 指定按 shadcn 模式写
+  - 由 `jsx-ui-audit` 指定按 shadcn 模式写
 - 其他框架或规则源
   - 选择对应 best-practice skill
 
 如果当前环境没有完全对应的 best-practice skill，应：
 
-- 保留 `jsx-ui-authoring` 的判定结果
+- 保留 `jsx-ui-audit` 的判定结果
 - 按最接近的规则源执行
 - 在最终报告中说明缺失项
 
@@ -147,9 +147,9 @@ description: Use when handling JSX UI creation, modification, or refactoring in 
 - 不为了复用而创造万能组件
 - 不绕过前面已经得到的范围和判定结论
 
-## Step 7: 用 `jsx-ui-authoring` 复查
+## Step 7: 用 `jsx-ui-audit` 复查
 
-代码修改后，必须再次让 `jsx-ui-authoring` 检查：
+代码修改后，必须再次让 `jsx-ui-audit` 检查：
 
 - 当前实现是否仍偏离项目规范
 - API 是否一致
@@ -158,7 +158,7 @@ description: Use when handling JSX UI creation, modification, or refactoring in 
 - 是否存在 props 爆炸或过度抽象
 - 是否仍需要回退到 best-practice 再修正
 
-如果 `jsx-ui-authoring` 仍判定有问题，不得提前收尾。
+如果 `jsx-ui-audit` 仍判定有问题，不得提前收尾。
 
 ## Step 8: 回环修正
 
@@ -177,7 +177,7 @@ description: Use when handling JSX UI creation, modification, or refactoring in 
 
 - 任务类型
 - 是否做了组件边界分析
-- `jsx-ui-authoring` 的前置判定结果
+- `jsx-ui-audit` 的前置判定结果
 - 使用了哪个 best-practice 来源
 - 是否经过复查
 - 复查结论
@@ -185,8 +185,8 @@ description: Use when handling JSX UI creation, modification, or refactoring in 
 
 ## 常见错误
 
-- 跳过 `ui-component-extraction` 直接开始拆组件
-- 把 `jsx-ui-authoring` 当成写法规则库
+- 跳过 `ui-extract` 直接开始拆组件
+- 把 `jsx-ui-audit` 当成写法规则库
 - 没有先判定项目规范，就直接照抄外部参考
 - best-practice skill 没有拿到范围和判定结果就直接写
 - 写完后不复查
@@ -196,9 +196,9 @@ description: Use when handling JSX UI creation, modification, or refactoring in 
 
 只有同时满足以下条件，才可认为本次编排完成：
 
-- 若需要边界分析，则已完成 `ui-component-extraction`
-- 已完成 `jsx-ui-authoring` 前置判定
+- 若需要边界分析，则已完成 `ui-extract`
+- 已完成 `jsx-ui-audit` 前置判定
 - 已选择并使用合适的 best-practice 来源
 - 已做真实代码修改
-- 已完成至少一次 `jsx-ui-authoring` 复查
+- 已完成至少一次 `jsx-ui-audit` 复查
 - 若复查不通过，已继续回环或明确说明阻塞原因

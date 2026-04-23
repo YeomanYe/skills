@@ -1,4 +1,0 @@
-interface:
-  display_name: "UI Component Extraction"
-  short_description: "Extract visual and interactive UI components with clear boundaries"
-  default_prompt: "Use $ui-component-extraction to refactor bulky UI code by discovering focus-out visual boundaries, classifying page-local, business, shared, and primitive components, and producing an extraction plan before editing."

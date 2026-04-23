@@ -10,7 +10,7 @@ description: Use when a user wants a full project kickoff bundle that combines p
 编排器，把原始产品需求转成三件套 kickoff 包：
 
 1. **项目前置准备** —— 通过 `project-prep` 锁定 MVP、主交互设计、主要技术栈、preview decision
-2. **工程规范脚手架** —— 通过 `project-rules-architecture` 产出
+2. **工程规范脚手架** —— 通过 `project-rules-design` 产出
 3. **候选设计系统** —— 通过 `ui-ux-pro-max` 返回 2–4 套
 
 核心原则：前置准备同时驱动规范（技术栈 → 规则域布局）与设计（产品类型 → 视觉语言）。必须先锁定项目前置准备，再调用两个下游 skill，最后汇总并附开放决策清单。
@@ -27,7 +27,7 @@ description: Use when a user wants a full project kickoff bundle that combines p
 
 - 只要开发前准备（MVP / 主技术栈 / preview requirement）—— 直接用 `project-prep`
 - 只要 MVP —— 直接写，不要编排
-- 只要规范 —— 直接用 `project-rules-architecture`
+- 只要规范 —— 直接用 `project-rules-design`
 - 只要设计系统建议 —— 直接用 `ui-ux-pro-max`
 - 项目已进入实现中段，只想调整单一维度
 
@@ -48,7 +48,7 @@ Step 1 的完成标准不是“有一份大概的 MVP”，而是已经明确拿
 
 ### Step 2 —— 工程规范脚手架
 
-以锁定的项目前置准备为上下文，调用 `project-rules-architecture`。传给它：
+以锁定的项目前置准备为上下文，调用 `project-rules-design`。传给它：
 
 - 由 Step 1 确认的技术栈 / 框架
 - 由 Step 1 推断的主要业务域（如 auth、billing、content、dashboard、checkout）
@@ -89,7 +89,7 @@ Step 1 的完成标准不是“有一份大概的 MVP”，而是已经明确拿
    - MVP 交互中埋下的扩展点（预留 slot、未来再细化的分支）
    - 对规模 / 用户量 / 增长路径的预期
    如果这期根本没探讨到后续，必须显式写一行 "本期未讨论后续规划"，不得留空
-3. 规则脚手架（`project-rules-architecture` 产出）
+3. 规则脚手架（`project-rules-design` 产出）
 4. **候选设计系统 —— 全量清单**（`ui-ux-pro-max` 产出）：
    - 原样记录 ui-ux-pro-max 返回的**所有**候选（通常 2–4 套，用户指定数量时取用户数量）
    - 用户即使已在对话中偏好某一套，也不得在最终交付里删除其他候选
@@ -122,7 +122,7 @@ Step 1 的完成标准不是“有一份大概的 MVP”，而是已经明确拿
 
 ## Red Flags —— STOP 并重新考虑
 
-- 将要调用 `project-rules-architecture` 但项目前置准备还没锁 → 停下，先完成 `project-prep`
+- 将要调用 `project-rules-design` 但项目前置准备还没锁 → 停下，先完成 `project-prep`
 - 将要给出单一设计系统并视为完成 → 停下，产出 ≥2 候选
 - 跳过交互设计（"从功能列表自明"）→ 停下，显式写出来
 - 跳过 preview decision（"实现时再说"）→ 停下，先明确它是 `Required`、`Not needed` 还是 `Already satisfied`
@@ -162,7 +162,7 @@ Step 1 的完成标准不是“有一份大概的 MVP”，而是已经明确拿
 - 前置准备里有 `Preview decision`
 - 已列 Non-goals
 - **"后续规划" 段落存在**——列出了暂缓事项 / 扩展点 / 规模预期，或显式写 "本期未讨论后续规划"
-- `project-rules-architecture` 真的运行过（不是 "应该运行"）
+- `project-rules-design` 真的运行过（不是 "应该运行"）
 - `ui-ux-pro-max` 真的运行过并返回了 ≥2 候选
 - **全量候选设计都在最终交付里**——没有因为用户口头偏好就删掉其他候选
 - 开放决策清单存在且可执行（含 MVP 切片、后续规划方向、规则域、设计选择四类至少一项）

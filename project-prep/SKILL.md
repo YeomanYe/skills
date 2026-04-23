@@ -1,6 +1,13 @@
 ---
 name: project-prep
-description: Use when a user wants project prep before implementation: define the MVP, main interaction design, primary tech stack, and decide whether to add a preview requirement such as a mock web preview, demo surface, or preview route. Trigger on requests like "开工前准备", "项目开发前准备", "定 MVP 和技术栈", "要不要加 preview requirement", "need a preview plan before building", or when browser extensions, native apps, embedded surfaces, and integration-heavy tools need UI walkthroughs before real-environment testing.
+description: >
+  Use when a user wants project prep before implementation: define the MVP,
+  main interaction design, primary tech stack, and decide whether to add a
+  preview requirement such as a mock web preview, demo surface, or preview route.
+  Trigger on requests like "开工前准备", "项目开发前准备", "定 MVP 和技术栈",
+  "要不要加 preview requirement", "need a preview plan before building", or
+  when browser extensions, native apps, embedded surfaces, and integration-heavy
+  tools need UI walkthroughs before real-environment testing.
 ---
 
 # Project Prep

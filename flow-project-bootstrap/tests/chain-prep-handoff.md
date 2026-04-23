@@ -1,6 +1,6 @@
 # 链路测试用例
 
-验证 `orchestrating-project-bootstrap -> project-prep -> project-rules-architecture / ui-ux-pro-max` 的衔接是否完整。
+验证 `orchestrating-project-bootstrap -> project-prep -> project-rules-design / ui-ux-pro-max` 的衔接是否完整。
 
 ## C1. 正常流转
 

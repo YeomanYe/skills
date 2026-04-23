@@ -9,7 +9,7 @@ description: Use when creating or substantially updating a skill and you need a 
 
 这个 skill 用于编排完整的 skill 开发流程。
 
-它不替代 `skill-creator`、`writing-skills`、`skill-behavior-testing` 或 `skill-integration-testing`。
+它不替代 `skill-creator`、`writing-skills`、`skill-behavior-test` 或 `skill-integration-test`。
 它的职责是决定何时调用这些 skill、强制执行顺序，并要求真实落盘、真实测试和最终输出报告。
 
 默认行为是执行，不是只给流程建议。
@@ -39,7 +39,7 @@ description: Use when creating or substantially updating a skill and you need a 
 - 真实创建或修改目标 `tests/` 用例
 - 真实执行行为测试
 - 命中 gate 时真实执行集成测试
-- 当目标 skill 需要进入全局复用范围时，调用 `sync-skill-to-center`
+- 当目标 skill 需要进入全局复用范围时，调用 `sync-skills`
 - 输出最终报告
 
 不要停留在：
@@ -62,10 +62,10 @@ description: Use when creating or substantially updating a skill and you need a 
 1. 先判定本次工作类型
 2. 调用 `skill-creator` 理清范围与契约
 3. 调用 `writing-skills` 编写或修订 skill
-4. 运行 `skill-behavior-testing`
-5. 判定是否需要 `skill-integration-testing`
-6. 若需要，则运行 `skill-integration-testing`
-7. 判定是否需要调用 `sync-skill-to-center`
+4. 运行 `skill-behavior-test`
+5. 判定是否需要 `skill-integration-test`
+6. 若需要，则运行 `skill-integration-test`
+7. 判定是否需要调用 `sync-skills`
 8. 输出最终报告
 
 在最终报告完成前，不得宣称该 skill 已准备就绪。
@@ -135,7 +135,7 @@ description: Use when creating or substantially updating a skill and you need a 
 
 ## Step 4: Run Behavior Testing
 
-在宣称 skill 已可用之前，必须运行 `skill-behavior-testing`。
+在宣称 skill 已可用之前，必须运行 `skill-behavior-test`。
 
 行为测试至少覆盖：
 
@@ -151,7 +151,7 @@ description: Use when creating or substantially updating a skill and you need a 
 
 集成测试是“条件必跑”，不是一律必跑。
 
-若满足以下任一条件，必须运行 `skill-integration-testing`：
+若满足以下任一条件，必须运行 `skill-integration-test`：
 
 - 该 skill 会参与多-skill 工作流
 - 该 skill 会将工作 handoff 给其他 skill
@@ -169,7 +169,7 @@ description: Use when creating or substantially updating a skill and you need a 
 
 ## Step 6: Run Integration Testing When Required
 
-当集成测试是必需项时，使用 `skill-integration-testing` 验证：
+当集成测试是必需项时，使用 `skill-integration-test` 验证：
 
 - 是否正确进入 skill 链路
 - 是否正确 handoff 给下游 skill
@@ -181,9 +181,9 @@ description: Use when creating or substantially updating a skill and you need a 
 
 ## Step 7: Sync To Center When Needed
 
-`sync-skill-to-center` 不是一律必跑，而是条件必跑。
+`sync-skills` 不是一律必跑，而是条件必跑。
 
-若满足以下任一条件，应在收尾阶段调用 `sync-skill-to-center`：
+若满足以下任一条件，应在收尾阶段调用 `sync-skills`：
 
 - 用户明确希望该 skill 进入全局复用范围
 - 该 skill 不仅用于当前项目，还应在其他上下文中复用
@@ -230,9 +230,9 @@ description: Use when creating or substantially updating a skill and you need a 
 
 不要因为 `writing-skills` 缺失就跳过测试或直接宣称完成。
 
-### `skill-behavior-testing` 缺失
+### `skill-behavior-test` 缺失
 
-如果 `skill-behavior-testing` 不可用，至少手工完成以下四类检查，并记录到最终报告：
+如果 `skill-behavior-test` 不可用，至少手工完成以下四类检查，并记录到最终报告：
 
 - 正例触发
 - 反例触发
@@ -241,9 +241,9 @@ description: Use when creating or substantially updating a skill and you need a 
 
 手工验证不等于免测，只是降级执行。
 
-### `skill-integration-testing` 缺失
+### `skill-integration-test` 缺失
 
-如果 `skill-integration-testing` 不可用，但当前 skill 命中了集成测试 gate，至少手工检查：
+如果 `skill-integration-test` 不可用，但当前 skill 命中了集成测试 gate，至少手工检查：
 
 - 上游输入是否足够让下游接手
 - handoff 字段是否完整
@@ -293,7 +293,7 @@ description: Use when creating or substantially updating a skill and you need a 
 ### 中心同步
 - 是否需要:
 - 状态:
-- 测试方式: sync-skill-to-center | skipped
+- 测试方式: sync-skills | skipped
 - 目标路径:
 - 原因:
 
@@ -320,10 +320,10 @@ description: Use when creating or substantially updating a skill and you need a 
 如果出现以下任一情况，则该 skill 不应被视为完成：
 
 - 新建 skill 或实质性更新时跳过了 `skill-creator`
-- 没有运行 `skill-behavior-testing`
+- 没有运行 `skill-behavior-test`
 - 集成测试是必需项但没有执行
 - 跳过了集成测试但没有给出理由
-- 需要进入全局复用范围但没有调用 `sync-skill-to-center`
+- 需要进入全局复用范围但没有调用 `sync-skills`
 - 缺少最终报告
 - 只输出建议，没有实际创建或修改 skill 文件
 - 只写了测试思路，没有实际执行测试

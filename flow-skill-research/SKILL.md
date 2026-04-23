@@ -187,7 +187,7 @@ npx skills find "<query>"
 npx skills add owner/repo -g -y --skill skill-name
 ```
 
-若用户明确要求把已安装 skill 纳入 skillshare source，再调用 `sync-skill-to-center`。
+若用户明确要求把已安装 skill 纳入 skillshare source，再调用 `sync-skills`。
 
 ## Handoff
 
