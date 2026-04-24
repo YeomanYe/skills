@@ -197,6 +197,21 @@ description: Use when writing or refactoring JSX-based UI in React, Preact, Fres
 风险点: 若 props 继续增长，可能应拆出 page-local wrapper
 ```
 
+## 组件写法红线
+
+除判定层外，以下是对组件代码本身的硬性约束，写或复查时都必须检查：
+
+- **不要写只返回 `null` 的组件**
+  - 只返回 `null` 的"组件"本质上不产出 UI，应改写为工具函数、自定义 hook，或直接内联到调用点
+  - 组件的职责是产出 JSX；纯逻辑、纯副作用不要包装成组件
+- **避免只用 Fragment 包裹的组件**
+  - 如果组件体只是 `<>...</>` 里若干段 JSX，且没有自身状态、语义或复用价值，通常应把内容直接并入调用方
+  - 只有在多处复用、或需要独立 memo / 错误边界 / Suspense 边界时才保留
+- **组件命名优先用最简单的词**
+  - 避免生僻单词和冗余前缀；基础组件优先用 `Input`、`Button`、`Modal`，而不是 `BaseInput`、`CommonButton`、`CustomModal`
+  - 只有在项目里确实同时存在多层封装需要区分时，才使用 `Base*` / `Raw*` / `Primitive*` 之类前缀
+  - 命名应能让人一眼看出用途，不要让读者去猜
+
 ## 常见错误
 
 - 明明项目已有明确模式，却照搬外部库写法

@@ -1,4 +1,4 @@
-# JSX UI Authoring Test Cases
+# JSX UI Audit Test Cases
 
 ## Case 1: 先看项目规范
 
@@ -54,3 +54,33 @@
 - 输入: “这个组件应该参考什么来改？”
 - 预期行为: 输出参考源选择和理由，而不是直接展开完整写法规则。
 - 失败信号: 本 skill 自己承担全部具体写法说明。
+
+## Case 10: 拦住只返回 null 的"组件"
+
+- 输入: 给出一个 React 组件 `SideEffectLogger`，body 里只调用 `useEffect`，最后 `return null`。
+- 预期行为: 指出这不应是组件，建议改写成自定义 hook（如 `useSideEffectLog`）、工具函数或内联到调用点。
+- 失败信号: 接受 null 返回的组件作为合理写法；只建议"加个显示内容"而不提结构重构。
+
+## Case 11: 拦住只用 Fragment 包裹的组件
+
+- 输入: 给出一个组件 `OrderHeader`，body 只是 `<><Title/><Meta/></>`，没有 state、memo、错误边界、也没有多处复用。
+- 预期行为: 建议直接把 Title/Meta 并入调用方，不保留 OrderHeader 这一层。
+- 失败信号: 把"只 Fragment 包裹"当成正常抽象而放行。
+
+## Case 12: Fragment 组件的 escape hatch
+
+- 输入: 给出一个 `MemoizedHeader`，body 是 `<>...</>`，但被 `React.memo` 包裹且在 5 处页面复用。
+- 预期行为: 不应要求其并入调用方；承认多处复用 + 独立 memo 边界是保留理由。
+- 失败信号: 机械套用"Fragment 只能内联"，忽视 escape hatch。
+
+## Case 13: 基础组件命名冗余
+
+- 输入: 项目 `components/ui/` 下直接出现 `BaseInput`、`CommonButton`、`CustomModal`，且不存在更高一层的 `Input`/`Button`/`Modal`。
+- 预期行为: 建议重命名为 `Input`/`Button`/`Modal`，指出没有封装层级时这些前缀只会增加噪音。
+- 失败信号: 认可 `BaseInput` 这种单层命名，或说这属于"项目风格"不作处理。
+
+## Case 14: 命名前缀的 escape hatch
+
+- 输入: 项目里 `Input` 已经是业务封装层，`primitives/BaseInput` 才是真正的 headless 基础件。
+- 预期行为: 不应要求重命名；承认双层封装下 `Base*`/`Primitive*` 前缀是必要区分。
+- 失败信号: 机械要求统一去前缀，把必要区分改没。

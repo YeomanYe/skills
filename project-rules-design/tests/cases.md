@@ -1,4 +1,4 @@
-# Project Rules Architecture Test Cases
+# Project Rules Design Test Cases
 
 ## Case 1: 从零设计规范体系
 
@@ -73,3 +73,39 @@
 - 输入: “一些小规则是不是都塞进 `completion` 就行了？”
 - 预期行为: 能判断 `completion` 只适合项目级完成与收尾检查，不应吞掉所有实现期规则。
 - 失败信号: 把实现期数据流、建模、命名规则也全部归到 `completion`。
+
+## Case 13: 领域目录缺 rules.md
+
+- 输入: 项目 `docs/coding/` 下只有 `index.md` 和几个专题文件（`naming.md`、`data-flow.md`），没有 `rules.md`。
+- 预期行为: 指出缺失规则总纲——读者读完 `index.md` 只看到文件列表，没有地方找到本域的基本规则 / MUST / SHOULD；建议新增 `coding/rules.md` 承载总纲原则。
+- 失败信号: 只说"文件不少已经够了"，或把总纲正文塞回 `index.md`。
+
+## Case 14: 领域目录缺 index.md
+
+- 输入: 项目 `docs/ui/` 下有 `rules.md`、`components.md`、`tokens.md`，但没有 `index.md`。
+- 预期行为: 指出缺失导航——多文件时读者不知道从哪个开始读；建议新增 `ui/index.md` 只列子文件职责，指向 `rules.md`。
+- 失败信号: 接受"反正就几个文件自己扫一下"的说法。
+
+## Case 15: index 长成大杂烩
+
+- 输入: 项目 `docs/architecture/index.md` 里既列了子文件目录，又直接展开了模块拆分原则、命名规范、10 多条 MUST。
+- 预期行为: 识别 index 层被当总纲用，建议把正文迁移到 `rules.md`，让 `index.md` 只做导航。
+- 失败信号: 只是说内容多，不指出是层级职责被破坏。
+
+## Case 16: rules.md 塞命令与验证步骤
+
+- 输入: 项目 `docs/coding/rules.md` 里除了原则，还写了 `pnpm test`、`pnpm lint` 的交付检查项和 `.tmp/` 目录清理命令。
+- 预期行为: 识别总纲被当成杂项筐，建议把命令类规则下沉到 `completion.md` 或独立专题文件。
+- 失败信号: 认为总纲可以包含一切"重要"内容。
+
+## Case 17: 栈未被任何规则覆盖
+
+- 输入: 项目 `package.json` 里有 `next`、`tailwindcss`，但 `docs/coding/rules.md` 对 Server Component 边界、数据获取位置、缓存策略没有任何约束；`docs/ui/` 也不提 `cn` / `cva` / variant 组织。
+- 预期行为: 读取 `references/stack-checklist.md`，对照 `react/next.js` 和 `tailwind/shadcn` 两节，指出当前规则体系未覆盖这些关键点；建议在 `coding/rules.md` 或新增专题文件中显式覆盖。
+- 失败信号: 只看现有规则文档的自洽性，不对照项目实际在用的栈。
+
+## Case 18: 规则已覆盖栈——不要误判为缺口
+
+- 输入: 项目用 Next.js，`docs/coding/rules.md` 已明确定义 Server/Client Component 标记方式、`fetch` 的缓存策略、`'use client'` 边界；`docs/ui/components.md` 已约束 `cn` / `cva` 用法。
+- 预期行为: 对照 `stack-checklist.md` 确认相关关键点已被覆盖，不追加虚假建议；如有不在 checklist 中的内容也应如实说明。
+- 失败信号: 机械按 checklist 生成一堆"建议新增"条目，即使项目已有对应规则。

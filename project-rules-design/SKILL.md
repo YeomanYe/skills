@@ -29,12 +29,16 @@ description: Use when designing, auditing, restructuring, or documenting a proje
   - 展示真实规则如何判断应归入 `architecture`、`coding`、`ui` 或 `ai-guide`
 - `references/shadcn-admin-target-structure.md`
   - 展示一套已经落地的目标结构，以及各入口和二级文件的职责
+- `references/stack-checklist.md`
+  - "技术栈 → 应进入哪个规则域"的共享清单
+  - 评估规则是否覆盖项目实际用到的栈时使用
+  - 也被 `flow-project-rules` 在 Step 5 联合评估时引用，两侧共用一份事实
 
 使用原则：
 
-- 参考的是“分层方式、职责边界、重构方法”，不是逐字复制文件内容
+- 参考的是"分层方式、职责边界、重构方法"，不是逐字复制文件内容
 - 若当前项目的规则域明显不同，应沿用本 skill 的分类方法，而不是强行套用该案例文件名
-- 只有在用户明确要求“参考真实案例”或“给一个落地样板”时，再继续读取这些案例
+- 只有在用户明确要求"参考真实案例"或"给一个落地样板"时，再继续读取这些案例
 
 ## 适用时机
 
@@ -60,7 +64,9 @@ description: Use when designing, auditing, restructuring, or documenting a proje
 3. 不做机械映射，必须按内容重构
 4. 入口文件只负责路由，不负责堆正文
 5. 一个领域只定义一种职责，不把不同层的规则混在一起
-6. 任何重构都应避免并存两套“同时有效”的规则体系
+6. 任何重构都应避免并存两套"同时有效"的规则体系
+7. 每个规则领域目录必须同时包含 `index.md`（导航）和 `rules.md`（规则总纲）两类文件，职责严格分开
+8. 设计规则应覆盖项目实际技术栈——评估时参考 [references/stack-checklist.md](references/stack-checklist.md) 判断各栈应进入哪个域
 
 ## 默认规则模型
 
@@ -86,6 +92,40 @@ description: Use when designing, auditing, restructuring, or documenting a proje
   - AI 先读什么
   - AI 何时继续下钻
   - AI 如何执行、采证、回流
+
+### 领域目录的标准文件骨架
+
+每个规则领域目录**必须同时存在** `index.md` 与 `rules.md`，职责不能互相吞并：
+
+- `index.md`：导航
+  - 列出本领域包含哪些二级文件及其职责一句话
+  - 指向 `rules.md`
+  - 不承载任何具体规则正文
+- `rules.md`：规则总纲
+  - 本领域的基本规则 / 中纲
+  - 原则级的 MUST / SHOULD
+  - 指向具体专题文件（如 `naming.md`、`data-flow.md`、`completion.md`）
+  - 不堆具体命令、验证步骤、专题细节
+
+其他二级文件（专题细则）按需增加，例如 `coding/naming.md`、`coding/data-flow.md`、`ui/components.md`。
+
+典型合规目录：
+
+```text
+docs/coding/
+  index.md        # 只导航
+  rules.md        # 编码总纲
+  naming.md       # 命名细则
+  data-flow.md    # 数据流细则
+  completion.md   # 收尾检查
+```
+
+典型违规：
+
+- 领域目录只有 `index.md`，没有 `rules.md`（总纲缺失，读者无处找到本域基本规则）
+- 领域目录只有 `rules.md`，没有 `index.md`（无导航层，多文件时读者不知道该读哪个）
+- `index.md` 里堆了大段具体规则正文（导航层被当成总纲用）
+- `rules.md` 里塞命令、验证步骤、专题细节（总纲被当成杂项筐）
 
 在该默认模型下，若项目存在明确的通用资产层，应额外识别并单独处理：
 
@@ -172,11 +212,14 @@ description: Use when designing, auditing, restructuring, or documenting a proje
 - 同时存在两套有效规则体系
 - AI 无法判断先读什么、再读什么
 - 通用资产层与业务层边界不清
-- `components`、`hooks`、`lib` 被写成“看似通用，实则带业务属性”
+- `components`、`hooks`、`lib` 被写成"看似通用，实则带业务属性"
 - 资产层文件缺少足够清晰的功能、参数、适用边界说明
 - `coding` 总纲文件夹杂过多专题小规则，失去总纲作用
 - `MUST` / `SHOULD` 只是零散清单，没有真正承接总纲原则
 - 命令、交付项、验证项被误塞到编码总纲中
+- 领域目录缺 `index.md`（没有导航层）或缺 `rules.md`（没有规则总纲）
+- `index.md` 在承担总纲职责；或 `rules.md` 只做导航
+- 项目用到的技术栈（见 [references/stack-checklist.md](references/stack-checklist.md)）未被任何规则域覆盖
 
 ### 4. 设计目标结构
 
@@ -242,25 +285,32 @@ CONTRIBUTING.md
 
 docs/
   architecture/
-    index.md
-    ...
+    index.md        # 导航
+    rules.md        # 总纲
+    ...             # 专题细则
   coding/
     index.md
-    ...
+    rules.md
+    naming.md
+    data-flow.md
+    completion.md
   ui/
     index.md
+    rules.md
     ...
   ai-guide/
     index.md
+    rules.md
     ...
 ```
 
 规则：
 
 - `CONTRIBUTING.md` 只做总入口
-- 每个领域目录的 `index.md` 只做该领域入口
-- 具体规则写在二级文件
-- 不让 `index.md` 重新长成大杂烩正文
+- 每个领域目录**同时**存在 `index.md`（导航）和 `rules.md`（总纲），不能互相吞并
+- 专题细则写在同域下的二级文件（如 `naming.md`、`data-flow.md`）
+- 不让 `index.md` 长成大杂烩正文
+- 不让 `rules.md` 塞进命令、验证步骤、专题细节
 
 若项目是前端或全栈 UI 项目，优先考虑在 `architecture` 或 `coding` 中显式定义以下内容：
 
@@ -282,6 +332,9 @@ docs/
 - 让入口文件承载大量具体规则正文
 - 保留两套同时有效的旧新规则体系
 - 只给抽象建议，不输出结构方案或落地结果
+- 领域目录只有 `index.md` 没有 `rules.md`，或只有 `rules.md` 没有 `index.md`
+- 让 `index.md` 承担总纲职责，或让 `rules.md` 只做导航
+- 项目实际在用的技术栈没有任何规则域覆盖，还宣称规范完整
 
 ## 输出契约
 
