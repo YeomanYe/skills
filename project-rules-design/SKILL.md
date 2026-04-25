@@ -56,6 +56,27 @@ description: Use when designing, auditing, restructuring, or documenting a proje
 - 只修正文案或格式
 - 只讨论某个语言或框架的局部编码建议
 - 只改单个 feature 的业务说明文档
+- **只想写或更新 README、CHANGELOG、上架文案、营销介绍、项目对外说明** —— 这类文档不属于工程规范体系,本 skill 不处理(见下方"跨 skill 边界")
+
+## 跨 skill 边界
+
+**本 skill 只处理工程规范体系**(`CONTRIBUTING.md` + `docs/<domain>/*` + `analysis_options` 之类工具配置的方法论)。以下属于其他阶段或其他 skill,本 skill 不应在产出里包含:
+
+| 类别 | 由谁负责 | 不归本 skill 的原因 |
+|------|---------|------------------|
+| `README.md` | `flow-project-finish`(收尾阶段) | 项目启动期变化频繁,过早写 README 容易过时;README 是"对外说明"而非"工程规则",由收尾阶段统一 detect→diff→patch |
+| `CHANGELOG.md` | 发版流程 / 收尾阶段 | 跟着版本演进,不属于规则架构 |
+| 营销文案 / 上架描述 | `flow-ext-publish` / `frontend-design` / `ui-ux-pro-max` | 是产品对外材料,非工程规范 |
+| 设计稿 / 视觉 token 的具体值 | `ui-ux-pro-max` / `frontend-design` | 本 skill 只规定 token **应该集中在哪个文件**,不规定颜色/字号的具体取值 |
+| 商业 / 法律 / 合规文档 | 项目自身或法务流程 | 隐私政策、用户协议不属于工程规则架构 |
+
+如果用户在请求中混入了上述内容(常见:"顺便把 README 也写一下"),本 skill 应:
+
+1. 仅承诺自己负责的部分(规则架构)
+2. 显式指出 README 之类文档不在本次产出范围
+3. 指向负责的下游 skill(README → `flow-project-finish`)
+
+**禁止**为了"让交付看起来完整"而把 README 重写、CHANGELOG 起草、上架文案撰写偷偷塞进规则架构方案。
 
 ## 核心原则
 
@@ -335,6 +356,8 @@ docs/
 - 领域目录只有 `index.md` 没有 `rules.md`，或只有 `rules.md` 没有 `index.md`
 - 让 `index.md` 承担总纲职责，或让 `rules.md` 只做导航
 - 项目实际在用的技术栈没有任何规则域覆盖，还宣称规范完整
+- **把 README、CHANGELOG、对外营销文案、上架描述、隐私政策等"对外说明类"文档纳入规则架构方案** —— 这些归 `flow-project-finish`(收尾)、`flow-ext-publish`(上架)、产品/法务流程,不在本 skill 范围
+- **在项目启动阶段建议"重写 README"或"新建 README"** —— 启动期项目变化大,过早写 README 必然过时;README 由收尾阶段统一处理
 
 ## 输出契约
 

@@ -109,3 +109,21 @@
 - 输入: 项目用 Next.js，`docs/coding/rules.md` 已明确定义 Server/Client Component 标记方式、`fetch` 的缓存策略、`'use client'` 边界；`docs/ui/components.md` 已约束 `cn` / `cva` 用法。
 - 预期行为: 对照 `stack-checklist.md` 确认相关关键点已被覆盖，不追加虚假建议；如有不在 checklist 中的内容也应如实说明。
 - 失败信号: 机械按 checklist 生成一堆"建议新增"条目，即使项目已有对应规则。
+
+## Case 19: 启动期顺带要求"重写 README"
+
+- 输入: "我项目刚起,你帮我设计一下规则架构,顺便把 README 也重写一下,现在的是 Flutter 默认模板。"
+- 预期行为: 只交付规则架构方案(`CONTRIBUTING + docs/<domain>/`);**显式拒绝**重写 README,理由:启动期项目变化频繁,README 该由收尾阶段(`flow-project-finish`)的 detect→diff→patch 处理;在产出里指明这一点,不偷偷把 README 列进"应修改的文件"。
+- 失败信号: 把 README 重写当成"顺手做的小事"塞进规则架构方案;在"若直接落地,应修改的文件"列表里包含 `README.md`;以"项目看起来更完整"为理由顺便重写 README。
+
+## Case 20: 用户问 README 应该写什么
+
+- 输入: "我们的 README 应该按什么结构写?有什么必须的小节?"
+- 预期行为: 拒绝详细回答;说明 README 的内容/结构属于"对外说明类"文档,不在本 skill 范围;路由到 `flow-project-finish`(收尾阶段)。可以**简单一句**说 README 由该 skill 在收尾阶段按真实代码状态产出,但不展开 README 的章节模板、必备字段、写作风格。
+- 失败信号: 给出完整 README 章节模板;讨论项目介绍语句、badge 顺序、安装命令排版等具体写作建议——这些都不归本 skill。
+
+## Case 21: 用户混入 CHANGELOG / 上架文案 / 隐私政策需求
+
+- 输入: "做规则架构的同时,顺便给我起个 CHANGELOG 模板,再把上架商店的描述文案也定一下。"
+- 预期行为: 仅交付规则架构;显式列出"不归本 skill"的几项,并指向对应 skill(CHANGELOG → 发版/收尾流程;上架文案 → `flow-ext-publish`;隐私政策 → 项目自身/法务)。
+- 失败信号: 把 CHANGELOG 模板、上架描述、隐私政策段落塞进规则架构产出里。
