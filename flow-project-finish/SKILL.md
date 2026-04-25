@@ -1,24 +1,26 @@
 ---
-name: flow-project-wrapup
-description: Use when a project's main implementation is done and the user wants a wrap-up bundle that syncs code-level design back into project docs (design system, interaction, PRD, architecture), produces or refreshes the README, and—if the project is not already a website—builds a landing page via huashu-design + frontend-design with a fixed outline/roadmap/links contract. Trigger on requests like "项目收尾", "做收尾", "出收尾文档", "收尾工作流", "准备交付", "交付前整理", "补齐项目文档和落地页", "wrap up project", "finalize project", "wrap up before delivery". Do NOT trigger when the user only wants a README, only a landing page, only a doc sync, or only a commit/publish step—those each have their own skill.
+name: flow-project-finish
+description: Use when a project's main implementation is done and the user wants a finish bundle that (1) syncs code-level design back into project docs (design system, interaction, PRD, architecture), (2) produces or refreshes the README, (3) builds a landing page via huashu-design + frontend-design when the project itself is not a website, (4) routes through delivery-gate for a pre-delivery review, and (5) closes with clean-commit. Trigger on requests like "项目收尾", "做收尾", "完成项目", "出收尾文档", "准备交付", "交付前整理", "收尾文档加落地页加提交", "wrap up project", "finish project", "finalize project". Do NOT trigger when the user only wants a README, only a landing page, only a doc sync, only a delivery review, or only a commit—those each have their own skill.
 ---
 
-# Orchestrating Project Wrap-Up
+# Orchestrating Project Finish
 
 ## Overview
 
-编排器,把"主体实现已完成"的项目转成完整的交付级收尾包,顺序固定为三阶段:
+编排器,把"主体实现已完成"的项目转成完整的交付包,顺序固定为五阶段加一份报告:
 
-1. **Code → Docs sync** —— 把当前代码里已经落地的设计、交互、架构变更同步回项目内的设计系统规范、交互文档、PRD、架构文档
+1. **Code → Docs sync** —— 把代码里已经落地的设计、交互、架构变更同步回项目内的设计系统规范、交互文档、PRD、架构文档
 2. **README** —— 产出或增量更新一份能让陌生人 30 秒看懂项目的 README
 3. **Landing Page(条件)** —— 项目自身**不是网站**时,通过 `huashu-design` 拿设计方向,通过 `frontend-design` 落代码,内容契约固定为「大纲 + 路线图 + 相关链接」,技术栈对齐项目前端栈,无前端栈时回退 `vite + pnpm + react`
+4. **Delivery Gate** —— 通过 `delivery-gate` 做交付前审查,判断 must-fix 是否要回流到 Step 1/2/3,以及是否需要补 Playwright 截图/录屏作为视觉证据
+5. **Clean Commit** —— 仅当 Step 4 放行后,通过 `clean-commit` 把本次收尾的全部变更提交为干净的 git commit
 
-核心原则:同步先于补写,补写先于新建。先确认项目内已有的文档,再决定哪些需要更新、哪些需要新建、哪些应当显式标注"未发现"。本 skill 不替代 `huashu-design` 或 `frontend-design`,只编排顺序、强制阶段先后,并保护用户容易漏掉的三件事:**已存在文档不被覆写、README 不被翻译/重排破坏、落地页内容契约不被裁剪**。
+核心原则:**同步先于补写,补写先于新建,审查先于提交**。先确认项目内已有的文档,再决定哪些需要更新、哪些需要新建、哪些应当显式标"未发现";代码与文档全部就位后由 `delivery-gate` 把关,通过后再交给 `clean-commit` 落盘。本 skill 不替代下游 `huashu-design` / `frontend-design` / `delivery-gate` / `clean-commit`,只负责编排、强制阶段先后,并保护四件用户容易漏掉的事:**已存在文档不被覆写、README 不被翻译/重排破坏、落地页内容契约不被裁剪、提交前必须经过 must-fix 审查**。
 
 ## When to Use
 
 - 项目主体功能已实现,用户想要一份"交付前的整理"
-- 用户提到 README + 文档 + 落地页中的至少**两件**,且语气是收尾
+- 用户提到 README + 文档 + 落地页 + 提交 中的至少**两件**,且语气是收尾
 - 内部工具/Lib/CLI/扩展/移动应用 等"自身不是网站"的项目准备对外公开
 
 ## When NOT to Use
@@ -26,8 +28,9 @@ description: Use when a project's main implementation is done and the user wants
 - 仅出 README —— 直接写,不要编排
 - 仅做落地页 —— 直接调用 `huashu-design` + `frontend-design`
 - 仅同步设计系统 —— 直接处理,无需本 skill
+- 仅做交付审查 —— 直接用 `delivery-gate`
+- 仅做提交 —— 直接用 `clean-commit`
 - 主体功能仍在开发中 —— 用 `flow-dev-task`
-- 准备 git commit —— 用 `clean-commit`
 - 准备发布到浏览器商店 —— 用 `flow-ext-publish`
 - 项目本身就是网站(Next.js/Nuxt/Astro/Vite App 等)且用户没说要补设计/PRD/架构文档 —— 不需要本 skill
 
@@ -44,6 +47,7 @@ description: Use when a project's main implementation is done and the user wants
 - **现存文档清单**:遍历 `docs/` / `README*` / `CONTRIBUTING*` / `ARCHITECTURE*` / `PRD*` / `INTERACTION*` / `DESIGN*`(包括子目录),记录每份文档的最后更新时间与覆盖的主题
 - **设计系统线索**:Tailwind config / design tokens 文件 / `theme.*` / `tokens.*` / `styles/` 下的 css variables / Storybook
 - **路线图线索**:`TODO.md` / `ROADMAP.md` / `progress.md` / `task_plan.md` / GitHub issues 标题(若可读)
+- **git 状态**:工作区是否已有未提交改动、当前分支、远端配置(为 Step 5 clean-commit 准备)
 
 Step 0 的完成判定不是"看了一眼",而是已经写下:
 
@@ -54,6 +58,7 @@ Step 0 的完成判定不是"看了一眼",而是已经写下:
 - `Existing docs: [<path>:<topic>:<last_updated>]`
 - `Design tokens source: <path | none>`
 - `Roadmap source: <path | none>`
+- `Git state: <clean | dirty>:<branch>`
 
 如果项目根本没有可识别的项目结构(空目录、没有 manifest、没有源码),停下并发起澄清,不要进入下一阶段。
 
@@ -162,16 +167,56 @@ Step 0 的完成判定不是"看了一眼",而是已经写下:
   - 项目无前端栈 → 落地页用 `vite + pnpm + react`
   - 落地页放在 `website/` 子目录(若用户没指定其他位置)
 
-#### 3.4 落地页响应式校验(可选但推荐)
+#### 3.4 落地页响应式截图
 
-如果环境可用,调用 `agent-browser` 在 375 / 768 / 1024 / 1440 四个断点下截图,作为交付证据附在收尾报告里。无 `agent-browser` 时,显式声明"未做响应式视觉校验"。
+为 Step 4 delivery-gate 备好视觉证据,在 375 / 768 / 1024 / 1440 四个断点下截图。优先用 `agent-browser`;若不可用,显式声明"未做响应式截图"并把缺口直接传给 delivery-gate 评估。
 
-### Step 4 —— 收尾报告
+### Step 4 —— Delivery Gate(交付审查)
+
+Step 1~3 的实际产物全部就位后,调用 `delivery-gate`,把以下证据一次性递交:
+
+- Step 1 的文档同步明细 + 每处 patch 对应的代码位置
+- Step 2 的 README 状态 + 命令实测来源
+- Step 3 的落地页代码路径 + 3.4 的响应式截图(或缺口声明)
+- Step 0 的项目快照与 git state
+
+`delivery-gate` 的判定回流路由:
+
+| 判定 | 回流 |
+|------|------|
+| **must-fix on doc patch** | 回 Step 1 修复后重跑 delivery-gate |
+| **must-fix on README** | 回 Step 2 修复后重跑 delivery-gate |
+| **must-fix on landing page** | 回 Step 3 修复后重跑 delivery-gate(若涉及设计方向问题,可能需要回 3.2 重新挑) |
+| **need more visual evidence** | 跑 agent-browser 补截图/录屏后重跑 delivery-gate |
+| **all clear** | 进入 Step 5 |
+
+强制规则:
+
+- **不得跳过 delivery-gate 直接 commit**;否则就是用本 skill 旁路了"先审查再提交"的硬约束
+- **不得自己代替 delivery-gate 做轻量审查**;它是独立 gate,有自己的 must-fix/should-fix 区分
+- 如果当前会话来自 IM 通道,delivery-gate 会自动把视觉证据回流到 IM,本 skill 不要重复发送
+
+### Step 5 —— Clean Commit(干净提交)
+
+仅当 Step 4 给出 **all clear** 时,调用 `clean-commit`,传入:
+
+- 本次收尾涉及的全部变更范围(Step 1 文档 patch、Step 2 README、Step 3 落地页代码)
+- 收尾的语义 scope:`docs`(若仅文档+README)、`docs+landing`(含落地页)、或 conventional commit 中更合适的类型
+- Step 0 探测出的 `Git state`(若 dirty,需要先把无关改动剥离;clean-commit 自带这种判断)
+
+强制规则:
+
+- **不得在 delivery-gate must-fix 未消化时 commit**
+- **不得把本次收尾以外的改动夹带进来**;必须让 clean-commit 选择性 staging
+- **不要 push**(除非用户显式要求或 IM 来源会话默认要求);clean-commit 默认只 commit 不 push
+- 提交信息须能让人三秒看懂"这是一次项目收尾",而不是把每个文件改动罗列出来
+
+### Step 6 —— 收尾报告
 
 完成上述阶段后,产出一份汇总报告,**不要省略任何阶段**(即使该阶段被跳过也要写明跳过原因):
 
 ```md
-## Project Wrap-Up Report
+## Project Finish Report
 
 ### Step 0 — Project Snapshot
 - Project type:
@@ -181,6 +226,7 @@ Step 0 的完成判定不是"看了一眼",而是已经写下:
 - Existing docs:
 - Design tokens source:
 - Roadmap source:
+- Git state:
 
 ### Step 1 — Doc Sync
 - 设计系统:
@@ -202,7 +248,19 @@ Step 0 的完成判定不是"看了一眼",而是已经写下:
 - 选中方向:
 - 落地页代码位置:
 - 技术栈:
-- 响应式校验: done | skipped(<reason>)
+- 响应式截图: done | skipped(<reason>)
+
+### Step 4 — Delivery Gate
+- 状态: all clear | must-fix-routed | re-ran-N-times
+- must-fix 摘要(如有):
+- should-fix 摘要(如有):
+- 视觉证据回流 IM:done | n/a
+
+### Step 5 — Clean Commit
+- 状态: committed | skipped(<reason>)
+- Commit hash:
+- Commit message:
+- 是否 push:
 
 ### 风险与开放决策
 - 风险:
@@ -214,9 +272,9 @@ Step 0 的完成判定不是"看了一眼",而是已经写下:
 路由给下游 skill 时:
 
 - 传**紧凑版上下文**(~8 bullets),不要把项目源码或全部文档塞进去
-- 用**精确的请求语**:"为 X 项目产出 3 套差异化落地页设计方向"、"基于选中方向 + 内容契约,实现落地页代码"
-- **传项目硬约束**(技术栈、调性、是否对外公开)
-- **不得在下游 skill 阶段重复追问已在 Step 0 中明确的项目类型、技术栈、路线图来源**
+- 用**精确的请求语**:"为 X 项目产出 3 套差异化落地页设计方向"、"基于选中方向 + 内容契约,实现落地页代码"、"对收尾产物做交付审查,must-fix 回流到对应阶段"、"把本次收尾涉及的变更提交为一个干净 commit"
+- **传项目硬约束**(技术栈、调性、是否对外公开、git state)
+- **不得在下游 skill 阶段重复追问已在 Step 0 中明确的项目类型、技术栈、路线图来源、git state**
 - 不要把下游 skill 的内部产物用本 skill 的 voice 改述
 
 ## Output Contract
@@ -227,7 +285,9 @@ Step 0 的完成判定不是"看了一眼",而是已经写下:
 2. Step 1 的文档同步明细(包括"未发现"项)
 3. Step 2 的 README 状态与变更摘要
 4. Step 3 的落地页结果或显式跳过原因
-5. 风险与开放决策清单
+5. Step 4 的 delivery-gate 判定与 must-fix 回流记录
+6. Step 5 的 clean-commit hash 与 message(或跳过原因)
+7. 风险与开放决策清单
 
 任一缺失即视为未完成。
 
@@ -240,6 +300,9 @@ Step 0 的完成判定不是"看了一眼",而是已经写下:
 - huashu-design 只返回了 1 套方向就接着 frontend-design → 停下,要求 3 套
 - 项目已经是 Next.js/Nuxt 网站还在生成"落地页" → 停下,跳过 Step 3 并说明
 - 项目里已经有 `website/` 等既存落地页子目录,却被当作"无落地页"重做 → 停下,先走 3.0 refresh/rebuild/skip 三选一
+- **跳过 delivery-gate 直接进 Step 5 commit** → 停下,这是硬阻断;审查必须先于提交
+- **delivery-gate 给了 must-fix 却直接 commit** → 停下,回流到对应阶段修复后重跑
+- **clean-commit 把收尾以外的改动一起夹带提交** → 停下,要求 clean-commit 走选择性 staging
 - 收尾报告省略某个阶段 → 停下,补上(即使跳过也要有跳过段落)
 - README 写了根本不存在的 `pnpm something` 命令 → 停下,以 `package.json scripts` 为准
 
@@ -254,7 +317,10 @@ Step 0 的完成判定不是"看了一眼",而是已经写下:
 | "路线图从我对项目的理解写一下就行" | 路线图必须可追溯到真实文件(TODO/ROADMAP/progress);凭印象写会过期或失真 |
 | "用户没指定技术栈,我给落地页用我喜欢的" | 默认对齐项目前端栈;无栈才回退 vite+pnpm+react,这是契约 |
 | "PRD/架构文档差太多了,本期重写一遍" | 本 skill 是收尾不是重做。陈旧文档只 patch 实际偏差,大改属于另一项任务 |
-| "响应式校验跳过了无所谓" | 跳过可以,但必须在报告里显式声明"未校验";不得隐瞒 |
+| "响应式截图跳过了无所谓" | 跳过可以,但必须在报告里显式声明"未截图";delivery-gate 也会拿这个缺口做判断 |
+| "delivery-gate 太重,自己走查一遍就行" | delivery-gate 是独立 gate,不只是 lint/build;它能拦下你正在合理化的"差不多就行"。必须真的调用 |
+| "delivery-gate must-fix 是小问题,提交后再修" | must-fix 顾名思义不可绕过;commit 前修完 |
+| "clean-commit 太繁琐,我直接 git add . 然后 commit" | 直接全量 add 会夹带无关改动;`clean-commit` 的核心价值就是选择性 staging + 合理 message |
 
 ## Common Mistakes
 
@@ -264,19 +330,25 @@ Step 0 的完成判定不是"看了一眼",而是已经写下:
 - 落地页的内容契约里漏掉「路线图」段(以为路线图项目内部用就够)
 - 调 huashu-design 时没说"3 套方向",拿到 1 套就开干
 - 落地页放进项目源码目录,污染主项目构建
+- 跳过 delivery-gate 直接 commit
+- delivery-gate 给了 must-fix 没回流就 commit
+- clean-commit 把工作区里其他改动一起夹带
 - 收尾报告里把跳过的阶段直接删掉,而不是显式说"已跳过 + 原因"
 
 ## Delivery Check
 
 宣称收尾完成前,核对:
 
-- Step 0 的 7 个字段全部填写(项目类型 / 前端栈 / 是否网站 / 既存落地页 / 现存文档 / 设计源 / 路线图源)
+- Step 0 的 8 个字段全部填写(项目类型 / 前端栈 / 是否网站 / 既存落地页 / 现存文档 / 设计源 / 路线图源 / git state)
 - Step 1 中 4 类文档的状态都有结论(同步过 / 未发现 / 用户决定不补)
 - README 真实存在于项目根,且其中的命令能被 `package.json scripts` 验证
 - 落地页阶段:跳过则跳过有理由记录,执行则 `huashu-design` 真的返回了 3 套方向、用户确认了选择、`frontend-design` 真实产出了代码
 - 落地页技术栈与项目栈一致(或在无栈时用 vite+pnpm+react)
 - 落地页内容三段齐全:Outline / Roadmap / Links
-- 收尾报告所有 5 节都存在(Step 0 / Step 1 / README / Landing / 风险与开放决策)
+- **`delivery-gate` 真的运行过**(不是 "应该运行")且最终判定为 all clear
+- **must-fix 全部消化或被回流处理过**,没有跳过项
+- **`clean-commit` 真的产出 commit**(或被显式跳过且原因在报告里)
+- 收尾报告所有 7 节都存在(Step 0 / Step 1 / README / Landing / Delivery Gate / Clean Commit / 风险与开放决策)
 - 没有把下游 skill 的内部文档复制进本 skill 的 voice
 
 ## Reuse
