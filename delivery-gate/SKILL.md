@@ -42,6 +42,56 @@ description: Use when a task is about to be claimed complete and you need a proj
 
 若检测到项目级 delivery gate skill，必须在输出中显式说明并让位给项目 gate，不重复执行。
 
+## 项目成熟期检测与文档同步（条件触发）
+
+> 核心原则：**原型期快速迭代，收尾期才同步文档**。项目还在快速试错时强行要求 README/website/规范同步会拖慢节奏；过了对外露出阶段才需要做"工程内容对齐"。
+
+### 触发条件（任一命中即触发）
+
+判定本次任务是否需要文档同步检查，按以下信号判定项目是否已进入"对外露出阶段"：
+
+- 项目根存在 `website/` 目录，且非空（不只是空骨架）
+- 项目根存在 `README.md`，且**含特征展示节**：以下任一即认定（不是"任何 README 都触发"）
+  - `## Features` / `## Screenshots` / `## Install` / `## Demo` / `## Usage` 这类对外节
+  - 顶部含 hero 图 / poster / banner 引用
+  - 含截图链接（`screenshots/` 目录引用）
+- 项目有发布产物迹象：
+  - `CHANGELOG.md` 存在
+  - 已发布的 git tag（`git tag --list` 非空）
+  - `docs/` 目录有非空内容（user-facing docs，不是 ADR/internal notes）
+
+### 不触发的情况（保持原型期速度）
+
+- 仓库只有空 README 或仅含一句话项目描述
+- 没有 website / docs / screenshots / changelog
+- 没有任何 release tag
+- 用户在本次会话里**显式声明**仍在原型期 / "先快速做"
+
+未触发本阶段时，必须在输出中显式标记 `doc-sync: skipped (project still in prototype stage)`，并说明依据的文件清单。
+
+### 触发后的检查内容
+
+针对本次 diff 的**功能性改动**，逐一核对是否同步反映到对应文档。重点 4 类：
+
+| 文档类型 | 检查项 | 不同步举例 |
+|---|---|---|
+| `website/` | Hero / Features / Roadmap / Footer 中对应功能项是否更新；如功能改名（例：cloud-sync → cross-browser-sync），website 是否同步改名 | 代码里改了功能名，website Roadmap 还显示旧名 |
+| `README.md` | Features 列表是否完整；Screenshots 是否覆盖新增 UI；Install / Usage 命令是否仍有效 | 新加了功能但 README Features 没列出 |
+| `TODO.md` / `CHANGELOG.md` | 已实现的 TODO 项是否划掉或移除；本次新增的可见行为是否登记到 CHANGELOG；正在做的项是否更名 | 用户改了 TODO 里某项命名，本次代码也改了，但 TODO 没同步 |
+| `docs/` / `RULE.md` / `CONTRIBUTING.md` | 若改动了项目约定（命名、目录结构、API 形态），规范文档是否同步 | 引入新的命名约定，CONTRIBUTING 里规则还是旧的 |
+
+**重要边界**：
+
+- 非功能性改动（样式微调、内部重构、纯 bug 修复）**不触发** doc-sync 必修，最多列为 `should-fix`
+- 仅当**用户能从外部观察到的变化**（功能新增、改名、删除、行为变化）才需要 doc-sync 同步
+- 若项目存在专属 doc-sync 规则（如 docs/ 强制规范），让位给项目规则
+
+### 处理路径
+
+- 命中触发 + 文档已同步 → 输出 `doc-sync: pass`，不进入 must-fix
+- 命中触发 + 文档未同步 → 加入 `must-fix` 类目 `[doc-sync]`，列出具体应同步的目标 + 当前缺什么 + 推荐改法
+- 未触发 → 输出 `doc-sync: skipped`，说明判定依据
+
 ## 必要输入
 
 使用前应先收集：
@@ -82,7 +132,7 @@ description: Use when a task is about to be claimed complete and you need a proj
 
 - 只要存在任意 `must-fix`，就停止完成流程并回流到 `writing-plans`
 - 若不存在 `must-fix`，才允许继续进入 `verification-before-completion`
-- `verification-before-completion` 通过后的下一 skill 由项目决定；若项目未定义，默认为 `clean-commit`
+- `verification-before-completion` 通过后的下一 skill 由项目决定；若项目未定义，默认为 `committing-clean-changes`
 
 `should-fix` 不阻断最终验证，但仍必须被报告。
 
@@ -111,6 +161,7 @@ description: Use when a task is about to be claimed complete and you need a proj
 - 截图未在预设验收视口的整屏尺寸下获取，或未记录截图视口尺寸
 - 录屏未将浏览器视口调整到预设验收尺寸录制，或未记录录屏视口尺寸
 - 为联调、验收或录屏临时启动服务时仍占用默认开发端口，或未记录实际 FE/BFF 端口
+- 项目命中"对外露出阶段"信号（见"项目成熟期检测与文档同步"节）但本次功能性改动未同步到 website / README / TODO / CHANGELOG / 规范文档
 
 命中 `must-fix` 的行为约束同前（停止完成、回流 `writing-plans`、不在 gate 阶段补证据）。
 
@@ -238,6 +289,14 @@ description: Use when a task is about to be claimed complete and you need a proj
 - 是否要求 Playwright 录屏:
 - 触发原因:
 
+### 项目成熟期与文档同步
+- 是否命中"对外露出阶段"信号: yes / no
+- 命中信号: <列出命中的具体文件 / 节标题 / tag>
+- 应同步的文档清单: <例：website/src/components/Roadmap.tsx, README.md ## Features, TODO.md>
+- 当前 diff 是否已同步: yes / no / partial
+- 未同步项: <逐项列出（文件 + 应改的位置 + 当前是什么 + 应改成什么）>
+- 跳过原因（若 skipped）: project still in prototype stage / 用户显式声明 / 其他
+
 ### 必修项
 - [文件路径] 问题描述
   - 规则依据:
@@ -293,7 +352,7 @@ description: Use when a task is about to be claimed complete and you need a proj
   - 当前结果: `pass` 或 `fail`
   - 下一 skill: `verification-before-completion` 或 `writing-plans`
 - 若结果为 `pass`，还必须显式写出：
-  - `verification-before-completion` 通过后的下一 skill（项目指定 > 默认 `clean-commit`）
+  - `verification-before-completion` 通过后的下一 skill（项目指定 > 默认 `committing-clean-changes`）
 - 禁止只写"我已经做了验证"或"建议后续修复"这种模糊表述
 - 如果"必修项"非空：
   - 下一步必须是 `writing-plans`
@@ -318,3 +377,5 @@ description: Use when a task is about to be claimed complete and you need a proj
 - 项目存在专属 delivery gate 时仍强行覆盖执行
 - IM 会话中不检测 `CC_SESSION_KEY` 就发送，或把历史文件误发
 - 视频降级没有尝试 gif 就直接标记 failed
+- 项目仍处于原型期就强行触发文档同步检查，违反"快速迭代优先"原则
+- 项目已经有 website / 完整 README / CHANGELOG 等成熟期信号，但放过功能改动未同步到对应文档

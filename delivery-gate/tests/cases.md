@@ -91,3 +91,54 @@
 **期望**：
 - 本 skill 不得以"变更小"为由降级
 - 录屏判定保持 required
+
+## 项目成熟期文档同步（2026-04-25 新增）
+
+### 用例 11：原型期项目跳过 doc-sync
+**输入场景**：仓库刚 init，仅有空骨架 README（一句话项目描述），无 website / CHANGELOG / docs 目录 / git tag。本次 diff 改了一个核心模块。
+
+**期望**：
+- doc-sync 阶段输出 `skipped (project still in prototype stage)`
+- 必须列出判定依据（哪些信号都不存在）
+- 不把"未同步文档"列为 must-fix（项目还在原型期）
+
+### 用例 12：成熟期项目 + 功能改名同步完整 → pass
+**输入场景**：仓库有 `website/`、README 含 `## Features` 节、有 `TODO.md`。本次 diff 把 `cloud-sync` 改名为 `cross-browser-sync`，**同时**改了：
+- `website/src/components/Roadmap.tsx`（id / tag / title / desc）
+- `TODO.md`（功能项命名）
+- `README.md`（如有相关条目）
+
+**期望**：
+- doc-sync 命中触发（website + TODO 都存在）
+- 检查每处文档与 diff 中改名是否一致
+- 输出 `doc-sync: pass`，不进入 must-fix
+- 报告中列出本次同步覆盖的文档清单
+
+### 用例 13：成熟期项目 + 功能改名只改了代码 → must-fix
+**输入场景**：同用例 12 的项目结构，但本次 diff **只改了代码**里的 `cloud-sync` → `cross-browser-sync`，**没有同步** website / TODO 里的旧名。
+
+**期望**：
+- doc-sync 命中触发
+- 检测到 website/Roadmap 和 TODO 仍含旧名 `cloud-sync`
+- 加入 must-fix `[doc-sync]` 类目，逐项列出：
+  - `website/src/components/Roadmap.tsx`：仍含 `cloud-sync` / `Cloud Data Sync`，应改为新名
+  - `TODO.md`：仍含 `云端数据同步`，应改为对应新名
+- 流转：回流 `writing-plans`，禁止进入 `verification-before-completion`
+
+### 用例 14：仅 README 含 Features 节但无 website → 仍触发（仅 README/TODO 范围）
+**输入场景**：仓库有 README.md 含 `## Features` 节，但**无** website 目录。本次 diff 改了一个 README 已记载的功能。
+
+**期望**：
+- doc-sync 命中触发（README 含特征展示节）
+- 检查范围限定在 README + TODO + docs（不包括 website，因为不存在）
+- 若 README Features 节未同步反映改动 → must-fix
+- 若已同步 → pass
+
+### 用例 15：纯内部重构不触发 doc-sync 必修
+**输入场景**：成熟期项目，但本次 diff 是纯内部重构（重命名内部函数 / 重组目录结构），无外部可观察行为变化。
+
+**期望**：
+- doc-sync 命中触发（项目处于成熟期）
+- 但因为是非功能性改动（用户从外部观察不到变化），**不**强制要求文档同步
+- 最多列为 `should-fix`（如果重构涉及命名约定变更，建议同步 CONTRIBUTING）
+- 不阻断 `verification-before-completion`
