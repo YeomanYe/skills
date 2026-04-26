@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Runs after `git pull` / `git merge`. Syncs this repo (the skillshare source)
+# to all configured skillshare targets (~/.claude/skills, ~/.agents/skills, ~/.gemini/skills, ...).
+
+set -u
+
+if ! command -v skillshare >/dev/null 2>&1; then
+  echo "[post-merge] skillshare not found on PATH; skipping sync." >&2
+  exit 0
+fi
+
+echo "[post-merge] Running: skillshare sync"
+if skillshare sync; then
+  echo "[post-merge] Sync complete."
+else
+  echo "[post-merge] skillshare sync failed (exit $?). Run it manually to inspect." >&2
+fi
