@@ -167,3 +167,71 @@ Prompt：
 > preview 只有三个主模块，一屏就能看完。你要不要我拆成多页？
 
 预期：skill 应说明"排满一屏优于强行拆分"，在当前信息量下保持单页密集呈现即可；但同时提醒控制器和丰富 mock 仍需内置。
+
+## Preview 组件复用回归（2026-04-26 新增）
+
+以下用例验证 preview Required 时必须复用项目真实组件这条新硬性要求。适用对象：项目本身就有 UI 组件（extension / native / widget / 嵌入式）。
+
+### P6. 浏览器扩展 preview 必须复用真实组件
+
+Prompt：
+
+> 我要做一个浏览器扩展，主体 UI 是 popup（书签管理）+ options（设置页），先走 web preview 把这两面 UI 走查清楚。帮我做 project prep。
+
+预期：
+- Preview Decision = Required
+- Output Contract 中除三项硬性字段外，**必须额外包含 `Component reuse plan`**
+- `Component reuse plan` 要明确：
+  - 复用哪些真实组件（如 `src/popup/Popup.tsx`、`src/options/Options.tsx`）
+  - 适配器层切在哪（典型如 storage / chrome API mock）
+  - 状态切换 / 数据替换发生在适配器层或外壳层，**不污染真实组件**
+- skill 应主动指出"另起一份 mock 组件"是反模式
+
+不得：
+- 接受用户描述只字未提"复用"就交付
+- 提示用户"做一份 MockPopup 比较快"
+
+### P7. 护栏：用户想另起一份 mock 组件
+
+Prompt：
+
+> preview 要不要单独写一份 MockPopup.tsx 和 MockOptions.tsx，复制一份长得像但是不连真实数据的版本？这样 preview 改起来也不会影响生产。
+
+预期：skill 必须**明确拒绝**，并说明：
+- 双套实现会随时间漂移：真实组件改了 mock 不同步，走查就在和"已经过时的 UI"较劲
+- 正确的隔离边界放在**适配器层**（数据 / API / 平台能力），不是替换组件本身
+- `if (PREVIEW_MODE)` 写进真实组件也属于反模式（污染生产代码）
+- 引用 Rationalizations to Reject 表中对应的两条说辞
+
+### P8. 护栏：用户主张把 mock 切换写进真实组件
+
+Prompt：
+
+> 我让真实 Popup 组件里加一个 `if (process.env.PREVIEW)` 分支，preview 时走 mock 数据，不要单独搞适配器层那么麻烦。
+
+预期：skill 应明确拒绝，要求：
+- mock 数据切换必须走**外部适配器**（典型如 `isDevMode()` 包装的 storage layer）
+- 真实组件代码里不应出现 PREVIEW / DEV / MOCK 类型的环境分支
+- 这样 preview 才能保证"走查的是真实组件"
+
+### P9. 例外：项目零代码阶段允许临时占位
+
+Prompt：
+
+> 这个扩展还在零代码阶段，组件都还没写。我先用一些占位组件搭个壳让我看看 layout，可以吗？
+
+预期：skill 应**有条件接受**：
+- 仅在零代码阶段允许，但 `Component reuse plan` 必须明确写"MVP 第一周内必须切回真实组件 + 适配器层模式"
+- 不能把"占位组件长期保留"当作交付方案
+- 必须在 Open Decisions 或 Risk 中标注"占位组件切换时间点"
+
+### P10. 反例：纯 web SaaS 项目不触发 Component reuse plan
+
+Prompt：
+
+> 我做一个 Next.js 后台管理系统，帮我做 project prep。
+
+预期：
+- 命中 Hard exclusion → Preview Decision = Not needed
+- 因为 Not needed，Output Contract 中 `Component reuse plan` **可写 N/A**
+- 不应主动要求项目方做组件复用规划（因为根本不需要单独 preview 面）
