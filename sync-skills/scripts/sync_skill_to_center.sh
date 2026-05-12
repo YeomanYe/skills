@@ -19,7 +19,7 @@ if [[ ! -f "$SOURCE_DIR/SKILL.md" ]]; then
 fi
 
 SKILL_NAME="$(basename "$SOURCE_DIR")"
-SKILLSHARE_ROOT="$HOME/.config/skillshare/skills"
+SKILLS_ROOT="$HOME/Documents/projects/skills"
 OVERWROTE=0
 
 path_with_home_var() {
@@ -44,90 +44,50 @@ canonicalize() {
   fi
 }
 
-mkdir -p "$SKILLSHARE_ROOT"
+mkdir -p "$SKILLS_ROOT"
 
-declare -a TARGET_ROOTS=("$SKILLSHARE_ROOT")
-declare -a CANDIDATE_ROOTS=(
-  "$HOME/.agents/skills"
-  "$HOME/.claude/skills"
-  "$HOME/.cursor/skills"
-  "$HOME/.windsurf/skills"
-  "$HOME/.opencode/skills"
-)
+dest="$SKILLS_ROOT/$SKILL_NAME"
 
-for root in "${CANDIDATE_ROOTS[@]}"; do
-  if [[ -d "$root" ]]; then
-    TARGET_ROOTS+=("$root")
+# Skip when dest and source resolve to the same physical path. This covers:
+#   - dest == source (literal equality)
+#   - dest is a symlink pointing to source (or vice-versa)
+# Without this, `rm -rf dest` destroys the real skill dir and `cp -R`
+# produces a self-referencing symlink loop.
+self_reference=0
+dest_canon="$(canonicalize "$dest" 2>/dev/null || true)"
+if [[ -n "$dest_canon" && "$dest_canon" == "$SOURCE_DIR" ]]; then
+  self_reference=1
+fi
+
+# Defense in depth: if dest is a symlink, resolve the link target and bail
+# out if it ends up at source.
+if [[ "$self_reference" -eq 0 && -L "$dest" ]]; then
+  link_target="$(readlink "$dest")"
+  case "$link_target" in
+    /*) link_abs="$link_target" ;;
+    *)  link_abs="$(dirname "$dest")/$link_target" ;;
+  esac
+  link_canon="$(canonicalize "$link_abs" 2>/dev/null || true)"
+  if [[ -n "$link_canon" && "$link_canon" == "$SOURCE_DIR" ]]; then
+    self_reference=1
   fi
-done
+fi
 
-declare -a UNIQUE_TARGET_ROOTS=()
-
-for root in "${TARGET_ROOTS[@]}"; do
-  already_seen=0
-  if [[ "${#UNIQUE_TARGET_ROOTS[@]}" -gt 0 ]]; then
-    for seen_root in "${UNIQUE_TARGET_ROOTS[@]}"; do
-      if [[ "$seen_root" == "$root" ]]; then
-        already_seen=1
-        break
-      fi
-    done
-  fi
-  if [[ "$already_seen" -eq 0 ]]; then
-    UNIQUE_TARGET_ROOTS+=("$root")
-  fi
-done
-
-declare -a DEST_PATHS_FMT=()
-
-for root in "${UNIQUE_TARGET_ROOTS[@]}"; do
-  mkdir -p "$root"
-  dest="$root/$SKILL_NAME"
-
-  # Skip when dest and source resolve to the same physical path. This covers:
-  #   - dest == source (literal equality)
-  #   - dest is a symlink pointing to source (or vice-versa), common when
-  #     skillshare manages `~/.claude/skills/<name>` as a symlink into the
-  #     center dir `~/.config/skillshare/skills/<name>`.
-  # Without this, `rm -rf dest` destroys the real skill dir and `cp -R`
-  # produces a self-referencing symlink loop.
-  dest_canon="$(canonicalize "$dest" 2>/dev/null || true)"
-  if [[ -n "$dest_canon" && "$dest_canon" == "$SOURCE_DIR" ]]; then
-    DEST_PATHS_FMT+=("$(path_with_home_var "$dest")")
-    continue
-  fi
-
-  # Defense in depth: if dest is a symlink, resolve the link target and bail
-  # out if it ends up at source. Covers edge cases where canonicalize above
-  # returned empty (e.g. dangling symlink that happened to point at source).
-  if [[ -L "$dest" ]]; then
-    link_target="$(readlink "$dest")"
-    case "$link_target" in
-      /*) link_abs="$link_target" ;;
-      *)  link_abs="$(dirname "$dest")/$link_target" ;;
-    esac
-    link_canon="$(canonicalize "$link_abs" 2>/dev/null || true)"
-    if [[ -n "$link_canon" && "$link_canon" == "$SOURCE_DIR" ]]; then
-      DEST_PATHS_FMT+=("$(path_with_home_var "$dest")")
-      continue
-    fi
-  fi
-
+if [[ "$self_reference" -eq 0 ]]; then
   if [[ -e "$dest" || -L "$dest" ]]; then
     OVERWROTE=1
   fi
-
   rm -rf "$dest"
   cp -R "$SOURCE_DIR" "$dest"
-  DEST_PATHS_FMT+=("$(path_with_home_var "$dest")")
-done
+fi
 
+DEST_PATH_FMT="$(path_with_home_var "$dest")"
 SOURCE_PATH_FMT="$(path_with_home_var "$SOURCE_DIR")"
 
 # --- IM-origin auto commit & push ---------------------------------------
 # Trigger: CC_SESSION_KEY starts with "feishu:" (a Feishu-origin cc-connect
 # session). Other IM platforms are left untouched per user request. The
-# skillshare skills dir is expected to be a git repo with a remote configured.
+# skills dir is expected to be a git repo with a remote configured.
 #
 # Env overrides:
 #   NICHE_AUTOSYNC_GIT=0     → disable entirely
@@ -151,11 +111,11 @@ if [[ "$should_git" -eq 1 ]]; then
   if ! command -v git >/dev/null 2>&1; then
     GIT_STATUS="failed"
     GIT_REASON="git not found in PATH"
-  elif [[ ! -d "$SKILLSHARE_ROOT/.git" ]]; then
+  elif [[ ! -d "$SKILLS_ROOT/.git" ]]; then
     GIT_STATUS="failed"
-    GIT_REASON="skillshare root is not a git repository: $SKILLSHARE_ROOT"
+    GIT_REASON="skills root is not a git repository: $SKILLS_ROOT"
   else
-    pushd "$SKILLSHARE_ROOT" >/dev/null
+    pushd "$SKILLS_ROOT" >/dev/null
     git add -- "$SKILL_NAME" >/dev/null 2>&1 || true
     if git diff --cached --quiet -- "$SKILL_NAME"; then
       GIT_STATUS="no-op"
@@ -183,14 +143,7 @@ fi
 # ------------------------------------------------------------------------
 
 printf 'source=%s\n' "$SOURCE_PATH_FMT"
-printf 'destination=['
-for idx in "${!DEST_PATHS_FMT[@]}"; do
-  if [[ "$idx" -gt 0 ]]; then
-    printf ','
-  fi
-  printf '"%s"' "${DEST_PATHS_FMT[$idx]}"
-done
-printf ']\n'
+printf 'destination=["%s"]\n' "$DEST_PATH_FMT"
 printf 'overwrote=%s\n' "$OVERWROTE"
 printf 'git_status=%s\n' "$GIT_STATUS"
 if [[ -n "$GIT_COMMIT" ]]; then
