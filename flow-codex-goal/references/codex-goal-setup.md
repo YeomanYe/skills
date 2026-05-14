@@ -80,7 +80,7 @@ API 列表（experimental）：
 
 ## 5. 失败 fallback
 
-任一检查失败 → 整个 flow-codex-goal skill 退出，建议改用 `flow-dev-task` + Claude 自写。
+任一检查失败 → 整个 flow-codex-goal skill 退出，建议改用 `flow-dev-task` + orchestrator agent 自写。
 
 ## 参考
 

@@ -64,7 +64,7 @@ cleanup_codex() {
 }
 
 trigger_review() {
-  log "Goal complete — triggering review pipeline"
+  log "Goal complete — triggering FINAL review pipeline"
 
   # 1. 生成 review-input
   local review_dir="$TASK_DIR/review-input"
@@ -89,16 +89,84 @@ trigger_review() {
     cargo build > "$review_dir/build.txt" 2>&1 || true
   fi
 
+  # 3. 准备 runtime evidence（reviewer 还会自己再跑一遍，但先把环境备好）
+  bash "$SCRIPT_DIR/runtime-evidence.sh" "$TASK_ID" final >> "$LOG" 2>&1 || true
+
   log "review-input prepared at $review_dir"
   notify_human "Goal done, review-input ready" "
 Run reviewer Codex now (separate process):
   cd $WORKTREE && codex exec --skip-git-repo-check < $SCRIPT_DIR/review-prompt.md
 
-Or let Claude (parent flow-codex-goal) handle it.
+Reviewer MUST actually run the project + verify user journeys (not just diff review).
 "
 
-  # 标记给 Claude 看
+  # 标记给 orchestrator agent 看
   touch "$TASK_DIR/.review-pending"
+}
+
+handle_milestone() {
+  local milestone="$1"
+  log "MILESTONE detected: $milestone — triggering mini-review + IM push"
+
+  local scores_dir="$TASK_DIR/scores/$milestone"
+  mkdir -p "$scores_dir/screenshots"
+
+  # 1. 收集 milestone 当前的 EVAL + 截图证据
+  #    传 "scores/$milestone" 作为 stage，这样 runtime-evidence.sh 写入路径
+  #    .agent/tasks/<id>/scores/<milestone>/ 与本函数后续读取一致
+  bash "$SCRIPT_DIR/runtime-evidence.sh" "$TASK_ID" "scores/$milestone" >> "$LOG" 2>&1 || true
+
+  # 2. 启动 mini-review codex（独立新进程；不阻塞 watcher 太久）
+  local milestone_review_log="$scores_dir/review.log"
+  log "Launching mini-review codex (timeout 10min)"
+  timeout 600 codex exec --skip-git-repo-check < "$SCRIPT_DIR/milestone-review-prompt.md" \
+    > "$milestone_review_log" 2>&1 || log "mini-review codex timed out or errored (recorded)"
+
+  # 3. score-diff vs baseline
+  local score_json="$scores_dir.json"
+  if [[ ! -f "$score_json" ]]; then
+    # mini-review 应该写到 scores/<milestone>.json，没写就跳退化检测
+    log "WARN: mini-review did not produce $score_json; skipping diff"
+  else
+    local mode
+    mode=$(grep -A1 "^mode:" "$TASK_DIR/GOAL.md" 2>/dev/null | head -1 | awk '{print $2}' || echo "regression-prevention")
+    local diff_out
+    diff_out=$(python3 "$SCRIPT_DIR/score-diff.py" \
+      --baseline "$TASK_DIR/BASELINE.md" \
+      --current  "$score_json" \
+      --mode     "$mode" \
+      --no-improvement-history "$TASK_DIR/scores/aggregate-trend.json" 2>&1) || {
+        log "Score regression detected: $diff_out"
+        # 写 STOPPED 让 Goal 下次循环看到自停
+        echo "STOPPED: score-regression ($milestone)" >> "$TASK_DIR/STATUS.md"
+        notify_human "Score regression at $milestone" "$diff_out"
+        return 0
+      }
+    log "Score diff OK: $diff_out"
+  fi
+
+  # 4. 把分数 + 截图推给人类（IM 会话才推）
+  if [[ -n "${CC_SESSION_KEY:-}" ]] && command -v cc-connect > /dev/null 2>&1; then
+    local agg
+    agg=$(jq -r .aggregate "$score_json" 2>/dev/null || echo "?")
+    local delta
+    delta=$(jq -r '.delta_vs_baseline.aggregate // "?"' "$score_json" 2>/dev/null || echo "?")
+    local notes
+    notes=$(jq -r .notes "$score_json" 2>/dev/null || echo "")
+
+    local msg="[$TASK_ID] MILESTONE: $milestone
+Aggregate: $agg (Δ vs baseline: $delta)
+$notes
+
+Reply: continue / pause / abort / adjust: <text>"
+
+    # 取所有该 milestone 的截图
+    local screenshots=()
+    while IFS= read -r f; do screenshots+=(--image "$f"); done < <(find "$scores_dir/screenshots" -name "*.png" 2>/dev/null | head -5)
+
+    cc-connect send --message "$msg" "${screenshots[@]}" 2>>"$LOG" \
+      || log "cc-connect send failed (non-fatal)"
+  fi
 }
 
 handle_stalled() {
@@ -175,6 +243,15 @@ while true; do
     running)
       log "running"
       reset_stall_count
+      ;;
+    milestone)
+      reset_stall_count
+      MILESTONE_NAME=$(jq -r '.milestone_new // ""' "$TASK_DIR/health.json" 2>/dev/null || echo "")
+      if [[ -n "$MILESTONE_NAME" ]]; then
+        handle_milestone "$MILESTONE_NAME"
+      else
+        log "milestone state but no name — skipping"
+      fi
       ;;
     done)
       log "DONE"

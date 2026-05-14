@@ -75,12 +75,22 @@ if [[ -f "$STATUS_FILE" ]]; then
   STATUS_AGE=$(( (NOW - STATUS_TS) / 60 ))
 fi
 
-# === 5. 完成 / 停止信号 ===
+# === 5. 完成 / 停止信号 / milestone ===
 DONE=0
 STOPPED_REASON=""
+MILESTONE_NEW=""
+LAST_MILESTONE_FILE="$TASK_DIR/.last-milestone"
+LAST_MILESTONE=""
+[[ -f "$LAST_MILESTONE_FILE" ]] && LAST_MILESTONE=$(cat "$LAST_MILESTONE_FILE")
+
 if [[ -f "$STATUS_FILE" ]]; then
   grep -q "^GOAL_DONE" "$STATUS_FILE" && DONE=1
   STOPPED_REASON=$(grep -E "^STOPPED:" "$STATUS_FILE" | tail -1 | sed 's/^STOPPED: //' || true)
+  CURRENT_MILESTONE=$(grep -E "^MILESTONE:" "$STATUS_FILE" | tail -1 | sed 's/^MILESTONE: //' || true)
+  if [[ -n "$CURRENT_MILESTONE" ]] && [[ "$CURRENT_MILESTONE" != "$LAST_MILESTONE" ]]; then
+    MILESTONE_NEW="$CURRENT_MILESTONE"
+    echo "$CURRENT_MILESTONE" > "$LAST_MILESTONE_FILE"
+  fi
 fi
 
 # === 6. 修改文件计数 ===
@@ -90,6 +100,7 @@ if [[ -d "$WORKTREE/.git" ]]; then
 fi
 
 # === 综合判定 ===
+# 优先级：done > stopped > failed > milestone(新) > stalled > running
 STATE="running"
 if [[ $DONE -eq 1 ]]; then
   STATE="done"
@@ -97,6 +108,8 @@ elif [[ -n "$STOPPED_REASON" ]]; then
   STATE="stopped"
 elif [[ "$PROCESS_STATE" == "dead" ]]; then
   STATE="failed"
+elif [[ -n "$MILESTONE_NEW" ]]; then
+  STATE="milestone"
 elif [[ "$PROCESS_STATE" == "alive" ]] \
   && [[ $LATEST_FILE_AGE -gt $STALL_FILE_MIN ]] \
   && [[ $LOG_GROWTH -lt $STALL_LOG_GROWTH_BYTES ]] \
@@ -110,6 +123,7 @@ jq -n \
   --arg pid "$CODEX_PID" \
   --arg process_state "$PROCESS_STATE" \
   --arg stopped_reason "$STOPPED_REASON" \
+  --arg milestone_new "$MILESTONE_NEW" \
   --argjson log_size "$CUR_LOG_SIZE" \
   --argjson log_growth "$LOG_GROWTH" \
   --argjson latest_file_age_min "$LATEST_FILE_AGE" \
@@ -122,6 +136,7 @@ jq -n \
     pid: $pid,
     process_state: $process_state,
     stopped_reason: $stopped_reason,
+    milestone_new: $milestone_new,
     log_size: $log_size,
     log_growth: $log_growth,
     latest_file_age_min: $latest_file_age_min,

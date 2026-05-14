@@ -1,11 +1,11 @@
 # Goal Codex Prompt 模板
 
-> 这是给 Goal Codex 的开场指令。**Claude 通过 `/goal <prompt>` 或 app-server `thread/goal/set` 传入。**
+> 这是给 Goal Codex 的开场指令。**orchestrator agent 通过 `/goal <prompt>` 或 app-server `thread/goal/set` 传入。**
 
 ## 完整 Prompt
 
 ```
-You are running as a long-horizon Codex Goal task dispatched from Claude Code via flow-codex-goal.
+You are running as a long-horizon Codex Goal task dispatched by an orchestrator agent via flow-codex-goal.
 
 == Project Context ==
 - Repo root: <PROJECT_ROOT>
@@ -53,7 +53,7 @@ When ALL Phases done AND all GOAL.md Acceptance Criteria checked:
 - DO NOT modify files in GOAL.md "Non-goals" or "黑名单"
 - DO NOT introduce new dependencies unless GOAL.md "Scope" explicitly allows
 - DO NOT use `git add .` — explicitly list files
-- DO NOT `git commit` (Claude will commit via clean-commit later)
+- DO NOT `git commit` (the orchestrator agent will commit via clean-commit later)
 - DO NOT `git push`
 - DO NOT `git reset --hard`, `git rebase`, `git push --force` or any destructive op
 - DO NOT add TODO/FIXME/mock unless GOAL.md allows

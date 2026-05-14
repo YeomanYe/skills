@@ -7,7 +7,7 @@
 | 条件 | 阈值 | 检测方 | 记录字段 |
 |---|---|---|---|
 | 连续验证失败 | 3 次 | Goal Codex 自检 | `STOPPED: 3-fail-rule` |
-| Review 连续 fail | 2 轮 | Claude 编排逻辑 | `STOPPED: review-2-fail` |
+| Review 连续 fail | 2 轮 | orchestrator agent 编排逻辑 | `STOPPED: review-2-fail` |
 | 测试新增失败（regression）| 1 个 | Goal Codex 自检 | `STOPPED: regression-introduced` |
 
 ## 2. 资源类停止
@@ -85,7 +85,7 @@ watcher 检测到停止时（自停 / 崩溃 / quota）：
 | **continue** | 我看了，问题已解决，让 Goal 继续 | 重启 Goal Codex from STATUS.md current step |
 | **abort** | 终止任务，丢弃 worktree | watcher 关、worktree 删（可选）、清空 task dir |
 | **handoff** | 转给我手动接管 | watcher 关、Goal 关、worktree 保留待人类操作 |
-| **rescope** | 改 GOAL.md 后重启 | 人类编辑 GOAL.md / PLAN.md，Claude 重新进 Step 1 |
+| **rescope** | 改 GOAL.md 后重启 | 人类编辑 GOAL.md / PLAN.md，orchestrator agent 重新进 Step 1 |
 
 cc-connect 通知应该带上这 4 个选项让人类回复。
 
