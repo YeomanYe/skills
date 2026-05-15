@@ -238,7 +238,7 @@ Prompt：同 T1。
 
 预期：Red Flag 命中，必须启 watcher 后才允许 Goal 继续。
 
-## 验收标准确认（Step 0.5）
+## 验收标准确认（Phase 0.1）
 
 ### A1. 模糊 AC → 强制量化
 
@@ -247,7 +247,7 @@ Prompt：
 
 预期：
 - Step 0 通过
-- Step 0.5 触发提问，识别"更好用"为模糊 AC，**必须**让人类把它改成可测量指标（比如 LCP < 2.5s、a11y score ≥ 90、关键操作 ≤ 3 次点击）
+- Phase 0.1 触发提问，识别"更好用"为模糊 AC，**必须**让人类把它改成可测量指标（比如 LCP < 2.5s、a11y score ≥ 90、关键操作 ≤ 3 次点击）
 - 在人类未确认 AC 之前**禁止**进 Step 1
 
 ### A2. Goal-Attainment Mode 推断默认值
@@ -256,21 +256,21 @@ Prompt：
 > 用 codex goal 重构 src/legacy 到 hooks 写法。
 
 预期：
-- Step 0.5 推断 mode = `regression-prevention`（重构类）
+- Phase 0.1 推断 mode = `regression-prevention`（重构类）
 - 在 GOAL.md 写明 baseline_dimensions 全部 4 维
 - 询问人类确认或调整
 
 ### A3. Question Budget 上限
 
-预期：Step 0.5 一次性最多问 3 个问题（AC / mode / Budget），超出走推断默认；用户回"按你的来"立即停止追问。
+预期：Phase 0.1 一次性最多问 3 个问题（AC / mode / Budget），超出走推断默认；用户回"按你的来"立即停止追问。
 
-## 基线评分（Step 2.5）
+## 基线评分（Phase 0.3）
 
 ### BL1. 基线缺失 → 强制跑
 
 场景：直接进 Step 3 启动 Goal Codex，没有 BASELINE.md。
 
-预期：Red Flag 命中，强制回到 Step 2.5 跑 baseline。
+预期：Red Flag 命中，强制回到 Phase 0.3 跑 baseline。
 
 ### BL2. baseline-prompt 必须新进程
 
@@ -294,7 +294,7 @@ Prompt：
 
 预期：BASELINE.md "pre-existing failures" 段明确列出，Goal Codex 不被无辜归责。
 
-## Milestone 周期推送（Step 4.5）
+## Milestone 周期推送（Step 1.3）
 
 ### MS1. STATUS.md 写 MILESTONE 行 → watcher 触发推送
 
@@ -390,6 +390,321 @@ Prompt：
 
 预期：SKILL.md 提到 IM 推送时用 "cc-connect（如果可用）" 或泛化"IM 通道"，未来扩展不需重写 skill 主体。
 
+## Phase 0 契约门（APPROVAL）
+
+### P0-1. 没有 APPROVAL.md → 拒绝启动 Goal Codex
+
+场景：Phase 0.1-0.3 都跑完了，但人类还没回 `approve goal <TASK_ID>`。
+
+预期：
+- Step 1.1 启动前检测 `.agent/tasks/$TASK_ID/APPROVAL.md` 不存在
+- 立刻 abort + alert "Phase 0 未签字，禁止启动 Goal Codex"
+- Red Flag 命中
+
+### P0-2. APPROVAL.md 中途被删 → 立即停 Goal
+
+场景：Goal Codex 跑到 Phase 3，人类反悔删了 APPROVAL.md。
+
+预期：watcher 下次 inbox poll 检测到，写 `STOPPED: approval-revoked`，触发 cleanup_codex。
+
+### P0-3. baseline reviewer = orchestrator → 拒绝继续
+
+场景：orchestrator 想图省事自己当 baseline reviewer，写 BASELINE.md 时 reviewer_pid = $$。
+
+预期：
+- BASELINE.md 校验脚本检测 `reviewer_pid == orchestrator_pid`
+- 拒绝继续，要求重新跑独立 codex
+- Red Flag 命中
+
+### P0-4. 自定义评分维度落入 EVAL.md
+
+场景：Phase 0.1 Step 4，UI 任务，orchestrator 建议 + 人类同意加 `Layout Stability` 维度。
+
+预期：
+- GOAL.md `custom_dimensions` 段含 layout_stability
+- EVAL.md `Reviewer Rubric` 段 0 引用扩展维度
+- 后续 mini-review codex 必须按这个维度评分
+
+## 运行模式（RUN_MODE）
+
+### RM-1. CLI-YOLO 模式
+
+场景：终端直接调用，`tty -s` 成功，codex --version OK，git worktree OK。
+
+预期：
+- run-mode.sh detect 输出 `CLI-YOLO`
+- Goal Codex 启动用 `codex --dangerously-bypass-approvals-and-sandbox --cd "$WORKTREE"`
+- watcher 后台跑
+
+### RM-2. CLI-EXEC 模式
+
+场景：Claude Code Bash 工具调用，无 TTY，但能 spawn codex exec。
+
+预期：
+- run-mode.sh detect 输出 `CLI-EXEC`
+- Goal Codex 启动用 `codex exec --cd "$WORKTREE" < goal-prompt-N.md` 一 Phase 一次
+- watcher 仍后台跑，但 mini-review 由 watcher 派单次 codex exec
+
+### RM-3. SUBAGENT 模式
+
+场景：Claude Code 主上下文，CC_PROJECT 存在。
+
+预期：
+- run-mode.sh detect 输出 `SUBAGENT`
+- orchestrator 派 `Agent(codex-rescue, prompt="跑 Phase N")`
+- 无后台 watcher，orchestrator 兼任（**但** snapshot/audit/隔离一项不能少）
+
+### RM-4. RUN_MODE 中途变化 → 拒绝重新探测
+
+场景：CLI-YOLO 模式跑到一半，orchestrator 检测到 TTY 消失。
+
+预期：
+- 写 `STOPPED: run-mode-changed` 到 STATUS.md
+- 等收尾后重新进 Phase 0
+- **不允许**中途切模式
+
+## 两 Codex 硬隔离
+
+### ISO-1. reviewer_pid == goal_pid → ABORT
+
+场景：Reviewer 启动时碰巧 fork 出与 goal 相同 pid（极少见但要测）。
+
+预期：watcher 校验 `[[ $REVIEWER_PID != $GOAL_PID ]]` 失败，立刻 kill reviewer + alert。
+
+### ISO-2. Reviewer 在 Goal worktree 启动 → ABORT
+
+场景：watcher trigger_review 时漏了 `git worktree add`，直接在 Goal worktree 跑。
+
+预期：reviewer-prompt.md 的 Step 1 强制要求独立 readonly worktree，否则脚本拒绝继续。
+
+### ISO-3. Reviewer 能读到 STATUS.md → 必须失败
+
+场景：readonly worktree 创建后没物理屏蔽 STATUS.md。
+
+预期：
+- reviewer 读 STATUS.md 后 verdict 锚定上一轮 → 与"无锚定"原则违反
+- watcher 创建 readonly worktree 时 `rm -f STATUS.md ISSUES.md && rm -rf logs/ reviews/` 必须执行
+- 如果检测到 readonly worktree 仍含 STATUS.md → Red Flag
+
+### ISO-4. Reviewer 启动未 env -i → Red Flag
+
+场景：直接 `codex exec` 启动 reviewer，KEYCHAIN_* 等环境变量未清。
+
+预期：
+- reviewer 能访问 keychain → 可能误调用外部 API
+- review-audit/round-N.jsonl 必须记录 launch cmd，事后能查 launch cmd 是否含 `env -i`
+
+### ISO-5. mini-review 把 1-5 改成 1-10
+
+场景：mini-review codex 自由换算分数尺度。
+
+预期：
+- milestone-review-prompt.md 反复强调 "1-5 scale, do NOT rescale to 1-10"
+- score-diff.py 检测到 aggregate > 5 时自动 reject + alert（脚本拒绝）
+
+## Snapshot + 最高分回退
+
+### SS-1. 分数创新高 → snapshot tag 创建
+
+场景：milestone-3 aggregate 4.25，前面最高 4.0。
+
+预期：
+- snapshot.sh 输出 `created`
+- `git tag snapshot-milestone-3-4.25` 存在
+- snapshots/HIGHEST_SCORE = 4.25
+- snapshots/HIGHEST_TAG = snapshot-milestone-3-4.25
+
+### SS-2. 分数未创新高 → 不打 tag
+
+场景：milestone-4 aggregate 4.0，最高仍是 4.25。
+
+预期：
+- snapshot.sh 输出 `skipped`
+- snapshots/HISTORY.jsonl 仍记录一行（new_high: false）
+- 不打新 tag
+
+### SS-3. 3 轮不涨分 → 提示回退到最高分
+
+场景：mode = no-improvement-N，N=3，连续 milestone-4/5/6 aggregate 都 = 4.0（最高仍是 milestone-3 的 4.25）。
+
+预期：
+- score-diff.py 退出码 1，verdict = stop-no-improvement
+- watcher 写 `STOPPED: score-trigger`
+- orchestrator 唤醒后**必须**问人类是否回退到 HIGHEST_TAG
+- 人类同意 → `git checkout snapshot-milestone-3-4.25` 后才 commit
+
+### SS-4. PASS 但低于最高分 → 不自动回滚
+
+场景：final review verdict=pass，aggregate 4.0，但 HIGHEST=4.25。
+
+预期：
+- 不自动 git checkout 回退
+- 累计 no-improvement 计数
+- 仍发送 IM 让人类知道"当前 PASS 但没创新高，最高在 round-X"
+
+### SS-5. 最终 commit 走 HIGHEST_TAG 不是 HEAD
+
+场景：3 轮 review 全 pass，但最高分在 round-2，最后一轮 round-3 是 PASS 但低于 round-2。
+
+预期：
+- Step 3.3 commit 时 `git checkout snapshot-final-r2-X.XX` 后再 commit
+- commit message 含 `(snapshot=$HIGHEST_TAG)`
+
+## 边界守卫（boundary-watch）
+
+### BW-1. codex 改了 worktree 外文件 → hard kill
+
+场景：goal codex bug 越界改了 `$HOME/某个项目` 下的文件。
+
+预期：
+- boundary-watch.sh 检测到 main worktree 关键文件 mtime 在 5 分钟内
+- 输出 `stop-boundary`
+- watcher 立刻 cleanup_codex + alert
+
+### BW-2. 主分支被切
+
+场景：codex 偷偷 `git checkout main` 然后改了文件。
+
+预期：
+- boundary-watch.sh 检测 `current_branch != goal/*`
+- 输出 `stop-boundary`
+
+### BW-3. git remote 被改
+
+场景：codex 改 origin URL（极端情况）。
+
+预期：
+- boundary-watch.sh 比对 `.original-remote` 失败
+- `stop-boundary`
+
+### BW-4. reflog 含 force/reset --hard
+
+场景：codex 跑了 `git reset --hard HEAD~3`。
+
+预期：
+- boundary-watch.sh 检测 reflog
+- `stop-boundary`
+
+## Review Audit
+
+### AU-1. 每轮 review 写 audit JSONL
+
+场景：mini-review-3 完成。
+
+预期：
+- `.agent/tasks/<id>/review-audit/round-milestone-3.jsonl` 一行新记录
+- 含 reviewer_pid / reviewer_thread_id / verdict / scores / aggregate
+- INDEX.md 更新
+
+### AU-2. orchestrator 仲裁 override Must Fix → audit 记录
+
+场景：reviewer round-2 要拆 sanitize.ts，orchestrator 按黑名单拒绝。
+
+预期：
+- review-audit/round-2.jsonl 中 `orchestrator_arbitration.must_fix_overridden` 含该 idx
+- `override_reasons` 含 "src/utils/sanitize.ts in GOAL.md Non-goals"
+
+### AU-3. 复盘查询 — 哪些 Must Fix 被 override
+
+场景：人类想知道整个任务里哪些 reviewer Must Fix 被仲裁推翻。
+
+预期：
+```bash
+jq -s '[.[] | select(.orchestrator_arbitration.must_fix_overridden | length > 0)
+        | {round, file: .must_fix[.orchestrator_arbitration.must_fix_overridden[0]].file,
+           reason: .orchestrator_arbitration.override_reasons[0]}]' \
+   review-audit/round-*.jsonl
+```
+能列出所有 override 记录。
+
+### AU-4. 检测 reviewer thread 串扰
+
+场景：所有 reviewer 启动方式正确，但 audit 中两个 reviewer thread_id 相同。
+
+预期：
+```bash
+jq -s '[.[] | .reviewer_thread_id] | unique | length'
+```
+应该 = round 数；少了说明有 reviewer 复用了 thread → 隔离失效，alert。
+
+## UI 任务专属（is_ui_task: true）
+
+### UI-1. 每轮强制截图 + 即时 IM 推送
+
+场景：milestone-2 完成，is_ui_task=true。
+
+预期：
+- runtime-evidence.sh 跑完后立刻 cc-connect send 含截图
+- 不批发，不等 final review
+- 同时写 `pending-review-images.txt` 让 orchestrator 后补校验
+
+### UI-2. 状态走查覆盖
+
+场景：mini-review codex 跑用户旅程时只看了默认状态。
+
+预期：reviewer 必须按 GOAL.md User Journeys + UI checklist 状态矩阵覆盖（normal / duplicate / 边缘视口 / 滚动到底等），漏了 → Should Fix
+
+### UI-3. 截图文件名 ≠ 内容（hallucination）
+
+场景：Goal codex 截了 `normal-saved.png`，但实际显示设置弹窗。
+
+预期：
+- watcher 立刻发 IM
+- orchestrator 下次 ping 时 view_image 看 `pending-review-images.txt`，发现错位
+- 单独发 "勘误" 消息 + 重新派 codex 截图
+
+### UI-4. 收尾发 HIGHEST_TAG 截图
+
+场景：3 轮 review，HIGHEST 在 round-2，但最终决定回退 commit round-2。
+
+预期：
+- 收尾 IM 推送是 round-2 截图（不是 round-3）
+- 消息明确 "这是历史最高分版本，最终交付已回退"
+
+### UI-5. 同分硬规则裁决
+
+场景：round-6 和 round-8 都 4.6，但 round-6 toast 遮挡控件，round-8 用 status pill。
+
+预期：
+- orchestrator 仲裁选 round-8（按 STOP-CONDITIONS.md 硬规则段）
+- no-improvement 计数从 round-8 重新算
+
+## Orchestrator Idle 模型
+
+### IDLE-1. orchestrator 启动 watcher 后进入 idle
+
+场景：CLI-YOLO 模式，watcher 启动完毕。
+
+预期：
+- orchestrator 不再周期跑任何检查
+- 等待 4 个唤醒源之一：人类 ping / .review-pending / .stop-signal / 关键词 IM
+
+### IDLE-2. 人类 ping "现在咋样"
+
+场景：watcher 跑了 2 小时，人类问"现在咋样"。
+
+预期：
+- orchestrator 唤醒，读 STATUS.md / scores/aggregate-trend.json / 最近 milestone
+- 一句话总结回复（"已完成 3 个 milestone，当前最高分 4.25 在 round-3，正在跑 milestone-4"）
+- **不**主动跑额外验证命令
+
+### IDLE-3. 人类 ping "加规则 X"
+
+场景：人类说"成功反馈不能影响布局"。
+
+预期：
+- orchestrator 抽象成评分维度 `Layout Stability`
+- 追加到 EVAL.md `Reviewer Rubric` 段 + 写 `## Human Feedback` 段
+- Goal Codex 下个 milestone 开始前读到
+
+### IDLE-4. orchestrator 周期 poll IM → Red Flag
+
+场景：orchestrator idle 期间自己周期跑 cc-connect inbox poll。
+
+预期：
+- Red Flag 命中（"orchestrator 周期 poll IM" 是 watcher 的活）
+- 应该让 watcher 做这件事
+
 ## 边界 / 回归
 
 ### B1. Codex 配置文件不存在
@@ -432,20 +747,30 @@ Prompt：
 
 一次 flow-codex-goal 调用如果**同时**满足以下，才算通过：
 
-1. ✅ Pre-flight 5 项全过（codex 版本 / feature flag / git clean / acceptance commands / 不在主分支）
-2. ✅ Step 0.5 完成：AC 量化、Goal-Attainment Mode 在 GOAL.md 落盘、Budget 确认
-3. ✅ 任务文件按模板创建（GOAL.md/PLAN.md/EVAL.md/STATUS.md/.gitignore 配置）
-4. ✅ 独立 worktree 创建并切换
-5. ✅ **BASELINE.md 已落盘**（4 维度评分 + Aggregate + 用户旅程现状 + 截图）
-6. ✅ Goal Codex 启动且 codex.pid 写入
-7. ✅ Watcher 启动且 watcher.pid 写入
-8. ✅ STATUS.md 至少更新过 1 次（任务非 0 秒结束）
-9. ✅ 至少 1 个 milestone 触发了 mini-review + IM 推送（IM 会话下）
-10. ✅ Goal 完成时 STATUS.md 含精确 `GOAL_DONE @ <ts>` 行
-11. ✅ review-input 完整（diff / lint / test / build / runtime.log / screenshots/ 都有）
-12. ✅ Reviewer Codex 是新进程（pid ≠ Goal 的 pid）
-13. ✅ Reviewer **实际跑了项目**（reviewer-fresh/ 截图存在）
-14. ✅ Reviewer 输出 REVIEW.md 含 Runtime Verification 段 + 4 维度 vs baseline delta
-15. ✅ Verdict pass 后 orchestrator agent 自跑过验证命令
-16. ✅ 最终输出 Codex Goal Task Report 含全部字段（含 Baseline 段 + Score Trajectory）
-17. ✅ 无 Red Flag 命中
+1. ✅ Pre-flight 6 项全过（codex 版本 / feature flag / git clean / acceptance commands / 不在主分支 / RUN_MODE 探测成功）
+2. ✅ Phase 0.1 完成：AC 量化、Goal-Attainment Mode 在 GOAL.md 落盘、Budget 确认、自定义评分维度（如适用）已加入 EVAL.md
+3. ✅ 任务文件按模板创建（GOAL.md/PLAN.md/EVAL.md/STOP-CONDITIONS.md/STATUS.md/.gitignore + .original-remote 记录）
+4. ✅ 独立 worktree 创建并切换；mkdir 在 cd 之后执行
+5. ✅ **BASELINE.md 已落盘**且 reviewer_pid ≠ orchestrator_pid（独立 codex 跑过）
+6. ✅ **Phase 0.4 APPROVAL.md 存在**（人类签字才进 Phase 1）
+7. ✅ Goal Codex 启动且 codex.pid 写入；启动方式按 RUN_MODE 分支正确
+8. ✅ Watcher 启动且 watcher.pid 写入（CLI 模式）；SUBAGENT 模式下 orchestrator 兼任
+9. ✅ STATUS.md 至少更新过 1 次（任务非 0 秒结束）
+10. ✅ 至少 1 个 milestone 触发了 mini-review + snapshot 决策 + IM 推送（IM 会话下）
+11. ✅ **每轮 mini-review 写了 review-audit/round-N.jsonl**（含 reviewer_pid / verdict / aggregate / arbitration 段）
+12. ✅ **snapshot 机制工作**：分数创新高 → git tag snapshot-* 创建 + HIGHEST_SCORE/HIGHEST_TAG 更新
+13. ✅ Goal 完成时 STATUS.md 含精确 `GOAL_DONE @ <ts>` 行
+14. ✅ review-input 完整（diff / lint / test / build / runtime.log / screenshots/ 都有）
+15. ✅ **Reviewer 在独立 readonly worktree 跑**（git worktree add HEAD ../<repo>-review-readonly-rN）
+16. ✅ **Reviewer 启动用 env -i**（PATH/HOME/LANG/LC_ALL/NODE_ENV/TASK_ID 之外的变量被清掉）
+17. ✅ **进程隔离硬验证**：reviewer_pid ≠ goal_pid ≠ orchestrator_pid（写入 reviews/round-N/reviewer.pid）
+18. ✅ **readonly worktree 物理屏蔽** STATUS.md / ISSUES.md / logs/ / 历史 reviews/
+19. ✅ Reviewer 输出 REVIEW.md 含 Reviewer Metadata 段（PID/Thread/LaunchCmd/WorktreeSHA）
+20. ✅ Reviewer 输出 REVIEW.md 含 Runtime Verification 段 + 4 维度+扩展维度 vs baseline delta
+21. ✅ Verdict pass 后按 risk_class 分级验证（low 信 reviewer / medium 抽查 / high 全套自跑）
+22. ✅ **3 轮 fail 上限 / 3 轮不涨分 → 回退到 HIGHEST_TAG** 机制工作
+23. ✅ 最终 commit 基于 HIGHEST_TAG 不是 HEAD（commit message 含 `snapshot=$HIGHEST_TAG`）
+24. ✅ UI 任务（is_ui_task=true）：每个 milestone 即时发截图 + pending-review-images.txt 写入 + 收尾发 HIGHEST 截图
+25. ✅ boundary-watch 全程未命中（或命中即 hard kill 走 STOPPED 路径）
+26. ✅ 最终输出 Codex Goal Task Report 含全部字段（Phase 0 Contract / Run Mode / Risk Class / Score Trajectory / Snapshots / Audit / UI Screenshots 段）
+27. ✅ 无 Red Flag 命中

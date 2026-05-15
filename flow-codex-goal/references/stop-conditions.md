@@ -27,6 +27,24 @@
 | 修改 auth/支付/加密 | 1 个 | watcher pattern 匹配 | `STOPPED: high-risk-touched` |
 | 引入未授权依赖 | 1 个 | watcher package.json diff | `STOPPED: unauthorized-dep` |
 | 破坏性 git 操作尝试 | 1 次 | git pre-* hooks | `STOPPED: destructive-git` |
+| **boundary-watch 命中**（worktree 外文件 / 主分支被切 / git remote 改 / reflog 含 force/reset --hard） | 1 次 | `boundary-watch.sh` | `STOPPED: boundary-violation` |
+| **APPROVAL.md 被人类删除**（Phase 0 反悔） | 1 次 | watcher inotify | `STOPPED: approval-revoked` |
+
+## 3.5 硬规则风险（UI 任务，同分裁决用）
+
+不算停止条件，但 reviewer 评分时遇到这些**必须** Must Fix；orchestrator 在同分时按这些维度选优。
+
+| 硬规则 | 描述 |
+|---|---|
+| 遮挡控件 | 反馈浮层短暂遮挡按钮 / 标签 / 主操作 |
+| 顶开 footer | 成功反馈把 footer 推下去 / 撑出视口 |
+| 撑出视口 | 弹窗 / 内容超出最小尺寸视口 |
+| 数量承诺 ≠ 可见内容 | "发现 N 条"实际只看到 < N |
+| 状态混淆 | 普通态和反馈态视觉区分不开 |
+| 关键操作不可达 | 弹窗滚不到底 / 主按钮被 cover |
+| 一致性破坏 | 列表项格式突然变化 / icon 语义不一致 |
+
+详细 rubric 见 `references/score-rubric-extensions.md` 和 `references/ui-review-checklist.md`。
 
 ## 4. 决策类停止
 

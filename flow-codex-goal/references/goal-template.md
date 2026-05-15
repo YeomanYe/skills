@@ -42,8 +42,16 @@
 - [ ] J4: 触发 404（访问 /nonexistent）→ 显示自定义 404 页 + 返回按钮
 - [ ] J5: 模拟离线（DevTools Network → Offline）→ 显示离线 fallback 而非白屏
 
+## Task Metadata（Phase 0 必填）
+
+```yaml
+is_ui_task: false              # true 时激活 UI 截图协议 + 状态走查 + 同分硬规则裁决（详见 references/ui-review-checklist.md）
+risk_class: medium             # low | medium | high  → 决定 Step 3.1 orchestrator 自跑验证的力度
+run_mode: CLI-YOLO             # CLI-YOLO | CLI-EXEC | SUBAGENT  → Phase 0.0 探测得到，全程不变
+```
+
 ## Goal-Attainment Mode
-**何时算"达成"**。Step 0.5 已确认，写下来供 watcher 和 reviewer 解析。
+**何时算"达成"**。Phase 0.1 Step 2 已确认，写下来供 watcher 和 reviewer 解析。
 
 ```yaml
 mode: regression-prevention   # threshold | no-improvement-N | regression-prevention | hybrid
@@ -54,6 +62,23 @@ baseline_dimensions:           # 仅 mode=regression-prevention/hybrid 时生效
   - maintainability
   - ux
   - risk
+```
+
+## Custom Score Dimensions（Phase 0.1 Step 4 由 orchestrator 建议 + 人类追加）
+
+参考 `references/score-rubric-extensions.md`。例：
+
+```yaml
+custom_dimensions:
+  - name: layout_stability        # UI 任务推荐
+    description: "反馈、header、footer、滚动区域是否稳定"
+    range: [1, 5]
+  - name: small_popup_density     # UI 任务推荐
+    description: "小空间紧凑但不拥挤"
+    range: [1, 5]
+  - name: state_consistency       # UI 任务推荐
+    description: "数量承诺与可见内容一致"
+    range: [1, 5]
 ```
 
 ## Stop Conditions

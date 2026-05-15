@@ -1,17 +1,66 @@
-# Reviewer Codex Prompt 模板（Final Review，含运行时验证）
+# Reviewer Codex Prompt 模板（Final Review，含运行时验证 + 硬隔离）
 
-> **必须在新进程中执行**。不能复用 Goal Codex 的 thread/session。
+> **必须在独立 readonly worktree 的新进程中执行**。不能复用 Goal Codex 的 thread/session/worktree。
 > **必须实际运行项目验证**。不能只看 diff 和静态测试输出。
+> **必须 `env -i` 启动**，清掉 keychain / CF_TOKEN / GITHUB_TOKEN 等敏感变量。
 
-## 调用方式
+## 调用方式（**严格按以下三步**）
 
+### Step 1：创建 review-readonly worktree
 ```bash
-cd "$WORKTREE"
-codex exec --skip-git-repo-check < references/review-prompt.md
-# 或
-codex --yolo
-# 在 TUI 输入下面的 prompt（不带 /goal 前缀，普通 prompt）
+ROUND=$(($(ls .agent/tasks/$TASK_ID/reviews/ 2>/dev/null | wc -l) + 1))
+REVIEW_WORKTREE="../$(basename $PWD)-review-readonly-r$ROUND"
+git worktree add "$REVIEW_WORKTREE" HEAD
+
+# **物理屏蔽** implementer 自述
+rm -f "$REVIEW_WORKTREE/.agent/tasks/$TASK_ID/STATUS.md" \
+      "$REVIEW_WORKTREE/.agent/tasks/$TASK_ID/ISSUES.md"
+rm -rf "$REVIEW_WORKTREE/.agent/tasks/$TASK_ID/logs/"
+rm -rf "$REVIEW_WORKTREE/.agent/tasks/$TASK_ID/reviews/"
+
+# 把 review-input copy 进 readonly worktree
+cp -r ".agent/tasks/$TASK_ID/review-input" \
+      "$REVIEW_WORKTREE/.agent/tasks/$TASK_ID/"
+cp ".agent/tasks/$TASK_ID/BASELINE.md" \
+   ".agent/tasks/$TASK_ID/GOAL.md" \
+   ".agent/tasks/$TASK_ID/EVAL.md" \
+   "$REVIEW_WORKTREE/.agent/tasks/$TASK_ID/"
 ```
+
+### Step 2：env -i 启动 Reviewer
+```bash
+env -i \
+  PATH="/usr/local/bin:/usr/bin:/bin" \
+  HOME="$HOME" \
+  NODE_ENV="test" \
+  TASK_ID="$TASK_ID" \
+  codex exec --skip-git-repo-check --cd "$REVIEW_WORKTREE" < references/review-prompt.md \
+  > ".agent/tasks/$TASK_ID/reviews/round-$ROUND/codex.log" 2>&1 &
+
+REVIEWER_PID=$!
+echo $REVIEWER_PID > ".agent/tasks/$TASK_ID/reviews/round-$ROUND/reviewer.pid"
+
+# 进程隔离硬验证
+GOAL_PID=$(cat ".agent/tasks/$TASK_ID/codex.pid" 2>/dev/null || echo 0)
+[[ "$REVIEWER_PID" != "$GOAL_PID" ]] || { echo "ABORT: reviewer pid == goal pid"; kill $REVIEWER_PID; exit 1; }
+[[ "$REVIEWER_PID" != "$$" ]] || { echo "ABORT: reviewer pid == orchestrator pid"; kill $REVIEWER_PID; exit 1; }
+
+wait $REVIEWER_PID
+```
+
+### Step 3：copy REVIEW.md 回 Goal worktree + 销毁 readonly
+```bash
+cp "$REVIEW_WORKTREE/.agent/tasks/$TASK_ID/review-output/REVIEW.md" \
+   ".agent/tasks/$TASK_ID/reviews/round-$ROUND/REVIEW.md"
+git worktree remove --force "$REVIEW_WORKTREE"
+bash references/write-audit.sh "$TASK_ID" "$ROUND" final-review
+```
+
+**禁止**：
+- ❌ `codex resume`（会复用 thread）
+- ❌ 传 `--thread-id` / `--session-id`
+- ❌ 在 Goal worktree 内启动 reviewer（文件系统隔离失效）
+- ❌ 不 `env -i` 直接启动（凭据泄漏到 reviewer）
 
 ## 完整 Prompt
 
@@ -41,12 +90,15 @@ ONLY these:
 - AGENTS.md                                              ← project-wide standards
 - relevant source files (read-only) for context
 
-You may NOT read:
+You may NOT read（this readonly worktree physically does NOT contain these — if you somehow find them, ABORT and report isolation failure）:
 - STATUS.md (implementer's self-report — biased)
 - ISSUES.md (implementer's self-report)
 - logs/* (implementer's self-narrative)
 - Any chat or session history
 - Goal Codex's prior screenshots — you must take fresh ones yourself
+- Previous round REVIEW.md files (reviews/round-N-1/...) — anchoring bias
+- "Next Action" section anywhere — that's Goal's repair guidance, not your concern
+- Any pending-review-images.txt or human-feedback.txt
 
 == Verification Steps ==
 
@@ -104,10 +156,18 @@ Any dimension < 4 → at least one Should Fix item.
 
 == Output Format ==
 
-Write to .agent/tasks/<TASK_ID>/REVIEW.md:
+Write to .agent/tasks/<TASK_ID>/review-output/REVIEW.md
+（路径必须是 `review-output/REVIEW.md`，watcher.sh 会从这里 copy 回 Goal worktree 的 reviews/round-N/REVIEW.md）：
 
 ```md
 # Review: <TASK_ID>
+
+## Reviewer Metadata
+- PID: <output of `echo $$`>
+- Thread: <output of `codex thread current` if available, else "n/a">
+- Launch cmd: <env -i 启动命令的精简描述>
+- Worktree: <pwd>
+- Worktree SHA: <output of `git rev-parse HEAD`>
 
 ## Verdict
 pass | fail
@@ -183,11 +243,15 @@ journeys), then diff-stat.txt for scope, then start the project and run user jou
 
 ## 关键约束
 
-1. **新进程**：必须用 `codex exec` 或新开的 `codex --yolo`，不能 `codex resume`
-2. **不复用 Goal session**：Reviewer 看到 Goal 的 thread_id 就污染了独立性
-3. **STATUS.md 严禁读**：那是 implementer 的自述，会污染判断
-4. **必须实际运行项目**：不能只看 diff + test.txt 就裁决
-5. **输出 REVIEW.md 必须严格按上面格式**——orchestrator agent 后续按格式解析 Verdict 字段
+1. **独立 readonly worktree**：必须 `git worktree add HEAD ../<repo>-review-readonly-rN`，reviewer 在那里跑
+2. **物理屏蔽**：readonly worktree 中 STATUS.md / ISSUES.md / logs/ / 历史 reviews/ 必须被删除
+3. **新进程**：必须用 `codex exec`，不能 `codex resume`，不能传 `--thread-id`
+4. **环境隔离**：`env -i PATH=... HOME=... NODE_ENV=test TASK_ID=...` 启动，不传 KEYCHAIN_* / CF_* / GITHUB_TOKEN / OPENAI_API_KEY
+5. **进程隔离硬验证**：reviewer_pid != goal_pid && reviewer_pid != orchestrator_pid，违反立刻 abort
+6. **必须实际运行项目**：不能只看 diff + test.txt 就裁决
+7. **mini-review 分数尺度**：必须 1-5 制，禁止改成 1-10（mini-review-prompt.md 反复强调）
+8. **输出 REVIEW.md 必须严格按格式**——orchestrator agent 按格式解析 Verdict 字段
+9. **审计落盘**：跑完必须 `bash references/write-audit.sh <TASK_ID> <ROUND> final-review` 写 review-audit/round-N.jsonl
 
 ## 后处理
 

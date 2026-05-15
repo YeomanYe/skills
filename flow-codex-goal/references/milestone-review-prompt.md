@@ -1,4 +1,4 @@
-# Milestone Mini-Review Prompt（Step 4.5 用）
+# Milestone Mini-Review Prompt（Step 1.3 用）
 
 > 每个 milestone 由 watcher 触发。轻量评分，不写 Must Fix（那是 final review 的事）。
 > 目标：快速给当前进展打分，让人类在 IM 中校准。

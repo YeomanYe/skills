@@ -44,7 +44,12 @@ pnpm build                             # or: npm run build / cargo build --relea
 - [ ] 如果 UI 改动 → 必须有 Playwright 截图存到 `review-input/screenshots/`
 
 ## Reviewer Rubric
-**Reviewer Codex 按这 4 维度打分（各 1-5 分），全部 ≥ 4 才能 verdict=pass**：
+**Reviewer Codex 按这 4 维度 + GOAL.md 中 `custom_dimensions` 的扩展维度打分（各 1-5 分），全部 ≥ 4 才能 verdict=pass**：
+
+### 0. 扩展维度（如果 GOAL.md `custom_dimensions` 段非空）
+
+按 GOAL.md `custom_dimensions` 列表逐项评分（1-5）。每个维度的 1/3/5 锚点见 `references/score-rubric-extensions.md`。
+**禁止**把 1-5 改成 1-10（mini-review 易犯，反复强调）。
 
 ### 1. 正确性 (Correctness)
 - 实现是否真的满足 GOAL.md 的 Acceptance Criteria

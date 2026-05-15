@@ -56,6 +56,8 @@ def main() -> int:
     ap.add_argument("--threshold", type=float, default=4.0)
     ap.add_argument("--n", type=int, default=3)
     ap.add_argument("--no-improvement-history", type=Path)
+    ap.add_argument("--highest-score-file", type=Path,
+                    help="Path to .agent/tasks/<id>/snapshots/HIGHEST_SCORE")
     args = ap.parse_args()
 
     baseline = parse_baseline_md(args.baseline)
@@ -105,11 +107,24 @@ def main() -> int:
                 if verdict == "ok":
                     verdict = "stop-no-improvement"
 
+    # 检查 highest score（与 snapshots/HIGHEST_SCORE 比对）
+    snapshot_decision = "skip-not-new-high"
+    highest = None
+    if args.highest_score_file and args.highest_score_file.exists():
+        try:
+            highest = float(args.highest_score_file.read_text().strip() or 0)
+        except ValueError:
+            highest = 0
+    if c_agg is not None and (highest is None or c_agg > highest):
+        snapshot_decision = "create-new-tag"
+
     out = {
         "verdict": verdict,
         "mode": args.mode,
         "baseline_aggregate": baseline.get("aggregate"),
         "current_aggregate": c_agg,
+        "highest_so_far": highest,
+        "snapshot_decision": snapshot_decision,
         "delta": (c_agg - baseline.get("aggregate"))
                  if c_agg is not None and baseline.get("aggregate") is not None
                  else None,

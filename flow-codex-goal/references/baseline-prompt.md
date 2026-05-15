@@ -1,4 +1,4 @@
-# Baseline Scoring Prompt（Step 2.5 用）
+# Baseline Scoring Prompt（Phase 0.3 用）
 
 > 在 Goal Codex 启动**之前**跑一次。给当前系统打分，作为后续退化检测基线。
 > 必须新进程；和 final reviewer 一样的独立性要求。

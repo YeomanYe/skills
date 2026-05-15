@@ -13,7 +13,11 @@
 #   5. GOAL_DONE / STOPPED 信号
 #   6. 修改文件计数（用于 budget 检查）
 
-set -euo pipefail
+# 注意：用 `set -u` 而非 `set -euo pipefail`
+# 历史 bug：管道（如 find | xargs | sort | head）在 head 提前关闭时会 SIGPIPE，
+# 配合 `pipefail` 会让脚本异常退出，导致 watcher 死循环报 "check-error"。
+# 改成 `set -u`（只对未定义变量报错）就稳了。
+set -u
 
 TASK_ID="${1:?task-id required}"
 TASK_DIR=".agent/tasks/$TASK_ID"
