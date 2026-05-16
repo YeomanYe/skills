@@ -111,9 +111,11 @@ else
   if [[ $drift_count -gt 0 ]]; then
     echo ""
     echo "⚠️  下一步必须把改动推到目标环境（agent 实际读 skill 的位置）："
-    echo "    rsync -a --delete $ROOT/ ~/.config/skillshare/skills/"
-    echo "    skillshare sync --force"
+    echo "    1. git add -A && git commit && git push origin main   # 推到 GitHub"
+    echo "    2. cd ~/.config/skillshare/skills && git pull origin main  # skillshare source 拉更新"
+    echo "    3. skillshare sync --force                              # 同步到 ~/.claude/skills/ 等"
     echo ""
-    echo "    否则 SKILL.md 中 'references/<name>.md' 引用在 ~/.claude/skills/ 下找不到。"
+    echo "    禁止用 rsync 把开发位置硬覆盖到 ~/.config/skillshare/skills/"
+    echo "    （那会污染 skillshare 的 git clone 状态，绕过 GitHub 单一事实源）"
   fi
 fi

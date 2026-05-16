@@ -28,6 +28,9 @@ bash scripts/sync-shared.sh
 各 SKILL.md 引用路径用 `references/X.md`（同级相对路径），skillshare 同步
 到目标后仍可达。
 
+修完后按顶层 [`README.md`](../README.md) 的"修改 / 新建 skill 的工作流"推到
+GitHub + skillshare source（**用 `git push` + `git pull`，不是 `rsync`**）。
+
 ## CI / pre-commit 检查
 
 `scripts/sync-shared.sh --check` 用于检查所有副本是否与 `_shared/` 源头一致。

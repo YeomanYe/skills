@@ -203,8 +203,14 @@ description: >
 - 用户明确表示本次只做本地迭代，不做全局发布
 
 若调用该 skill，默认只同步到中心源头 `~/Documents/projects/skills/`（推 GitHub `YeomanYe/skills`）。
-注意：`~/.config/skillshare/skills/` 是 skillshare 工具的目标缓存，**不是**中心源头，不应作为同步目标。
-不要把"同步到编辑器或 agent 自己的全局目录"视为该步骤的职责。
+
+注意：`~/.config/skillshare/skills/` 是 skillshare 工具的 **source clone**（同一 GitHub
+repo 的另一个 working copy），由 skillshare 用 `git pull` / `skillshare update` 拉取，
+**不应**用 `rsync` 等手段从开发位置硬覆盖（那会污染 skillshare 的 git 状态，绕过 GitHub
+单一事实源）。
+
+不要把"同步到编辑器或 agent 自己的全局目录"（如 `~/.claude/skills/`）视为该步骤的职责。
+那是 skillshare 的 sync target，由 `skillshare sync --force` 处理。
 
 若跳过该步骤，必须在最终报告中明确说明原因。
 

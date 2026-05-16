@@ -1,7 +1,28 @@
 # Skills 中心源头
 
-Claude / Codex / 其他 agent 共用的 skill 集合，源头位于 `~/Documents/projects/skills/`，
-推送到 GitHub `YeomanYe/skills`。
+Claude / Codex / 其他 agent 共用的 skill 集合，**单一事实源**是 GitHub `YeomanYe/skills`。
+
+## 关键认知
+
+GitHub repo `YeomanYe/skills` 是**唯一的真相**。本地有两个 working copy：
+
+| 位置 | 角色 | git remote |
+|---|---|---|
+| `~/Documents/projects/skills/` | **开发位置**（这里编辑 skill）| `git@github.com:YeomanYe/skills.git` |
+| `~/.config/skillshare/skills/` | **skillshare 工具的 source**（同一 repo 的另一个 clone） | `git@github.com:YeomanYe/skills.git` |
+
+skillshare 把 source clone 同步到 agent 目标：
+
+```
+GitHub: YeomanYe/skills (单一事实源)
+   ↓ git push (开发位置 → GitHub)
+   ↓ git pull / skillshare update (GitHub → skillshare source)
+~/.config/skillshare/skills/ (skillshare source)
+   ↓ skillshare sync
+~/.claude/skills/, ~/.agents/skills/ (agent 实际读取的位置)
+```
+
+skillshare 工具的配置在 `~/.config/skillshare/config.yaml`，定义了 `source` 和 `targets`。
 
 ## 目录结构
 
@@ -13,35 +34,45 @@ Claude / Codex / 其他 agent 共用的 skill 集合，源头位于 `~/Documents
 │   ├── parallelization-template.md
 │   └── handoff-payload-template.md
 ├── scripts/
-│   └── sync-shared.sh     # 把 _shared/ 同步到各 skill 的 references/
+│   └── sync-shared.sh     # 把 _shared/ 复制到各 skill 的 references/
 ├── flow-codex-goal/       # 各 skill 目录（含 SKILL.md / references/ / tests/）
 ├── flow-dev-task/
 └── ...                    # 共 28+ skill
 ```
 
-## skill 同步流程
+## 修改 / 新建 skill 的工作流（正确版本）
 
-中心源头 = `~/Documents/projects/skills/`（这个 repo）。
+```bash
+# 1. 在开发位置改 skill
+cd ~/Documents/projects/skills
+# 改 SKILL.md / references / tests ...
 
-各 agent 通过两种方式读 skill：
+# 2. 如果改了 _shared/，同步副本到各 skill 的 references/
+bash scripts/sync-shared.sh
 
-| Agent | 读 skill 的路径 | 同步方式 |
-|---|---|---|
-| Claude Code | `~/.claude/skills/<skill>/` | 由 `skillshare sync` 创建符号链接到 `~/.config/skillshare/skills/<skill>/` |
-| Codex / 其他 | 各 agent 的全局 skill 目录 | 同上，skillshare 把每个含 SKILL.md 的目录同步到所有目标 |
+# 3. 提交并推到 GitHub（单一事实源）
+git add -A && git commit && git push origin main
 
-**重要约定**：
-- `~/.config/skillshare/skills/` 是 skillshare 的**目标缓存**，**不是源头**
-- 源头永远是这个 repo（`~/Documents/projects/skills/`）
-- 通过 `skillshare sync --force` 把源头推到所有目标
+# 4. 让 skillshare source 拉取最新（git pull，不是 rsync！）
+cd ~/.config/skillshare/skills && git pull origin main
+# 或用 skillshare 自带命令（如果支持）：
+#   skillshare update --all
 
-## 修改 / 新建 skill 的工作流
+# 5. skillshare 把 source 同步到所有 agent target
+skillshare sync --force
+```
 
-1. 在源头修改 / 新建 skill 目录
-2. 跑 `bash scripts/sync-shared.sh`（如果改动涉及 _shared/）
-3. `rsync -a --delete ./ ~/.config/skillshare/skills/`（把源头推到 skillshare 缓存）
-4. `skillshare sync --force`（让 skillshare 把缓存符号链接到所有目标）
-5. `git add -A && git commit && git push`
+### ⚠️ 历史踩坑警示
+
+**不要**用 `rsync -a --delete /Users/falcom/Documents/projects/skills/ /Users/falcom/.config/skillshare/skills/`
+把开发位置硬覆盖到 skillshare source。
+
+那样会：
+- 把开发 repo 的 `.git/` 整个推过去，污染 skillshare clone 的 git 状态
+- 绕过 GitHub 单一事实源（GitHub 上没有的本地改动也会被推到 skillshare）
+- 删掉 skillshare 工具自己维护的元数据（如果有）
+
+**正确**：开发位置 → GitHub → skillshare source（用 `git pull` / `skillshare update`）。
 
 ## 关键 skill
 
