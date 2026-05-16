@@ -1,6 +1,13 @@
 ---
 name: skill-behavior-test
-description: Use when testing whether a single skill actually triggers and behaves correctly, especially when you need fast mock/context simulations or a live browser-backed check for skills that depend on external evidence.
+description: >
+  Use when testing whether a **single skill** actually triggers and behaves correctly,
+  especially with fast mock/context simulations or a live browser-backed check for
+  skills that depend on external evidence. 用于测试**单个 skill** 是否按预期触发和行为，
+  支持 mock / context / live 三档模式。触发短语：「测一下 X skill」、「这个 skill 会不会
+  漏步骤」、「skill 触发条件对不对」、「test skill X」、「behavior test for X skill」。
+  Do NOT use for: 测多 skill 链路（→ skill-integration-test）/ 跑项目单元测试（→
+  flow-dev-task）/ 性能/集成回归（项目专属测试框架）。
 ---
 
 # Skill Behavior Testing

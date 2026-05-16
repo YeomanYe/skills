@@ -49,7 +49,7 @@ Codex `/goal` 是 Codex CLI 0.128.0+ 的实验功能（feature flag `goals = tru
 | 没有自动循环 | watcher.sh 周期 poll + 触发 continuation |
 | 没有花销上限 | GOAL.md Budget + score-diff 退化检测 + watcher 强停 |
 | 完成检测不可靠 | health-check.sh 6 维度判定 + STATUS.md `GOAL_DONE` 信号 |
-| 没有评分基线 | Phase 0.3 强制独立 baseline scoring |
+| 没有评分基线 | Step 0.3 强制独立 baseline scoring |
 | 自报常失真（"完成"实际未跑、文件数虚报、截图错位）| watcher 跨证据交叉校验 + reviewer 独立运行时验证 |
 
 ## When to Use
@@ -72,7 +72,7 @@ Codex `/goal` 是 Codex CLI 0.128.0+ 的实验功能（feature flag `goals = tru
 
 ## Run Modes（运行模式三分支）
 
-orchestrator agent 调用本 skill 时所处的运行环境**决定能用哪种 Goal Codex 启动方式**。Phase 0.0 必须先探测，后续步骤按模式选路径。
+orchestrator agent 调用本 skill 时所处的运行环境**决定能用哪种 Goal Codex 启动方式**。Step 0.0 必须先探测，后续步骤按模式选路径。
 
 | 模式 | 探测条件 | Goal Codex 启动 | watcher 形态 | 适用场景 |
 |---|---|---|---|---|
@@ -337,7 +337,7 @@ orchestrator 启动 watcher 后**进入 idle**。只有以下事件唤醒：
 | 唤醒源 | 触发条件 | orchestrator 动作 |
 |---|---|---|
 | **人类 ping** | "现在咋样" / "我加个规则" / "暂停下" | 读 STATUS.md / scores/aggregate-trend.json / latest REVIEW.md，总结回复 |
-| **final review 完成** | watcher touch `.agent/tasks/<id>/.review-pending` | 读 REVIEW.md，做仲裁判断（详见 Phase 2.4），决定 commit / 退回 Goal / 终止 |
+| **final review 完成** | watcher touch `.agent/tasks/<id>/.review-pending` | 读 REVIEW.md，做仲裁判断（详见 Step 2.4），决定 commit / 退回 Goal / 终止 |
 | **stop signal** | watcher touch `.agent/tasks/<id>/.stop-signal` | 读 STOPPED 原因，决定 abort 或 rescope |
 | **human approve/reject IM** | 关键词触发 | 落 APPROVAL.md / 终止 |
 
@@ -497,7 +497,7 @@ if no_improvement_count() >= 3:
 | `medium`（业务逻辑 / 新功能） | ✅ 跑 EVAL.md 部分关键命令 | 抽查 |
 | `high`（auth / 支付 / 加密 / 生产部署） | ✅ 全套 EVAL + 真实环境复验 | 必复验 |
 
-risk_class 在 Phase 0.1 Step 4 由 orchestrator 推断 + 人类确认，写入 GOAL.md。
+risk_class 在 Step 0.1 Step 4 由 orchestrator 推断 + 人类确认，写入 GOAL.md。
 
 #### Step 3.2：人类签字
 
@@ -770,8 +770,8 @@ SUBAGENT 模式下 orchestrator 无法持有后台 watcher 进程。此时 orche
 - token 用量接近 budget 但不停
 - Goal Codex 修改了 SPEC 范围外文件 / boundary-watch 命中
 - 把 Codex 修改全部 `git add .` 而不是选择性 staging
-- 跳过 Phase 0.1（未确认 AC / mode / budget / 自定义维度）就启动 Goal
-- 跳过 Phase 0.3 baseline scoring 就启动 Goal
+- 跳过 Step 0.1（未确认 AC / mode / budget / 自定义维度）就启动 Goal
+- 跳过 Step 0.3 baseline scoring 就启动 Goal
 - 跳过运行时证据收集就裁决 verdict
 - IM 会话下跳过 milestone 推送 / UI 任务不发截图
 - 检测到分数低于 baseline 但继续推进（regression-prevention 模式下）
@@ -828,6 +828,8 @@ ROI 判断：
 
 ### Upstream Handoff Payload（来自 flow-dev-task）
 
+**字段规范遵循 `_shared/handoff-payload-template.md`**（所有 flow-* skill 共享同一套字段集）。
+
 `flow-dev-task` Stage 5 判定"任务过长"切到本 skill 时，**必须**透传以下字段：
 
 | 字段 | 必填 | 说明 |
@@ -835,14 +837,14 @@ ROI 判断：
 | `objective` | ✅ | 一句话任务目标 |
 | `suggested_scope` | ✅ | 已识别的 scope 白名单 |
 | `suggested_non_goals` | 推荐 | 明确不动的范围（黑名单） |
-| `acceptance_hints` | 推荐 | 用户口语化 AC，Phase 0.1 量化时用 |
+| `acceptance_hints` | 推荐 | 用户口语化 AC，Step 0.1 量化时用 |
 | `time_budget_hours` | 推荐 | 用户暗示的时间预算 |
 | `risk_class` | ✅ | low / medium / high（high 直接拒绝接手）|
 | `is_ui_task` | ✅ | bool；true 时激活 UI 截图协议 + 状态走查 + 同分硬规则 |
 | `attainment_mode_hint` | 可选 | 已推断的 mode |
 | `prior_context` | 可选 | git/branch/diff 状态 |
 
-如果上游已传 `attainment_mode_hint` + `acceptance_hints` + `time_budget_hours` + `is_ui_task`，Phase 0.1 直接使用，不再问人类（除非 hints 含模糊量词）。
+如果上游已传 `attainment_mode_hint` + `acceptance_hints` + `time_budget_hours` + `is_ui_task`，Step 0.1 直接使用，不再问人类（除非 hints 含模糊量词）。
 
 ### 上下游列表
 

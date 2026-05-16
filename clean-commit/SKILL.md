@@ -1,6 +1,11 @@
 ---
 name: clean-commit
-description: Use when a task's code changes are ready to be recorded as one clean git commit and you need help selecting relevant files, composing the commit message, and committing safely
+description: >
+  Use when a task's code changes are ready to be recorded as one clean git commit and
+  you need help selecting relevant files, composing the commit message, and committing
+  safely. 用于一次任务的改动已经收敛、需要整理成一次干净的 git commit 时（挑选相关文件、
+  生成 commit message、安全提交）。触发短语：「提交吧」、「帮我 commit」、「整理提交」、
+  「commit this」、「clean commit」、「把改动提交了」、「git commit 这些」。
 ---
 
 # Committing Clean Changes

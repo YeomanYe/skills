@@ -238,7 +238,7 @@ Prompt：同 T1。
 
 预期：Red Flag 命中，必须启 watcher 后才允许 Goal 继续。
 
-## 验收标准确认（Phase 0.1）
+## 验收标准确认（Step 0.1）
 
 ### A1. 模糊 AC → 强制量化
 
@@ -247,7 +247,7 @@ Prompt：
 
 预期：
 - Step 0 通过
-- Phase 0.1 触发提问，识别"更好用"为模糊 AC，**必须**让人类把它改成可测量指标（比如 LCP < 2.5s、a11y score ≥ 90、关键操作 ≤ 3 次点击）
+- Step 0.1 触发提问，识别"更好用"为模糊 AC，**必须**让人类把它改成可测量指标（比如 LCP < 2.5s、a11y score ≥ 90、关键操作 ≤ 3 次点击）
 - 在人类未确认 AC 之前**禁止**进 Step 1
 
 ### A2. Goal-Attainment Mode 推断默认值
@@ -256,21 +256,21 @@ Prompt：
 > 用 codex goal 重构 src/legacy 到 hooks 写法。
 
 预期：
-- Phase 0.1 推断 mode = `regression-prevention`（重构类）
+- Step 0.1 推断 mode = `regression-prevention`（重构类）
 - 在 GOAL.md 写明 baseline_dimensions 全部 4 维
 - 询问人类确认或调整
 
 ### A3. Question Budget 上限
 
-预期：Phase 0.1 一次性最多问 3 个问题（AC / mode / Budget），超出走推断默认；用户回"按你的来"立即停止追问。
+预期：Step 0.1 一次性最多问 3 个问题（AC / mode / Budget），超出走推断默认；用户回"按你的来"立即停止追问。
 
-## 基线评分（Phase 0.3）
+## 基线评分（Step 0.3）
 
 ### BL1. 基线缺失 → 强制跑
 
 场景：直接进 Step 3 启动 Goal Codex，没有 BASELINE.md。
 
-预期：Red Flag 命中，强制回到 Phase 0.3 跑 baseline。
+预期：Red Flag 命中，强制回到 Step 0.3 跑 baseline。
 
 ### BL2. baseline-prompt 必须新进程
 
@@ -394,7 +394,7 @@ Prompt：
 
 ### P0-1. 没有 APPROVAL.md → 拒绝启动 Goal Codex
 
-场景：Phase 0.1-0.3 都跑完了，但人类还没回 `approve goal <TASK_ID>`。
+场景：Step 0.1-0.3 都跑完了，但人类还没回 `approve goal <TASK_ID>`。
 
 预期：
 - Step 1.1 启动前检测 `.agent/tasks/$TASK_ID/APPROVAL.md` 不存在
@@ -418,7 +418,7 @@ Prompt：
 
 ### P0-4. 自定义评分维度落入 EVAL.md
 
-场景：Phase 0.1 Step 4，UI 任务，orchestrator 建议 + 人类同意加 `Layout Stability` 维度。
+场景：Step 0.1 Step 4，UI 任务，orchestrator 建议 + 人类同意加 `Layout Stability` 维度。
 
 预期：
 - GOAL.md `custom_dimensions` 段含 layout_stability
@@ -748,11 +748,11 @@ jq -s '[.[] | .reviewer_thread_id] | unique | length'
 一次 flow-codex-goal 调用如果**同时**满足以下，才算通过：
 
 1. ✅ Pre-flight 6 项全过（codex 版本 / feature flag / git clean / acceptance commands / 不在主分支 / RUN_MODE 探测成功）
-2. ✅ Phase 0.1 完成：AC 量化、Goal-Attainment Mode 在 GOAL.md 落盘、Budget 确认、自定义评分维度（如适用）已加入 EVAL.md
+2. ✅ Step 0.1 完成：AC 量化、Goal-Attainment Mode 在 GOAL.md 落盘、Budget 确认、自定义评分维度（如适用）已加入 EVAL.md
 3. ✅ 任务文件按模板创建（GOAL.md/PLAN.md/EVAL.md/STOP-CONDITIONS.md/STATUS.md/.gitignore + .original-remote 记录）
 4. ✅ 独立 worktree 创建并切换；mkdir 在 cd 之后执行
 5. ✅ **BASELINE.md 已落盘**且 reviewer_pid ≠ orchestrator_pid（独立 codex 跑过）
-6. ✅ **Phase 0.4 APPROVAL.md 存在**（人类签字才进 Phase 1）
+6. ✅ **Step 0.4 APPROVAL.md 存在**（人类签字才进 Phase 1）
 7. ✅ Goal Codex 启动且 codex.pid 写入；启动方式按 RUN_MODE 分支正确
 8. ✅ Watcher 启动且 watcher.pid 写入（CLI 模式）；SUBAGENT 模式下 orchestrator 兼任
 9. ✅ STATUS.md 至少更新过 1 次（任务非 0 秒结束）

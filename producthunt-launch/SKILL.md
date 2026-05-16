@@ -128,3 +128,60 @@ await page.waitForTimeout(2000) // PH 自动恢复草稿数据
 - **草稿恢复入口**：`/posts/new` 显示草稿按钮是 `<button>` 而非 `<a>`
 - **Launch Checklist**：Required 项全绿才能发布；Thumbnail 缺失时 PH 用默认字母图标，不阻塞发布
 - **推荐发布时间**：太平洋时间周二或周三 00:01（PH 每日榜在太平洋时间 0 点重置）
+
+## Output Contract
+
+每次完成必须输出：
+
+```md
+## Product Hunt Launch Output
+
+### 目标
+- 产品名称:
+- 触发来源（用户原话）:
+- 计划发布时间:
+
+### 表单填写
+- Step 1 基本信息: pass | fail（含 Tagline / Description / Topics）
+- Step 2 媒体: pass | fail（gallery / 视频 / thumbnail）
+- Step 3 Makers: pass | fail
+- Step 4 Extra: pass | fail（pricing / launch date）
+
+### 草稿状态
+- Draft ID / URL:
+- Required 项全绿: yes | no（缺哪些）
+- 是否已实际发布: yes | scheduled | draft-only
+
+### 已踩的坑
+- <项>: <恢复方式>
+
+### 验证
+- 草稿页 final screenshot 路径:
+- 用户最终确认: yes | no | 等待中
+```
+
+## Red Flags — STOP
+
+任一命中必须停下：
+
+- **跳过 Launch Checklist Required 项就 publish**（PH 会拒，且草稿状态不可逆）
+- **未经用户确认直接点 Publish**（必须截图给用户看完整 Listing preview 后才发）
+- **用户已设定 schedule 但用立即发布**（会破坏 GoToMarket 时间窗）
+- **多次切换标签页导致草稿丢失**（PH 草稿恢复在 /posts/new 但有时延，切错就丢）
+- **截图含其他用户 / 隐私信息**（发布前必须裁掉）
+- **未在 dev tools 关掉 GoogleAnalytics 等 Playwright 检测**（PH 反爬可能直接 ban）
+- **用同一 IP 反复提交**（PH 风控会标记账号）
+
+## Common Failure Modes
+
+### 1. 文本输入被打乱（典型 PH bug）
+处理：用 `page.type()` 一字一字慢速输入，间隔 ≥ 50ms；不要 `page.fill()` 一次性塞。
+
+### 2. 下拉选择跳到顶部导航
+处理：点击下拉前先 `page.locator('selector').scrollIntoViewIfNeeded()`，再用 keyboard 输入过滤。
+
+### 3. 文件上传"上传成功"但其实失败
+处理：上传后 `await page.waitForSelector('[data-uploaded]', {timeout: 10000})`，超时即重试。
+
+### 4. 表单导航莫名跳走
+处理：每填一个 field 立刻 `page.evaluate(() => window.scrollY)` 记位置，跳走立刻 `goBack` + 重读草稿。

@@ -1,6 +1,13 @@
 ---
 name: flow-skill-dev
-description: Use when creating or substantially updating a skill and you need a structured workflow for scoping, authoring, testing, and reporting the result
+description: >
+  Use when creating or substantially updating a skill — needs a structured workflow for
+  scoping, authoring, testing, and reporting the result. 用于新建 skill 或对已有 skill
+  做实质性更新（改触发条件 / 必要流程 / 输出契约 / handoff / 路由），需要 scope →
+  writing → behavior test → integration test → sync → report 完整链路。触发短语：「写个
+  skill 用来 X」、「改一下 X skill」、「新建 skill」、「create a skill for X」、
+  「substantially update X skill」、「编排 skill 开发」。Do NOT use for: 只改文案 / 错别字
+  / 不影响行为的 reference / 很小的 metadata 改动（minor-update 不必走 orchestrator）。
 ---
 
 # Orchestrating Skill Development

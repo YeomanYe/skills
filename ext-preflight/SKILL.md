@@ -53,7 +53,20 @@ ls /tmp/<ext-name>.xpi 2>/dev/null \
 
 ## 第二步：检查资源文件
 
-各平台所需截图尺寸不同，一并检查：
+各平台所需截图尺寸不同，一并检查。
+
+**前置依赖**：需要 Python `Pillow`（PIL）。先预检：
+
+```bash
+python3 -c "from PIL import Image" 2>/dev/null || {
+  echo "ERR: 缺 Pillow。装一个："
+  echo "  pip3 install Pillow    # 系统 Python"
+  echo "  # 或: brew install pillow / uv pip install Pillow"
+  exit 1
+}
+```
+
+确认依赖在位后跑下面的检查：
 
 ```bash
 python3 -c "

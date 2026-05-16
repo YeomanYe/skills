@@ -1,6 +1,12 @@
 ---
 name: software-uninstall
-description: Use when uninstalling software, apps, CLI tools, or packages and you need system-aware removal steps, local-knowledge-first guidance, configuration backup, post-uninstall verification, and a recorded uninstall log
+description: >
+  Use when uninstalling software, apps, CLI tools, or packages — needs system-aware
+  removal steps, local-knowledge-first guidance, configuration backup, post-uninstall
+  verification, and a recorded uninstall log. 用于卸载工具 / 软件 / 包，需要按系统类型
+  收集移除步骤、先查本地知识库、备份配置、卸载后验证、并记录日志。触发短语：「卸载 X」、
+  「删了 X」、「uninstall X」、「remove X」、「把 X 清掉」、「X 怎么卸载」。Do NOT use for:
+  安装（→ software-install）/ 项目内删依赖（→ flow-dev-task）/ 删项目文件（普通 rm 即可）。
 ---
 
 # Software Uninstall Guide

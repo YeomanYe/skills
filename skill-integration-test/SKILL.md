@@ -1,6 +1,13 @@
 ---
 name: skill-integration-test
-description: Use when testing whether multiple skills work correctly as a chain, especially when you need to verify routing decisions, context handoff, redundant user questions, or downstream execution readiness across a multi-skill workflow.
+description: >
+  Use when testing whether **multiple skills** work correctly as a chain — verify routing
+  decisions, context handoff, redundant user questions, downstream execution readiness
+  across a multi-skill workflow. 用于测试**多 skill 串联**是否按预期工作（路由、handoff
+  字段、是否冗余追问已知信息、下游接手准备）。触发短语：「测下 skill 链路」、「验证
+  handoff 完整性」、「flow-X 调 Y 这条链能不能跑通」、「integration test for skill chain」。
+  Do NOT use for: 单 skill 触发 / 行为测试（→ skill-behavior-test）/ 项目 e2e 测试（→
+  flow-dev-task）。
 ---
 
 # Skill Integration Testing

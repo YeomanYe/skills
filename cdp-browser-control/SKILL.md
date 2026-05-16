@@ -44,7 +44,16 @@ echo "就绪：$(ls $TMPDIR/Default/ | wc -l) 个文件"
 ## 第二步：启动带调试端口的 Chrome
 
 ```bash
-pkill -x "Google Chrome" 2>/dev/null; sleep 2
+set -u  # 未定义变量报错
+
+# 关闭已有 Chrome（破坏性操作：会丢失未保存的标签页/草稿）
+# 必须先告知用户："此操作会关闭你当前所有 Chrome 窗口"
+# 用户明确同意后才执行下面的 pkill
+read -p "关闭当前所有 Chrome 窗口？(y/N) " confirm
+[[ "$confirm" == "y" ]] || { echo "取消"; exit 1; }
+
+pkill -x "Google Chrome" 2>/dev/null || true
+sleep 2
 
 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
   --remote-debugging-port=9222 \
@@ -56,8 +65,11 @@ pkill -x "Google Chrome" 2>/dev/null; sleep 2
 
 sleep 4
 curl -s http://localhost:9222/json/version \
-  | python3 -c "import sys,json; print('OK:', json.load(sys.stdin)['Browser'])"
+  | python3 -c "import sys,json; print('OK:', json.load(sys.stdin)['Browser'])" \
+  || { echo "ERR: Chrome 未起来或 CDP 端口未开"; exit 1; }
 ```
+
+**注意**：`pkill -x "Google Chrome"` 是破坏性操作，会丢失未保存的标签页 / 草稿 / 表单输入。orchestrator agent 必须先告知用户影响并等明确同意。**禁止**作为流程一部分静默执行。
 
 ---
 
