@@ -40,6 +40,22 @@ description: Use when a user wants the **full multi-stage** project kickoff chai
 
 ## Stage 1 · Discovery & Direction
 
+### Stage 1 并行编排
+
+`1.1` 是 Stage 1 的串行起点（其他子节都依赖 MVP 输出），`1.4` 和 `1.5` 可在 `1.1` 完成后**并行**（彼此独立），`1.2` 和 `1.3` 都依赖 `1.1` 但相互独立。
+
+**执行顺序**：
+1. **串行**：`1.1` project-prep（必须先完成，输出 MVP / 技术栈 / Preview decision）
+2. **并行 1**（4 路）：`1.2` ASCII 流程图 + `1.3` preview 设计 + `1.4` 设计候选 + `1.5` 部署探测
+   - 派 subagent / 多 Bash 调用，按 `_shared/parallelization-template.md`
+   - 必须显式调用：`1.4` → `ui-ux-pro-max` skill
+   - `1.5` 部署探测纯 Bash（`gh repo view` / `git remote -v`），不派 subagent
+3. **串行**：`1.6` 总设计文档拼装（orchestrator 自己做 reduce，把 5 路产出按 9 节顺序合并）
+
+orchestrator 在 1.1 完成后派 4 路并行，自己进入 idle；4 路返回后做 1.6 拼装。
+
+---
+
 ### 1.1 项目前置准备（调 `project-prep`）
 
 调用 `project-prep` 锁定：
@@ -168,13 +184,37 @@ Stage 2 不得自动启动。必须显式问用户：
 
 ---
 
-## Stage 2 · Build Scaffold
+## Stage 2 · Build Scaffold（**2.1 / 2.2 / 2.3 三路并行执行**）
 
 进入 Stage 2 的硬前置：
 
 - Stage 1 总设计文档已落盘
 - 用户已选定**一套**设计系统（不能"几套混"未拍板）
 - 部署目标已确认
+
+### Stage 2 并行编排
+
+**2.1 / 2.2 / 2.3 三路完全独立**（写不同目录，仅共享 Stage 1 总设计文档只读），按 `_shared/parallelization-template.md` 派 3 个 subagent 并行：
+
+| Slot | Subagent 任务 | 写入目录 | 必须调用的 skill |
+|---|---|---|---|
+| `engineering-rules` | 调 `flow-project-rules` 生成规范脚手架 | `CONTRIBUTING.md` / `AGENTS.md` / `docs/<domain>/` | `flow-project-rules`（必须显式）|
+| `logo-design` | 调 `huashu-design` 出 ≥2 个 logo 方向 | `assets/logos/` 或 `branding/` | `huashu-design`（必须显式）|
+| `preview-impl` | 实现 Stage 1 第 5 节 preview 设计 | `preview/` 或项目内 preview 路由 | `frontend-design`（如适用，必须显式）|
+
+**派工 prompt 必填**（每个 subagent）：
+- Stage 1 总设计文档路径 + sha256（只读输入）
+- 已锁定的设计系统名称 + tokens（仅 2.2 / 2.3 需要）
+- **黑名单**：禁动其他 2 路目标目录
+- 返回 JSON：`{slot, status, outputs, skills_invoked, errors}`
+
+**orchestrator 在 3 路返回后**：
+- 检查 3 路 status；任一 fail 不阻塞其他 2 路（collect-all 模式）
+- 进 Step 2.4 部署接线（必须 3 路全 ok 才能开始，**部署接线本身串行**）
+
+orchestrator 在派工后 idle，等待 3 路返回。
+
+---
 
 ### 2.1 工程规范脚手架（调 `flow-project-rules`）
 

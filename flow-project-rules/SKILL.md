@@ -54,6 +54,26 @@ description: Use when a project's engineering rules (CONTRIBUTING.md, docs/<doma
 
 Step 6 之后必须停下。不允许「估计用户会同意」就直接落地。
 
+## Parallelization Plan
+
+Step 2-4 三路探测彼此独立（仅共享项目根路径只读），按 `_shared/parallelization-template.md` 在一个 message 多个 Bash 调用真并行：
+
+| Slot | 任务 | 形态 |
+|---|---|---|
+| `stack-detect` | Step 2 读元信息（package.json / Cargo.toml / go.mod 等） | Bash 并行 |
+| `skill-scan` | Step 3 扫 4-5 个本地 skill 目录 | Bash 并行（`ls -d ~/.claude/skills/* ~/.agents/skills/* ...`）|
+| `rules-read` | Step 4 读本项目规范 + 参考项目规范 | Bash 并行（cat / find 同时跑）|
+
+Step 5 联合评估必须串行（依赖前 3 路全部完成），Step 1 输入盘点 + Step 6-8 也都是串行（依赖判断）。
+
+**Reduce 策略**：方式 3（内存 JSON 汇总）—— 3 路 Bash 输出由 orchestrator 解析合并成单一 `evaluation-input.json`，交给 Step 5。
+
+**orchestrator 在 3 路 Bash 派发后短暂 idle**（等待最长一路完成，通常是 clone 参考项目）；纯 Bash 并行不需要派 subagent，但 orchestrator 仍应避免在等待期间做其他污染上下文的工作。
+
+**收益**：原 ~10min 串行（含 clone 参考项目）→ ~5min。
+
+参考项目 clone 慢（网络）会拖累，可设 30s 超时；超时则降级为"只评估本项目"分支。
+
 ## Step 1: 盘点输入
 
 收集：

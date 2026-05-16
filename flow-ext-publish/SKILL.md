@@ -98,7 +98,32 @@ Step 3 前不得进入 Step 4。不允许「看起来都 OK」就自己补全再
 
 若 preflight 未安装：fallback 到手工检查 `manifest.json` + `store-assets/` + 每个平台官方 checklist 最小集，并在最终报告中注明降级。
 
-## Step 2: 分类缺失项
+## Step 2: 分类缺失项（A / C 路可**并行**，B 路串行）
+
+### Step 2 并行编排
+
+按 `_shared/parallelization-template.md`：
+
+| Slot | 任务 | 并行性 | 必须调用的 skill |
+|---|---|---|---|
+| `web-image-batch` | A 路 - `web-image` 出多张营销图（promo tile / marquee / 1280×800 等）| **并行**（每张图一个 subagent，互不依赖）| `web-image`（必须显式）|
+| `text-checklist` | C 路 - 整理描述文本 / 权限理由 / 版本号 checklist | **并行**（与 A 路同时跑，纯文本抽取无冲突）| 无 |
+| `user-must-provide-list` | B 路 - 列出需要用户提供的资产清单 | **串行**（必须 A 路评估完才知道哪些是真正需要用户提供的）| 无 |
+
+**派工 prompt 必填**（每个 A 路 subagent）：
+- 目标尺寸 + 平台槽位
+- 项目素材路径（截图 / logo / 文案来源）
+- 输出目录（每张图独立子目录避免冲突，如 `store-assets/chrome/promo-440x280/`）
+- **必须调用 `web-image` skill**（subagent 默认不会用）
+- 返回 JSON：`{slot, size, source_paths, output_path, html_source_path, status, errors}`
+
+orchestrator 派 A 路 + C 路并行后**进入 idle**，等所有 A 路 subagent 返回后再决定 B 路（已经被 A 自动补齐的就不进 B）。期间不主动 poll，由 subagent 返回触发唤醒。
+
+**Reduce 策略**：方式 2（独立目录写完整文件），每张 A 路输出图独立子目录避免冲突。
+
+**收益**：A 路 5 张图原 ~10min 串行 → ~3min 并行（含每张 web-image 调用开销）。
+
+---
 
 对 preflight 的缺失清单做三路分流：
 

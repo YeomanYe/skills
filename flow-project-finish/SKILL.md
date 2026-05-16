@@ -64,7 +64,38 @@ Step 0 的完成判定不是"看了一眼",而是已经写下:
 
 **项目快照在收尾全程是唯一的事实源**。后续阶段中用户主动补充的信息(如"对了 tokens 在 X 路径"),应合并 / 更新进入此快照,**不要重启 Step 0 探测**,也不要忽略。
 
-### Step 1 —— Code → Docs Sync
+### Step 1 —— Code → Docs Sync（**并行执行**，4 路 subagent）
+
+**并行编排**：4 类文档同步彼此独立（各写不同文件，仅共享 Step 0 快照只读），按 `_shared/parallelization-template.md` 派 4 个 subagent 并行：
+
+| Slot | Subagent 任务 | 写入目标 | 必须调用的 skill |
+|---|---|---|---|
+| `design-sync` | 同步代码 tokens → 设计系统规范 | `docs/design-system.md` 或既有路径 | 无（纯文档 patch）|
+| `interaction-sync` | 同步代码状态机 → 交互文档 | `docs/interaction.md` 或既有路径 | 无 |
+| `prd-sync` | 实现 vs PRD 偏差汇总 | `docs/PRD.md` 或既有路径 | 无 |
+| `architecture-sync` | 模块边界 / 数据流 / 依赖 | `docs/architecture.md` 或既有路径 | 无 |
+
+**派工 prompt 必填**（每个 subagent）：
+- Step 0 快照路径 + sha256（只读输入）
+- 目标文档现有路径 + 现有 voice / 语言（中/英）样本
+- **黑名单**：禁动源码、禁碰其他 3 类文档
+- 写到独立 patch 文件：`.agent/jobs/<slot>/output.patch`
+- 返回 JSON：`{slot, status, patch_path, evidence_file_lines, errors}`
+
+**Reduce 策略**：方式 1（独立 patch 文件 + orchestrator 顺序 apply）—— 每个 subagent 写到独立 `.agent/jobs/<slot>/output.patch`，orchestrator 按固定顺序 apply 避免 merge 冲突。
+
+**orchestrator 在 4 路返回后**：
+- 收集 4 个 patch
+- 按 `design → interaction → prd → architecture` 顺序 `patch -p1` apply
+- 任一 patch fail → 记录但不阻塞其他 3 路（collect-all 模式）
+
+orchestrator 在派工后 idle，等待 4 路返回；期间不主动 poll，subagent 返回触发唤醒。
+
+**当类别不存在或不并行**：找不到对应文档的 slot 直接 skip（不派 subagent，也不默认新建）。
+
+---
+
+以下规则适用于每个 subagent 的内部执行（写入派工 prompt）：
 
 以 Step 0 的扫描结果为输入,对每一类目标文档执行 **detect → diff → patch** 三步,而不是直接重写:
 
@@ -169,9 +200,27 @@ Step 0 的完成判定不是"看了一眼",而是已经写下:
 
 > **Codex 派工兼容**:`frontend-design` 输出的落地页代码量较大时(≥ 30 行 / ≥ 2 文件),可按项目 Codex 派工政策路由(详见 `flow-dev-task` 的 Codex Delegation Hook)。**设计方向选择和内容契约由 Claude 把关**,具体页面实现可派 Codex,但视觉细节(配色、字体、动画感)的最终验收必须由 Claude 跑过 `agent-browser` 截图验证。
 
-#### 3.4 落地页响应式截图
+#### 3.4 落地页响应式截图（**并行执行**，4 路 subagent）
 
-为 Step 4 delivery-gate 备好视觉证据,在 375 / 768 / 1024 / 1440 四个断点下截图。优先用 `agent-browser`;若不可用,显式声明"未做响应式截图"并把缺口直接传给 delivery-gate 评估。
+**并行编排**：4 断点截图完全独立（写不同文件名），按 `_shared/parallelization-template.md` 派 4 个 subagent 并行：
+
+| Slot | 断点 | 输出路径 | 必须调用的 skill |
+|---|---|---|---|
+| `screenshot-375` | 375×667 mobile | `.agent/jobs/screenshot-375/landing.png` | `agent-browser`（必须显式）|
+| `screenshot-768` | 768×1024 tablet | `.agent/jobs/screenshot-768/landing.png` | `agent-browser` |
+| `screenshot-1024` | 1024×768 small desktop | `.agent/jobs/screenshot-1024/landing.png` | `agent-browser` |
+| `screenshot-1440` | 1440×900 desktop | `.agent/jobs/screenshot-1440/landing.png` | `agent-browser` |
+
+**派工 prompt 必填**：
+- 落地页 URL（本地 dev server / 静态预览）
+- 视口尺寸（精确 W×H）
+- 输出路径 + 文件名（独立目录避免冲突）
+- **必须调用 `agent-browser` skill**（subagent 不会自动用，prompt 里要明示）
+- 返回 JSON：`{slot, status, screenshot_path, viewport, errors}`
+
+orchestrator 在派工后 idle，4 路返回后汇总成证据包传给 Step 4 delivery-gate。
+
+**降级**：`agent-browser` 不可用时，orchestrator 显式声明"未做响应式截图"并把缺口告诉 delivery-gate（不强求改用 Claude 自跑——4 个截图串行写也不快）。
 
 ### Step 4 —— Delivery Gate(交付审查)
 

@@ -51,16 +51,27 @@ description: >
 
 判定结果固定分支，后续流程不再切换。
 
-## Context Harvest（减问的关键）
+## Context Harvest（减问的关键，**并行 Bash 执行**）
 
-进入任何提问之前，**必须先自动提取**下列信息。能推断的绝不问：
+进入任何提问之前，**必须先自动提取**下列信息。能推断的绝不问。
 
-- 用户 prompt 里显式的目标 / 约束 / 非目标
-- 当前 git 分支名 + 最近 3 条 commit message
-- `git status --short`（脏改动 / 未提交文件）
-- 用户已指出的文件路径 / 行号 / 错误栈
-- 最近一次 agent 的改动范围（从对话历史）
-- 项目根目录有没有 `package.json` / 测试框架配置（vitest/jest/pytest 等）
+**并行执行**：以下 7 项探测全部独立只读 Bash，按 `_shared/parallelization-template.md` 在**一个 message 里多个 Bash 调用**真并行（不需要派 subagent，Claude Code Bash 工具天然支持）：
+
+| 探测 | 命令 | 用途 |
+|---|---|---|
+| 1. git 分支 | `git branch --show-current` | 是否在 non-default 分支 |
+| 2. 脏改动 | `git status --short` | 是否"做到一半" |
+| 3. 最近 commits | `git log --oneline -3` | 最近 agent 改动 |
+| 4. 项目类型 | `ls package.json Cargo.toml go.mod pyproject.toml 2>/dev/null` | 技术栈 |
+| 5. 测试框架 | `ls **/vitest.config.* **/jest.config.* pytest.ini 2>/dev/null` 或 `grep -l "vitest\|jest" package.json` | TDD 路径选择 |
+| 6. 已修改文件 | `git diff --stat` | 改动范围估算 |
+| 7. worktree 状态 | `git worktree list` | 是否已隔离 |
+
+外加从 prompt + 对话历史提取（无需 Bash）：
+- 用户显式的目标 / 约束 / 非目标
+- 用户指出的文件路径 / 行号 / 错误栈
+
+**性能**：原 7 次串行 Bash ~15s → 1 次并行 ~3s。Context Harvest 是最污染上下文的阶段（输出全部进对话），并行后单 message 一次性出结果，对话压力小很多。
 
 用这些推断：
 - 任务范围（小 / 中 / 大）
