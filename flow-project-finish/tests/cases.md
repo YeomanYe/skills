@@ -283,3 +283,93 @@ Prompt:
 预期：
 - 命中 ❌ 不派规则
 - commit message + scope 由 Claude 决定（Codex 不知道收尾上下文）
+
+
+---
+
+## v5 落地页 3 路 mockup 改造测试
+
+### LM1. 默认 3 路（用户不说话）
+
+Prompt：
+> 项目收尾，要做落地页。
+
+预期：
+- Step 3.2 **不问** 要几个方向，直接派 3 路 subagent 调 director-design (mode: mockup)
+- 3 路独立目录 .agent/jobs/landing-mockup-{1,2,3}/
+- 每路自跑 4 断点截图
+
+### LM2. 3 路独立性硬规则
+
+预期：
+- 每路 meta.json 含 dimensions_differ_from_others 至少 2 维度
+- 维度集合：布局结构 / 信息层级 / 风格调性 / 主色方向
+- **禁止**仅换主色（只换 1 维度 → Red Flag）
+
+### LM3. 飞书渠道自动推送
+
+场景：CC_SESSION_KEY = feishu:chat:user
+
+预期：
+- 3 路就绪后 push-mockups-to-feishu.sh 触发
+- cc-connect 发 6 张截图（每路 mobile + desktop）
+- 消息含 3 个 style_name + 选 1/2/3 / 都不行重做 / 方向 N 改 X 提示
+- STATUS.md 写 ## Pending Decision 段
+
+### LM4. 非飞书渠道跳过推送
+
+场景：CC_SESSION_KEY = telegram:* 或未设置
+
+预期：
+- push 脚本 log skipping feishu push
+- orchestrator 在对话里贴 3 个 mockup 路径让用户挑
+
+### LM5. 用户没回不超时
+
+场景：飞书推送后用户 24h 没回。
+
+预期：
+- STATUS.md ## Pending Decision 段保持
+- **不**auto-pick mockup-1
+- orchestrator 下次被 ping 时报告等待用户挑选
+
+### LM6. 用户选 选 2
+
+预期：
+- 进 Step 3.3，按项目栈智能选实现模式
+- 有 React/Vue/Svelte 等前端栈 → A 模式（frontend-design 重写，mockup-2 作视觉基准）
+- 纯 CLI / 库 / extension → B 模式（直接 cp .agent/jobs/landing-mockup-2/ → website/）
+
+### LM7. 用户回 都不行 重做
+
+预期：
+- 派新一轮 3 路（不复用旧 mockup）
+- 旧 3 路保留在 .agent/jobs/ 供参考
+- 新一轮在 .agent/jobs/landing-mockup-{1,2,3}-v2/
+
+### LM8. 用户回 方向 2 改 X
+
+预期：
+- 只派 mockup-2 微调（不重派 1 / 3）
+- 输出到 .agent/jobs/landing-mockup-2-v2/
+- 重新推送（只推 mockup-2 修改后的截图）
+
+### LM9. Step 4.0 audit 含 mockup_alignment_score
+
+场景：用户选 mockup-2，3.3 落代码后。
+
+预期：
+- director-design audit prompt 含 selected_mockup_path
+- 输出含 mockup_alignment_score（落地代码 vs 选定 mockup 的对齐度）
+- alignment < 4/5 → 回 3.3 调整
+
+### LM10. cc-connect 推送失败降级
+
+场景：CC_SESSION_KEY 是 feishu 但 cc-connect 命令失败（网络 / 凭据问题）
+
+预期：
+- push 脚本 log 失败
+- STATUS.md 写 推送失败，请手动查看 mockup + 路径
+- orchestrator 在对话里告知用户
+- **不**阻塞流程（用户仍可手动看 mockup 选）
+

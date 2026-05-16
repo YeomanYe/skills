@@ -174,50 +174,161 @@ orchestrator 在派工后 idle，等待 4 路返回；期间不主动 poll，sub
 - 项目调性(从 README/品牌色推断,作为给 huashu-design 的输入)
 - 是否对外发布(决定是否需要 SEO meta / OG image)
 
-#### 3.2 设计方向 —— **派 director-design subagent 编排 variants**
+#### 3.2 设计方向 —— **3 路独立 mockup 并行 + 飞书推送**（默认行为）
 
-**v4 升级**：派 subagent 调 `director-design` 的 `variants` mode 编排（内部调度 huashu-design 出 3 路并行，比直接调更专业 + 不污染主上下文）。
+**v5 升级**：默认**直接派 3 路并行**出**可视 mockup**（HTML/CSS），不再先出文字方向。用户在飞书直接看截图选。
 
-**派工 prompt 模板**（subagent **必须显式调用** director-design skill）：
+**默认行为**（用户不说话也照做）：
+- 派 **3 路独立 subagent**（不是 1 路出 variants 文字方向）
+- 每路调 `director-design` (mode: mockup) 出独立 HTML/CSS mockup（约 100-200 行/路）
+- 每路独立目录：`.agent/jobs/landing-mockup-{1,2,3}/`
+- 每路自跑 4 断点截图（375 / 768 / 1024 / 1440）
+- 飞书渠道时自动 cc-connect 推送 mobile + desktop 各 1 张（共 6 张）让用户挑选
+
+##### 派工 prompt 模板（**必须显式调用** director-design skill，3 路各派一份）
 
 ```
-必须显式调用 `director-design` skill (mode: variants)
+Slot: landing-mockup-N  (N = 1 | 2 | 3)
+Task: 实现 <项目名> 的产品落地页 mockup（第 N 路独立方向）
+
+必须显式调用 `director-design` skill (mode: mockup)
 
 输入:
   - product_type: landing-page
   - objective: <项目名> 的产品落地页
   - is_ui_task: true
   - design_tokens_source: <Step 0 项目品牌色路径，若无填 none>
-  - acceptance_hints: 3 个差异化方向，含风格名/配色/字体/关键视觉/tradeoff
+  - content_contract: <Step 3.1 收集的 8 bullets>
+  - your_slot: N (本路必须与其他 N-1 路真正独立)
 
-输出: 写到 .agent/jobs/director-design-finish-variants/output.md
-返回 JSON: {mode: variants, verdict, variant_count: 3, output_path, must_fix, errors}
+输出目录: .agent/jobs/landing-mockup-N/
+  - index.html        HTML mockup（轻量 100-200 行）
+  - styles.css
+  - assets/           如有
+  - screenshots/      4 断点截图
+    - 375.png         mobile (375×667)
+    - 768.png         tablet (768×1024)
+    - 1024.png        small desktop
+    - 1440.png        desktop (1440×900)
+  - meta.json         {slot, style_name, key_visuals, layout_strategy, dimensions_differ_from_others: [布局/信息层级/风格/主色 至少 2 维度]}
 
-约束:
-  - 不写代码（实现是 3.3 的事）
-  - 每方向必须真正差异化（布局/信息层级/风格至少 1 维度不同）
-  - 不单方面替用户选（**完整 3 方向交给 orchestrator 让用户挑**）
+返回 JSON: {slot, status, mockup_dir, screenshots_dir, style_name, errors}
+
+**独立性硬规则**（本路必须与其他 2 路至少 2 个维度不同）：
+  - 布局结构（grid / asymmetric / centered / full-bleed）
+  - 信息层级（hero-first / features-first / story-driven）
+  - 风格调性（minimal / brutalist / playful / corporate）
+  - 主色方向（暖色 / 冷色 / 中性）
+
+**禁止**：
+  - 仅换主色不换布局
+  - 复用其他 slot 的整体结构
+  - 写生产代码（实现是 3.3 的事）
+  - 单方面替用户选（必须把 3 个 mockup 完整呈现）
 ```
 
-orchestrator 派工后 idle，3 方向返回汇总后让用户挑选。**不得单方面替用户选**。
+orchestrator 派 3 路 subagent 后**进入 idle**，收齐后做下一步。
 
-**降级**：director-design 不可用时退回直调 `huashu-design` + 框架原话："Return 3 differentiated design directions for a product landing page with the constraints below. Do NOT implement; this is direction selection only."
+##### 3.2.5 飞书自动推送（CC_SESSION_KEY 含 `feishu:` 时强制）
 
-#### 3.3 落地页实现 —— frontend-design
+3 路 mockup 全部就绪后：
 
-用户挑定方向后,调用 `frontend-design`,传入:
+```bash
+bash references/push-mockups-to-feishu.sh \
+  "$TASK_DIR" \
+  ".agent/jobs/landing-mockup-1" \
+  ".agent/jobs/landing-mockup-2" \
+  ".agent/jobs/landing-mockup-3"
+```
 
-- 选中的设计方向(huashu-design 的产出)
+脚本会：
+1. 每路取 `375.png` + `1440.png` 共 6 张
+2. 用 cc-connect 发到飞书会话
+3. 消息文案：
+   ```
+   📐 落地页 3 路独立 mockup 已就绪（mobile + desktop）：
+
+   方向 1: <style_name 1>
+   方向 2: <style_name 2>
+   方向 3: <style_name 3>
+
+   请回复：
+   - "选 1" / "选 2" / "选 3"  → 选定方向进入实现
+   - "都不行 重做"             → 派新一轮 3 路
+   - "方向 N 改 X"             → 派该路微调
+   ```
+
+**非飞书渠道**：跳过推送，orchestrator 把 3 个 mockup 路径回报给用户，等用户回复选哪个。
+
+##### 3.2.6 等用户挑选（**不超时**）
+
+用户没回时：
+- 写到 STATUS.md `## Pending Decision` 段：`等用户从 3 路 mockup 中挑选（mockup 路径 + 截图路径）`
+- **不超时** auto-pick（设计选择是重要决策，不应代替用户）
+- 用户可能在飞书外（手机 / 出门 / 第二天）回复，flow 不应推进
+
+收到回复后才进 Step 3.3。
+
+##### orchestrator 唤醒条件（用户回复后怎么触发）
+
+push-mockups-to-feishu.sh 写入 STATUS.md `## Pending Decision` 段（含 `<!-- pending-decision-mockup-v1 -->` marker 做幂等去重）。orchestrator 监听方式：
+- **IM 渠道**：watcher 周期 poll cc-connect inbox，用户回 "选 N" / "都不行 重做" / "方向 N 改 X" 时，watcher 把回复追加到 STATUS.md `## Human Feedback` 段，orchestrator 下次被 ping 时读到 → 进 Step 3.3 或重派
+- **非 IM**：用户在对话里回复 → orchestrator 当场识别 → 进 Step 3.3 或重派
+- **手动**：用户编辑 STATUS.md，把 `## Pending Decision` 改成 `## Decision: 选 N` → orchestrator 下次唤醒时识别
+
+##### 重做版本命名（**硬规则**，避免覆盖旧 mockup）
+
+| 场景 | 输出路径 |
+|---|---|
+| 初始 3 路 | `.agent/jobs/landing-mockup-{1,2,3}/` |
+| "都不行 重做"（全部新派） | `.agent/jobs/landing-mockup-{1,2,3}-v2/` |
+| "方向 2 改 X"（单路微调） | `.agent/jobs/landing-mockup-2-v2/`（其他不动） |
+| 再次重做 | `-v3` / `-v4` 依次递增 |
+
+**禁止**覆盖原目录（用户可能想对比 v1 / v2）。
+
+##### 3.2 降级
+
+director-design 不可用 → 退回直调 `huashu-design` 3 路并行（同样要求独立性 + 自跑 4 断点截图）。
+cc-connect 不可用 → 跳过飞书推送，orchestrator 在对话里贴 mockup 路径。
+
+#### 3.3 落地页实现 —— **按项目栈智能选**（v5）
+
+用户挑定方向（如"选 2"）后，按**项目栈智能选**实现方式：
+
+| 项目栈情况 | 实现方式 | 理由 |
+|---|---|---|
+| 有前端栈（react/vue/svelte/preact/solid 等） | **A**：调 `frontend-design`，把 mockup-N 作为视觉基准**重写**成对应栈的组件 | 与主项目栈对齐，可复用真实组件 |
+| 无前端栈（纯 CLI / 库 / extension 等） | **B**：直接把 `landing-mockup-N/` 拷到 `website/` 当生产代码 | 轻量项目无必要引入框架；mockup 本身就是可用 HTML |
+
+##### A 模式（frontend-design 重写）
+
+传入 frontend-design:
+- 选中的 mockup 路径（`.agent/jobs/landing-mockup-N/`）作为**视觉基准**（颜色/字体/布局都对齐 mockup）
 - **内容契约(必须三段齐全)**:
   - **大纲(Outline)**:Hero(项目名 + 一句话定位 + 主 CTA)+ Features(核心功能清单展开)+ How it works(可选,仅在交互非自明时加)
   - **路线图(Roadmap)**:从 Step 3.1 抓到的待办工作展开,标注「已完成 / 进行中 / 计划中」三态;空则显式标"暂无公开路线图"
   - **相关链接(Links)**:Step 3.1 收集到的链接,放在 Footer 或独立 Resources 区
 - **技术栈契约**:
   - 项目自带前端栈(react/vue/svelte 等) → 落地页用同栈
-  - 项目无前端栈 → 落地页用 `vite + pnpm + react`
   - 落地页放在 `website/` 子目录(若用户没指定其他位置)
 
-> **Codex 派工兼容**:`frontend-design` 输出的落地页代码量较大时(≥ 30 行 / ≥ 2 文件),可按项目 Codex 派工政策路由(详见 `flow-dev-task` 的 Codex Delegation Hook)。**设计方向选择和内容契约由 Claude 把关**,具体页面实现可派 Codex,但视觉细节(配色、字体、动画感)的最终验收必须由 Claude 跑过 `agent-browser` 截图验证。
+##### B 模式（直接拷）
+
+```bash
+cp -r ".agent/jobs/landing-mockup-N/" "website/"
+rm -rf "website/screenshots" "website/meta.json"  # 清掉过程产物
+```
+
+把 `website/index.html` 中相对路径 / 链接 / 资产校验一遍。无需 frontend-design 重写。
+
+##### 选完 2 路被淘汰的 mockup
+
+- 默认保留在 `.agent/jobs/landing-mockup-{X,Y}/`（人类可参考）
+- 收尾报告标注"可清理"
+- 不要在 Step 3.3 时主动删（用户可能想对比再决定）
+
+> **Codex 派工兼容**:用户选定 mockup 后，A 模式 frontend-design 转码代码量较大时(≥ 30 行 / ≥ 2 文件),可按项目 Codex 派工政策路由(详见 `flow-dev-task` 的 Codex Delegation Hook)。**3 路 mockup 选择和内容契约由 Claude 把关**,具体页面实现可派 Codex,但视觉细节(配色、字体、动画感)的最终验收必须由 Step 4.0 director-design audit + Claude 跑过 `agent-browser` 截图验证。B 模式（直接拷 mockup）不涉及代码生成，不派 Codex。
 
 #### 3.4 落地页响应式截图（**并行执行**，4 路 subagent）
 
@@ -243,9 +354,12 @@ orchestrator 在派工后 idle，4 路返回后汇总成证据包传给 Step 4 d
 
 ### Step 4 —— Delivery Gate(交付审查)
 
-#### Step 4.0（**v4 新增**）—— Director-Design 设计审计（UI 任务前置闸门）
+#### Step 4.0（**v4 新增**）—— Director-Design 设计审计（针对**已选定**的落地代码）
 
-进 delivery-gate 之前，**如果有落地页 / UI 改动**，先派 subagent 调 `director-design` 的 `audit` mode 做设计专项审：
+**v5 修正**：3.2 阶段 3 路 mockup 各自有截图，但用户挑了 1 个后 3.3 才落生产代码。
+本 step audit 的是**3.3 落地后的真实生产代码**（不是 3 路 mockup）。
+
+进 delivery-gate 之前，**如果有落地页 / UI 改动**，先派 subagent 调 `director-design` 的 `audit` mode：
 
 **派工 prompt 模板**：
 
@@ -253,20 +367,25 @@ orchestrator 在派工后 idle，4 路返回后汇总成证据包传给 Step 4 d
 必须显式调用 `director-design` skill (mode: audit)
 
 输入:
-  - evidence_paths: <Step 3.4 4 断点截图路径>
+  - evidence_paths: <Step 3.4 落地代码的 4 断点截图路径>
+  - selected_mockup_path: <Step 3.2 用户选定的 mockup 目录>
   - product_type: landing-page
   - is_ui_task: true
   - design_tokens_source: <项目品牌 tokens>
 
 输出: 写到 .agent/jobs/director-design-finish-audit/output.md
-返回 JSON: {mode: audit, verdict, aggregate, must_fix, should_fix, errors}
+返回 JSON: {mode: audit, verdict, aggregate, must_fix, should_fix, mockup_alignment_score, errors}
 
-约束: 不修代码，只出 9 维度报告 + 修正建议
+约束:
+  - 不修代码，只出 9 维度报告 + 修正建议
+  - **特别评估 "mockup 对齐度"**：落地代码是否忠实还原了用户选定的 mockup（颜色 / 布局 / 间距 / 字体）
+  - 偏离 mockup 必须列为 must-fix（除非偏离是因为响应式或框架限制，要明示）
 ```
 
 **回流规则**：
-- director-design verdict = `pass` / `pass-with-fixes` → 进 Step 4 delivery-gate
-- verdict = `needs-redesign` / `needs-direction` → 回 Step 3.3 重做落地页（带 must-fix 清单）
+- verdict = `pass` / `pass-with-fixes` → 进 Step 4 delivery-gate
+- verdict = `needs-redesign` → 回 Step 3.3 重做落地代码（带 must-fix 清单）
+- mockup_alignment_score < 4/5 → 回 Step 3.3 调整对齐 mockup
 
 非 UI 任务（无落地页改动）跳过 Step 4.0。
 
@@ -344,11 +463,17 @@ Step 1~3 的实际产物全部就位后,调用 `delivery-gate`,把以下证据�
 - 是否需要:
 - 既存落地页分流: refresh | rebuild | skip | n/a
 - 跳过原因(如适用):
-- 设计方向(huashu-design 返回的全部候选,refresh 路径可记 n/a):
-- 选中方向:
+- **3 路 mockup**（v5）:
+  - mockup-1: <style_name> @ .agent/jobs/landing-mockup-1/  (独立性维度: <列举>)
+  - mockup-2: <style_name> @ .agent/jobs/landing-mockup-2/
+  - mockup-3: <style_name> @ .agent/jobs/landing-mockup-3/
+- **飞书推送**: pushed (6 screenshots) | skipped (non-feishu channel) | failed (<reason>)
+- **用户选择**: 用户选 mockup-N (回复: "选 N" @ <ts>) | pending | "都不行 重做" | "方向 N 改 X"
+- **3.3 实现模式**: A (frontend-design 重写) | B (直接拷 mockup-N → website/) — 按项目栈智能选
 - 落地页代码位置:
 - 技术栈:
 - 响应式截图: done | skipped(<reason>)
+- 被淘汰 mockup 处理: 保留 .agent/jobs/landing-mockup-{X,Y}/（可清理）
 
 ### Step 4 — Delivery Gate
 - 状态: all clear | must-fix-routed | re-ran-N-times
@@ -397,7 +522,10 @@ Step 1~3 的实际产物全部就位后,调用 `delivery-gate`,把以下证据�
 - 找不到设计系统文档却创建了一份"占位空文档" → 停下,删掉,改为在报告里标"未发现"
 - README 已存在却被整体重写为"更专业的版本" → 停下,恢复原文,改为增量 patch
 - 落地页的路线图区从 README 抄一遍而不是从真实 TODO/ROADMAP 来 → 停下,重抓数据源
-- huashu-design 只返回了 1 套方向就接着 frontend-design → 停下,要求 3 套
+- **3.2 只派了 1-2 路 mockup（不是默认 3 路）→ 停下,补齐 3 路**（v5）
+- **3 路 mockup 只换主色不换布局结构 → 停下,违反独立性硬规则**（v5）
+- **未等用户挑选就 auto-pick mockup-1 进 Step 3.3 → 停下,不超时**（v5）
+- **重做时覆盖原 mockup 目录（不用 -v2 后缀） → 停下,旧 mockup 必须保留**（v5）
 - 项目已经是 Next.js/Nuxt 网站还在生成"落地页" → 停下,跳过 Step 3 并说明
 - 项目里已经有 `website/` 等既存落地页子目录,却被当作"无落地页"重做 → 停下,先走 3.0 refresh/rebuild/skip 三选一
 - **跳过 delivery-gate 直接进 Step 5 commit** → 停下,这是硬阻断;审查必须先于提交
@@ -412,7 +540,9 @@ Step 1~3 的实际产物全部就位后,调用 `delivery-gate`,把以下证据�
 |------|------|
 | "项目没设计系统文档,顺手新建一个吧" | 主动新建会污染项目结构。本 skill 默认不新建,在报告里标"未发现"让用户决定 |
 | "README 翻译成英文更专业" | 改语言/改风格不是本 skill 职责。增量更新,保留原 voice |
-| "落地页直接用 frontend-design 一步到位省时间" | 没有 huashu-design 的方向选择,落地页就会是"AI 通用美学"。两步不可压缩成一步 |
+| "落地页直接用 frontend-design 一步到位省时间" | 没有 3 路 mockup 的方向选择,落地页就会是"AI 通用美学"。3.2 → 3.3 两步不可压缩成一步 |
+| "默认派 1 路 mockup 就够了，3 路太重" | v5 默认 3 路是为了给用户**视觉化选择**而不是文字方向；1 路 = 无选择 = 强买强卖 |
+| "用户没回，就先 auto-pick mockup-1 让流程继续" | 不超时是设计决策。设计选择由用户决定，超时 auto-pick 等于代用户选 |
 | "项目本身是网站,落地页和它合并就行" | 网站本身 ≠ 项目落地页;但当项目就是网站时本 skill 直接跳过 Step 3,不强行造一份 |
 | "路线图从我对项目的理解写一下就行" | 路线图必须可追溯到真实文件(TODO/ROADMAP/progress);凭印象写会过期或失真 |
 | "用户没指定技术栈,我给落地页用我喜欢的" | 默认对齐项目前端栈;无栈才回退 vite+pnpm+react,这是契约 |
