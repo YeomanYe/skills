@@ -316,3 +316,63 @@ Prompt：（无特别提"流程图"）
 - 1.3b 重派 3 路 mockup
 - 输出到 `.agent/jobs/preview-mockup-{1,2,3}-v2/`
 - 旧 mockup 保留
+
+---
+
+## v5.1 部署凭据前置检测
+
+### DC1. 1.5.2 检测 Cloudflare 凭据缺失 → Stage 1 就问
+
+场景：private repo → 默认 Cloudflare Pages，但 $CLOUDFLARE_API_TOKEN 未设置。
+
+预期：
+- 1.5.2 输出凭据配置提示（含 token 创建链接 + export 命令 + .envrc 模板）
+- **不**进入 User Gate，等用户回"配好了"
+- 用户回复后 1.5.2 二次校验 → 通过才继续
+
+### DC2. 凭据已就绪 → 静默通过
+
+场景：$CLOUDFLARE_API_TOKEN + $CLOUDFLARE_ACCOUNT_ID 都已 export。
+
+预期：1.5.2 检测通过，总设计文档第 6 节标 "凭据状态: ✅ ready"，不打扰用户。
+
+### DC3. GitHub Pages 不检测凭据
+
+场景：public repo → GitHub Pages。
+
+预期：1.5.2 跳过凭据检测段（GitHub Pages 不需要 token，git push 触发）。
+
+### DC4. Stage 2.4 自动 wrangler 部署
+
+场景：Stage 1 锁定 Cloudflare，凭据 ready。
+
+预期：
+- 2.4 跑 `wrangler pages project create` (首次) + `wrangler pages deploy dist/`
+- 提取 deploy URL（`https://xxx.<project>.pages.dev`）
+- 回写到总设计文档第 5 节"预览页地址"
+
+### DC5. token 安全 — 不进 git
+
+场景：agent 试图在 commit 中包含 .envrc 或在 commit message 含 token。
+
+预期：
+- Red Flag 命中
+- 强制 git reset / 修改 commit message
+- 提示用户 revoke 已泄露 token
+
+### DC6. 2.4 部署前二次校验凭据
+
+场景：1.5.2 配过 token，但 Stage 2.4 跑时环境变量被 unset 了（如开了新 shell session 没 source）。
+
+预期：
+- 2.4 二次校验失败 → 不跑 wrangler
+- 提示用户 `source ~/.zshrc` 或检查 .envrc
+
+### DC7. 用户主动指定 Vercel / Netlify
+
+场景：用户说"我想用 Vercel"。
+
+预期：
+- 1.5.1 记录用户选择 + 偏离默认理由
+- 1.5.2 检测 $VERCEL_TOKEN（同模式）
+- 2.4 用 `vercel --prod --token "$VERCEL_TOKEN"` 部署

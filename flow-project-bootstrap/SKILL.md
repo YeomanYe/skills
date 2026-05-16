@@ -188,14 +188,16 @@ bash references/push-mockups.sh \
 
 **禁止**覆盖原目录（用户可能要对比 v1 / v2）。
 
-### 1.5 部署方案选择
+### 1.5 部署方案选择 + 凭据前置检测（**v5.1**）
+
+#### 1.5.1 仓库可见性 → 部署目标
 
 按当前仓库可见性决定部署目标：
 
 | 仓库类型 | 默认部署目标 | 备注 |
 |---|---|---|
 | **Public**（开源 / 无敏感数据） | **GitHub Pages** | 通过 `.github/workflows/deploy-website.yml` 自动构建 |
-| **Private**（闭源 / 含敏感配置 / 商业项目） | **Cloudflare Pages** | Cloudflare 直连 private repo + 不暴露 build 日志 |
+| **Private**（闭源 / 含敏感配置 / 商业项目） | **Cloudflare Pages** | Direct Upload (wrangler) 不暴露 build 日志 |
 
 判定方式：
 1. 优先用 `gh repo view --json visibility -q .visibility`（需要 gh 已登录）
@@ -203,6 +205,60 @@ bash references/push-mockups.sh \
 3. 都拿不到 → 在总设计文档"开放决策"里列为待用户回答
 
 如果用户主动指定其他目标（Vercel / Netlify / 自托管 / 不部署）→ 按用户指示，但仍要在总设计文档记录**为什么偏离默认**。
+
+#### 1.5.2 部署凭据前置检测（**关键**：Stage 1 就问，不要拖到 Stage 2.4 才卡）
+
+按选定部署目标检测所需环境变量。**缺则立即提示用户配置**，让用户在设计阶段就把凭据搞定，避免 Stage 2.4 部署时才发现 token 没准备。
+
+| 部署目标 | 所需环境变量 | 检测命令 |
+|---|---|---|
+| **GitHub Pages** | 不需要（git push 即可触发） | n/a |
+| **Cloudflare Pages** | `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` | `[[ -n "$CLOUDFLARE_API_TOKEN" ]] && [[ -n "$CLOUDFLARE_ACCOUNT_ID" ]]` |
+| **Vercel** | `VERCEL_TOKEN` | `[[ -n "$VERCEL_TOKEN" ]]` |
+| **Netlify** | `NETLIFY_AUTH_TOKEN` | `[[ -n "$NETLIFY_AUTH_TOKEN" ]]` |
+| **自托管 / 不部署** | n/a | 跳过本节 |
+
+**缺凭据时的处理**（以 Cloudflare 为例，其他目标同模式）：
+
+orchestrator agent 输出如下提示让用户去配（**必须等用户回"配好了"才进 User Gate**）：
+
+```
+🔑 部署到 Cloudflare Pages 需要 2 个凭据，请按以下步骤配置后告诉我"配好了"：
+
+1. 创建 API Token（Cloudflare Pages: Edit 权限）：
+   https://dash.cloudflare.com/profile/api-tokens
+   → Create Token → 模板 "Cloudflare Pages: Edit" → Create
+
+2. 拿 Account ID：
+   Cloudflare dashboard 右下角 / 或跑 `npx wrangler whoami`
+
+3. 把它们写到 shell 启动文件（**永久生效**）：
+
+   # macOS / Linux（~/.zshrc 或 ~/.bashrc）:
+   export CLOUDFLARE_API_TOKEN="cf_xxxx_your_token"
+   export CLOUDFLARE_ACCOUNT_ID="abc123_your_account_id"
+
+   # 然后 source ~/.zshrc 或重开终端
+
+4. 项目级（推荐用 direnv，避免全局污染）:
+   echo 'export CLOUDFLARE_API_TOKEN="..."' >> .envrc
+   echo 'export CLOUDFLARE_ACCOUNT_ID="..."' >> .envrc
+   echo '.envrc' >> .gitignore   # 必须 gitignore！
+   direnv allow
+
+5. 验证：
+   echo "$CLOUDFLARE_API_TOKEN" | head -c 10   # 应该输出 token 前 10 字符
+   npx wrangler whoami                          # 应该列出账户名
+
+配好后回我"配好了"，我会继续 Stage 1 收尾。
+```
+
+**安全硬规则**（写入 Red Flags 段）：
+- ❌ token 绝不进 git（任何 commit / README / docs）
+- ❌ token 不在 prompt / 对话 / log 里裸传（agent 引用要用 `${CLOUDFLARE_API_TOKEN}` 而不是明文）
+- ✅ 走 shell 启动文件（全局） / direnv `.envrc`（项目级，含 `.gitignore`）/ keychain（macOS `security add-generic-password`）
+
+**总设计文档第 6 节**记录凭据就绪状态（不记录 token 值本身），见 1.6 模板。
 
 ### 1.6 输出物：一份总设计文档
 
@@ -237,8 +293,14 @@ Stage 1 末尾交付**单一文档**（建议路径：`docs/design.md` 或 `DESI
 
 ## 6. 部署方案（原 7 节）
 - Repo visibility: public / private
-- 部署目标: GitHub Pages / Cloudflare Pages / 用户指定
+- 部署目标: GitHub Pages / Cloudflare Pages / Vercel / Netlify / 自托管 / 不部署
 - 偏离默认的理由（如有）:
+- **凭据就绪状态**（v5.1）:
+  - 所需环境变量: `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`（按目标改）
+  - 检测时间: <ISO ts>
+  - 状态: ✅ ready | ⏳ 等用户配置 | n/a (GitHub Pages / 不部署)
+  - 存储方式: shell rc | direnv .envrc | keychain
+  - **不记录 token 值本身**（敏感信息禁入文档）
 
 ## 7. 后续规划（post-MVP roadmap，原 8 节）
 （暂缓事项 / 扩展点 / 规模预期；无则明写"本期未讨论"）
@@ -382,15 +444,63 @@ Stage 2 收尾报告标注"可清理"。**不要在 2.3 主动删**。
 - 预览页地址: https://yeomanye.github.io/myproject/preview/
 ```
 
-### 2.4 部署接线
+### 2.4 部署接线（**v5.1 升级：自动 wrangler 部署**）
 
-按 Stage 1 第 7 节锁定的目标接线：
+按 Stage 1 第 6 节锁定的目标接线。**凭据应该已在 1.5.2 配齐**，本步直接跑：
 
-- **GitHub Pages**：建 `.github/workflows/deploy-website.yml`，触发路径限定为 preview 页所在目录
-- **Cloudflare Pages**：通过 Cloudflare Dashboard 接 private repo（手工配置部分由用户做，本 skill 给操作步骤）
-- **其他目标**：参考用户指定流程，输出 setup 命令
+#### GitHub Pages
+- 建 `.github/workflows/deploy-website.yml`，触发路径限定为 preview 页所在目录
+- `git push` 后 GitHub Actions 自动构建
+- URL: `https://<owner>.github.io/<repo>/` 或自定义 domain
 
-部署完成后**必须**把真实 URL 回写到总设计文档的"预览页地址"和"返回总设计文档"链接两处。
+#### Cloudflare Pages（**自动 wrangler 部署**）
+
+```bash
+# 校验凭据（1.5.2 已检测过；这里二次校验防漂移）
+[[ -n "$CLOUDFLARE_API_TOKEN" ]] || { echo "ERR: CLOUDFLARE_API_TOKEN missing"; exit 1; }
+[[ -n "$CLOUDFLARE_ACCOUNT_ID" ]] || { echo "ERR: CLOUDFLARE_ACCOUNT_ID missing"; exit 1; }
+
+PROJECT_NAME="<repo-name>"  # 默认用 GitHub repo 名
+
+# 1. 首次部署创建项目（已存在会失败但不影响后续）
+npx wrangler pages project create "$PROJECT_NAME" \
+  --production-branch=main \
+  --compatibility-date="$(date +%Y-%m-%d)" \
+  2>/dev/null || echo "Project may already exist (ignored)"
+
+# 2. 本地构建（按项目栈）
+pnpm build || npm run build || vite build
+
+# 3. 部署 dist/
+DEPLOY_OUTPUT=$(npx wrangler pages deploy dist/ \
+  --project-name="$PROJECT_NAME" \
+  --branch=main 2>&1)
+
+# 4. 提取部署 URL
+DEPLOY_URL=$(echo "$DEPLOY_OUTPUT" | grep -oE "https://[a-z0-9-]+\.${PROJECT_NAME}\.pages\.dev" | head -1)
+echo "✅ Deployed: $DEPLOY_URL"
+```
+
+**禁止**：
+- ❌ 把 token 写进 wrangler.toml / package.json 等任何 commit 进 git 的文件
+- ❌ 在 commit message / log / 对话里粘贴 token
+- ❌ 凭据缺失就跳过 1.5.2 直接试部署（必须先回 Stage 1 配齐）
+
+#### Vercel / Netlify（同模式）
+
+| 部署目标 | CLI | 凭据校验 |
+|---|---|---|
+| Vercel | `vercel --prod --token "$VERCEL_TOKEN"` | `[[ -n "$VERCEL_TOKEN" ]]` |
+| Netlify | `netlify deploy --prod --auth "$NETLIFY_AUTH_TOKEN" --site=<id> --dir=dist/` | `[[ -n "$NETLIFY_AUTH_TOKEN" ]]` |
+
+#### 其他目标 / 自托管
+参考用户指定流程，输出 setup 命令。
+
+#### 部署后回写
+
+部署完成后**必须**把真实 URL 回写到总设计文档：
+- 第 5 节"预览页地址"占位
+- preview 页头部"返回总设计文档"链接
 
 > **Codex 派工兼容**：workflow YAML、Cloudflare config、其他部署样板文件（≥ 30 行）可按项目 Codex 派工政策路由。"接哪个平台"的决策由 Claude 自己定，"具体写哪些 YAML 字段"可派 Codex。详见 `flow-dev-task` 的 Codex Delegation Hook。
 
@@ -437,6 +547,13 @@ Stage 2 收尾报告标注"可清理"。**不要在 2.3 主动删**。
 - 把私有仓库默认部署到 GitHub Pages → 停下，公开仓库泄露风险
 - 把公开仓库默认走 Cloudflare（用户没要求） → 停下，过度复杂
 - 整体走完没列开放决策 → 停下，补 Stage 1 第 9 节
+
+### v5.1 部署凭据 Red Flags
+- **token 写进 git**（commit / README / docs / wrangler.toml / package.json）→ 停下，立刻 `git reset --hard` + revoke token + 重新生成
+- **token 在对话 / log / commit message 里裸传明文** → 停下，agent 必须用 `${VAR}` 引用
+- **1.5.2 凭据缺失但跳过提示直接进 Stage 2.4** → 停下，回 1.5 让用户配齐
+- **Stage 2.4 部署前不二次校验凭据** → 停下，环境变量可能在 Stage 1 之后被改/失效
+- **`.envrc` 没写进 `.gitignore`** → 停下，会泄露到 GitHub
 
 ## Rationalizations to Reject
 
