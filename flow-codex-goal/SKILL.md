@@ -152,6 +152,15 @@ orchestrator agent 在 GOAL.md 落盘之前，向人类**一次性批量**提案
    - 人类可追加自定义维度（"成功反馈不能影响布局" → `Layout Stability`）
    - 所有维度（基础 4 + 扩展）必须在 EVAL.md 显式列出，reviewer 才会评
 
+5. **Extra Reviewers 注册（可选）**
+   - orchestrator 根据任务特征**主动建议**额外 reviewer：
+     - `is_ui_task: true` → 建议加 `director-design`（专项 UI 视觉审）
+     - 高风险任务（auth / 支付 / 加密）→ 未来可建议 `director-security`
+     - 数据 / API → 未来可建议 `director-architect`
+   - 用户**显式确认**后写入 GOAL.md `extra_reviewers:` 段（schema 见 `references/goal-template.md`）
+   - 仲裁规则默认 **AND-pass**（所有 reviewer 都通过才整体 pass），详见 `references/reviewer-arbitration.md`
+   - 不加 = 只跑内置 Reviewer Codex，向下兼容 v3 行为
+
 **禁止**：未确认就启动 Goal Codex。AC 模糊 → goal 跑飞，攻击面在 Phase 0 这里堵住。
 
 #### Step 0.2：创建任务目录 + 隔离 worktree + 模板落盘
@@ -393,7 +402,17 @@ cp "$TASK_DIR/GOAL.md" "$REVIEW_WORKTREE/$TASK_DIR/"
 cp "$TASK_DIR/EVAL.md" "$REVIEW_WORKTREE/$TASK_DIR/"
 ```
 
-#### Step 2.3：启动 Reviewer Codex（硬隔离三重）
+#### Step 2.3：启动 Reviewer Codex（**内置 + extra_reviewers 注册机制**）
+
+**Reviewer 形态**：
+- **内置 Reviewer Codex**（必跑）：现有的 codex exec + readonly worktree + env -i 硬隔离，做"代码 / 测试 / 合规 / 4 维 rubric"审计
+- **Extra Reviewers**（可选注册）：通过 GOAL.md `extra_reviewers` 字段声明，与内置 Reviewer **并列启动**，做专项审计（如 `director-design` UI 视觉审）
+
+详见 `references/reviewer-arbitration.md` 的注册机制 + 仲裁规则。
+
+##### Step 2.3.1：启动内置 Reviewer Codex（与 v3 一致）
+
+
 
 ```bash
 # 网络/凭据隔离：env -i 清空敏感变量
@@ -430,7 +449,51 @@ git worktree remove --force "$REVIEW_WORKTREE"
 3. **文件系统隔离**：reviewer 工作在独立 readonly worktree，物理上不包含 STATUS.md / ISSUES.md / logs/ / 历史 reviews/
 4. **网络/凭据隔离**：`env -i` 清空 keychain / CF_API_TOKEN / GITHUB_TOKEN 等敏感变量
 
-#### Step 2.4：处理 verdict + 仲裁 + snapshot + 最高分回退
+##### Step 2.3.2：并列启动 Extra Reviewers（如果 GOAL.md 有声明）
+
+watcher 解析 GOAL.md `extra_reviewers` 段，对每个声明的 reviewer **并列派 subagent**：
+
+```bash
+# 伪代码：launch_extra_reviewers
+for reviewer_name in $(yq '.extra_reviewers[]' "$TASK_DIR/GOAL.md"); do
+  # 派 subagent 显式调用 director-* skill
+  bash "$SCRIPT_DIR/launch-extra-reviewer.sh" "$TASK_ID" "$ROUND" "$reviewer_name" &
+  EXTRA_PIDS+=($!)
+done
+
+# 等所有 extra reviewer 返回（collect-all，单路失败不阻塞）
+wait "${EXTRA_PIDS[@]}"
+```
+
+每个 extra reviewer 输出独立报告：
+- `reviews/round-$ROUND/REVIEW.md`（内置 Reviewer Codex）
+- `reviews/round-$ROUND/extras/<reviewer-name>.md`（如 `extras/director-design.md`）
+
+**派工 prompt 模板**（每个 extra reviewer，遵循 `references/parallelization-template.md` 显式调用 skill 硬规则）：
+
+```
+Slot: extra-reviewer-<name>
+Task: 作为 <reviewer-name> 对当前 Goal 完成状态做专项审计
+
+必须显式调用的 skill:
+  - <reviewer-name>（如 director-design，subagent 默认不会主动用）
+
+输入（只读）:
+  - GOAL.md / EVAL.md / BASELINE.md / review-input/
+  - 当前 round: <N>
+
+输出: 写到 .agent/tasks/<TASK_ID>/reviews/round-<N>/extras/<reviewer-name>.md
+返回 JSON: {reviewer_name, verdict, aggregate, must_fix, should_fix, errors}
+
+约束:
+  - 不读 STATUS.md / ISSUES.md / logs/（与内置 Reviewer Codex 相同隔离原则）
+  - 不修改任何代码
+  - 必须按自己 skill 的 Output Contract 出报告
+```
+
+详细注册 schema + 派工脚本见 `references/reviewer-arbitration.md`。
+
+#### Step 2.4：处理 verdict + 多 reviewer 仲裁 + snapshot + 最高分回退
 
 watcher touch `.review-pending` → orchestrator 唤醒，读 REVIEW.md：
 
@@ -484,6 +547,36 @@ if no_improvement_count() >= 3:
 - **3 轮 review fail 上限**：超出 → 强制终止 Goal Codex + alert
 - **3 轮不涨分**：回到历史最高分 snapshot tag（不是最后一轮）
 - **PASS 但低于最高分**：不自动回滚，但保留快照让人类选
+- **多 reviewer 仲裁**：默认 **AND-pass**（所有 reviewer 都 pass 才整体 pass），详见 `references/reviewer-arbitration.md`
+
+**多 reviewer 仲裁伪代码**（替代上面的单 reviewer 逻辑）：
+
+```python
+codex_review = read("reviews/round-N/REVIEW.md")
+extra_reviews = [read(f"reviews/round-N/extras/{r}.md")
+                 for r in read_extra_reviewers_from_goal()]
+all_reviews = [codex_review] + extra_reviews
+
+# 1. 仲裁规则（默认 AND-pass）
+arbitration_rule = read_goal_field("arbitration_rule") or "AND-pass"
+
+# 2. 黑名单仲裁（与现有一致，对每个 reviewer 的 must_fix 都过滤）
+for review in all_reviews:
+    for must_fix in review.must_fix:
+        if must_fix.file in goal.non_goals:
+            mark_overridden(review, must_fix, reason="non-goals")
+
+# 3. 合并 verdict
+overall_verdict = apply_arbitration(all_reviews, rule=arbitration_rule)
+# AND-pass: 所有 reviewer 都 pass（含 override 后视同 pass）→ pass
+# 任一 fail → retry（把所有 reviewer 的 must_fix 合并写回 STATUS.md）
+
+# 4. snapshot 用几何平均（强调"两边都好"，避免一边极高一边极低也通过）
+overall_aggregate = geometric_mean([r.aggregate for r in all_reviews if r.aggregate])
+
+# 5. 写 audit 含所有 reviewer
+write_audit(round=N, all_reviews=all_reviews, arbitration=...)
+```
 
 ---
 
@@ -724,10 +817,16 @@ SUBAGENT 模式下 orchestrator 无法持有后台 watcher 进程。此时 orche
 - 每个 milestone 4 维度 + 扩展维度评分
 
 ### Review
-- Reviewer rounds: <n>  Final verdict: pass | fail | aborted
+- Reviewer rounds: <n>  Final verdict (combined): pass | fail | aborted
+- Arbitration rule: AND-pass | OR-pass | weighted-avg | hard-rule-override
+- **Reviewer roster**:
+  - codex-reviewer (内置): <verdict / aggregate>
+  - <extra-reviewer-1> (如 director-design): <verdict / aggregate> | not invoked
+  - <extra-reviewer-2>: ... | not invoked
+- Overall aggregate (geometric mean): <X.X>
 - Two-Codex Isolation verified: yes (process/session/fs/net all 4 layers)
 - Review audit log: review-audit/round-*.jsonl (N rounds, M overrides)
-- Must Fix accepted / overridden: <a> / <b>
+- Must Fix accepted / overridden (按 reviewer 区分): <a> / <b>
 - Should Fix recorded: <c>
 - Runtime evidence verified: <list of user-journeys passed>
 

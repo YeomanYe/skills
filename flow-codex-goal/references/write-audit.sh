@@ -51,6 +51,8 @@ case "$TYPE" in
     aggregate=$(jq -r '.aggregate // 0' "$src" 2>/dev/null || echo "0")
     ;;
   final-review)
+    # v4: 同时处理 codex-reviewer + 所有 extra reviewers
+    # 每个 reviewer 各写一行 JSONL，reviewer_name 字段区分
     src="$TASK_DIR/reviews/round-${ROUND}/REVIEW.md"
     [[ -f "$src" ]] || { echo "ERR: $src not found" >&2; exit 1; }
     # 从 ## Reviewer Metadata 段解析
@@ -99,10 +101,12 @@ jq -n \
   --argjson new_rules "$new_rules_json" \
   --argjson delta "$delta_json" \
   --argjson runtime "$runtime_json" \
+  --arg reviewer_name "codex-reviewer" \
   '{
     round: $round,
     type: $type,
     ts: $ts,
+    reviewer_name: $reviewer_name,
     reviewer_pid: $reviewer_pid,
     reviewer_thread_id: $reviewer_thread,
     reviewer_launch_cmd: $reviewer_launch_cmd,
@@ -119,22 +123,55 @@ jq -n \
     orchestrator_arbitration: null
   }' >> "$JSONL"
 
+# v4: 同时为每个 extra reviewer 写一行 JSONL
+if [[ "$TYPE" == "final-review" ]]; then
+  EXTRAS_DIR="$TASK_DIR/reviews/round-${ROUND}/extras"
+  if [[ -d "$EXTRAS_DIR" ]]; then
+    for extra_md in "$EXTRAS_DIR"/*.md; do
+      [[ -f "$extra_md" ]] || continue
+      extra_reviewer_name=$(basename "$extra_md" .md)
+      extra_verdict=$(awk '/^## Verdict/{flag=1;next} /^## /{flag=0} flag && NF>0 {print tolower($1); exit}' "$extra_md" 2>/dev/null)
+      [[ -z "$extra_verdict" ]] && extra_verdict="n/a"
+      # 用 [[:space:]] 替代 \s（BSD 兼容），抓 "Aggregate: X.X" 内联格式
+      extra_agg=$(grep -oE "Aggregate:[[:space:]]*[0-9.]+" "$extra_md" 2>/dev/null | head -1 | awk '{print $2}' || echo "")
+
+      jq -n \
+        --arg round "$ROUND" \
+        --arg type "extra-review" \
+        --arg ts "$ts" \
+        --arg reviewer_name "$extra_reviewer_name" \
+        --arg verdict "$extra_verdict" \
+        --arg aggregate "$extra_agg" \
+        --arg src "$extra_md" \
+        '{
+          round: $round,
+          type: $type,
+          ts: $ts,
+          reviewer_name: $reviewer_name,
+          verdict: $verdict,
+          aggregate: ($aggregate | tonumber? // null),
+          source_file: $src
+        }' >> "$JSONL"
+    done
+  fi
+fi
+
 # 更新 INDEX.md
 {
   echo "# Review Audit Index — $TASK_ID"
   echo
-  echo "| Round | Type | Verdict | Aggregate | Reviewer PID | TS |"
+  echo "| Round | Type | Reviewer | Verdict | Aggregate | TS |"
   echo "|---|---|---|---|---|---|"
   for f in "$AUDIT_DIR"/round-*.jsonl; do
     [[ -f "$f" ]] || continue
     while IFS= read -r line; do
       r=$(echo "$line" | jq -r '.round')
       t=$(echo "$line" | jq -r '.type')
+      n=$(echo "$line" | jq -r '.reviewer_name // "-"')
       v=$(echo "$line" | jq -r '.verdict')
       a=$(echo "$line" | jq -r '.aggregate')
-      p=$(echo "$line" | jq -r '.reviewer_pid')
       ts=$(echo "$line" | jq -r '.ts')
-      echo "| $r | $t | $v | $a | $p | $ts |"
+      echo "| $r | $t | $n | $v | $a | $ts |"
     done < "$f"
   done
 } > "$INDEX"

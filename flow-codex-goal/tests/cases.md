@@ -705,6 +705,102 @@ jq -s '[.[] | .reviewer_thread_id] | unique | length'
 - Red Flag 命中（"orchestrator 周期 poll IM" 是 watcher 的活）
 - 应该让 watcher 做这件事
 
+## Extra Reviewers 注册机制（v4）
+
+### ER1. 不写 extra_reviewers → v3 行为不变
+
+场景：GOAL.md 无 `extra_reviewers:` 段。
+
+预期：
+- watcher `launch_extra_reviewers` 输出 "No extra reviewers registered (v3 mode)"
+- 只跑内置 Reviewer Codex
+- snapshot 用单 reviewer aggregate（向下兼容）
+
+### ER2. is_ui_task=true 自动建议 director-design
+
+场景：Phase 0.1 探测 is_ui_task=true。
+
+预期：
+- Step 5（新加）询问用户："要加 director-design 作为 extra reviewer 做 UI 视觉专项审吗？"
+- 用户确认 → GOAL.md 落盘 `extra_reviewers: [director-design]`
+- 用户拒绝 → 不写该字段，只跑内置 reviewer
+
+### ER3. 多 reviewer 并列启动
+
+场景：GOAL.md 写 `extra_reviewers: [director-design]`。
+
+预期：
+- Step 2.3.1 启动内置 Reviewer Codex
+- Step 2.3.2 并列派 director-design subagent
+- 两份独立报告：
+  - `reviews/round-N/REVIEW.md`（内置）
+  - `reviews/round-N/extras/director-design.md`（extra）
+
+### ER4. 派工 prompt 必须显式调用 skill
+
+场景：subagent 启动后没读 director-design SKILL.md，直接按训练 prior 行事。
+
+预期：
+- watcher 的派工 prompt 含 "MUST explicitly invoke the `director-design` skill" 字样
+- 若 subagent 输出报告但未走 director-design 的 Mode Selection 流程 → audit 记录 + log warn
+
+### ER5. 仲裁默认 AND-pass
+
+场景：codex-reviewer pass + director-design pass-with-fixes。
+
+预期：
+- arbitrate_reviews 返回 fail（pass-with-fixes != pass）
+- must-fix 合并到 STATUS.md Next Action
+- 退回 Goal 重写
+
+### ER6. 仲裁切换 OR-pass
+
+场景：GOAL.md 加 `arbitration_rule: OR-pass`，codex-reviewer pass + director-design fail。
+
+预期：arbitrate_reviews 返回 pass（任一通过即整体通过）。
+
+### ER7. 几何平均 aggregate
+
+场景：codex-reviewer aggregate 5.0，director-design aggregate 2.0。
+
+预期：
+- 几何平均 = sqrt(5 * 2) ≈ 3.16
+- 比算术平均（3.5）低，强调"两边都好"
+- snapshot 用 3.16 比较 HIGHEST_SCORE
+
+### ER8. extra reviewer 失败不阻塞其他
+
+场景：director-design subagent 超时（600s）。
+
+预期：
+- launch_one_extra_reviewer log 记录 "$reviewer_name timed out / failed (non-blocking)"
+- arbitrate_reviews 跳过该 reviewer（reports 数组少一份）
+- 内置 Reviewer Codex 仍正常返回 + 整体仲裁继续
+
+### ER9. arbitration.md 落盘
+
+场景：3 个 reviewer 全跑完。
+
+预期：
+- `reviews/round-N/arbitration.md` 写入合并视图（rule / reviewers 列表 / combined verdict / must-fix 合并清单）
+- write-audit.sh 为每个 reviewer 各写一行 JSONL
+- INDEX.md 加新列 "Reviewer"，按 reviewer_name 区分行
+
+### ER10. hard-rule-override 模式
+
+场景：GOAL.md 加 `arbitration_rule: hard-rule-override`，director-security（未来）给出 verdict=needs-redesign。
+
+预期：即使其他 reviewer 都 pass，整体 fail（一票否决）。
+
+### ER11. 未来加 director-* 零代码改动
+
+场景：未来有 director-pm，用户在 GOAL.md 加 `extra_reviewers: [director-design, director-pm]`。
+
+预期：
+- watcher 不需要改任何代码
+- 自动派 2 个 subagent，各产出 `extras/director-design.md` + `extras/director-pm.md`
+- 仲裁自动按现有规则合并
+
 ## 边界 / 回归
 
 ### B1. Codex 配置文件不存在

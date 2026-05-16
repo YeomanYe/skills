@@ -215,6 +215,240 @@ Reply: continue / pause / abort / adjust: <text>"
 }
 
 # === trigger_review（升级：readonly worktree + env -i 硬隔离）===
+# === v4: Extra Reviewers 通用注册机制 ===
+
+# 解析 GOAL.md 的 extra_reviewers 段，输出 reviewer name 列表（一行一个）
+# 注意：用 [[:space:]] 而非 \s，兼容 BSD awk/sed（macOS）
+parse_extra_reviewers() {
+  awk '/^extra_reviewers:/{flag=1;next} /^[a-zA-Z]/&&flag{flag=0} flag && /^[[:space:]]*-/' \
+    "$TASK_DIR/GOAL.md" 2>/dev/null \
+    | sed -E 's/^[[:space:]]*-[[:space:]]*//; s/^name:[[:space:]]*//' \
+    | awk '{print $1}' \
+    | grep -v "^$" \
+    | head -10
+}
+
+read_arbitration_rule() {
+  grep -E "^arbitration_rule:" "$TASK_DIR/GOAL.md" 2>/dev/null \
+    | head -1 | awk '{print $2}' \
+    | grep -E "^(AND-pass|OR-pass|weighted-avg|hard-rule-override)$" \
+    || echo "AND-pass"
+}
+
+# 派 1 个 extra reviewer subagent
+launch_one_extra_reviewer() {
+  local task_id="$1" round="$2" reviewer_name="$3"
+  local round_dir="$TASK_DIR/reviews/round-$round"
+  local extras_dir="$round_dir/extras"
+  mkdir -p "$extras_dir"
+
+  log "Launching extra reviewer: $reviewer_name (round $round)"
+
+  # subagent 派工 prompt（显式调用 reviewer skill 硬规则）
+  local prompt
+  prompt=$(cat <<EOF
+You are an extra reviewer for a Codex Goal task.
+
+MUST explicitly invoke the \`$reviewer_name\` skill (subagent does NOT auto-trigger skills).
+
+Inputs (read-only):
+  - .agent/tasks/$task_id/GOAL.md
+  - .agent/tasks/$task_id/EVAL.md
+  - .agent/tasks/$task_id/BASELINE.md
+  - .agent/tasks/$task_id/review-input/
+
+Forbidden to read:
+  - STATUS.md / ISSUES.md / logs/ / 历史 reviews/
+
+Task:
+  Run the \`$reviewer_name\` skill in its appropriate audit/review mode.
+  Output your report to: .agent/tasks/$task_id/reviews/round-$round/extras/$reviewer_name.md
+
+Required output sections in your .md (EXACT format, parser depends on this):
+  - ## Verdict
+    <single word: pass | pass-with-fixes | needs-redesign | needs-direction | fail>
+  - ## Aggregate
+    Aggregate: <X.X>   (must be inline "Aggregate: <number>", number 0.0-5.0)
+  - ## Must Fix
+    (each: - file: / issue: / why-blocking: / suggested-fix:)
+  - ## Should Fix
+  - ## Confidence
+    <high | medium | low>
+
+Return JSON to stdout (last line):
+  {"reviewer_name":"$reviewer_name","verdict":"...","aggregate":X.X,"must_fix_count":N,"errors":[]}
+EOF
+)
+
+  # 用 Agent / codex exec 等机制启动 subagent；
+  # 此处 fallback 用 codex exec（与内置 Reviewer Codex 同模式）
+  timeout 600 env -i \
+    PATH="/usr/local/bin:/usr/bin:/bin" \
+    HOME="$HOME" \
+    LANG="${LANG:-en_US.UTF-8}" \
+    LC_ALL="${LC_ALL:-en_US.UTF-8}" \
+    TASK_ID="$task_id" \
+    codex exec --skip-git-repo-check <(echo "$prompt") \
+    > "$extras_dir/$reviewer_name.codex.log" 2>&1 \
+    || log "extra reviewer $reviewer_name timed out / failed (non-blocking)"
+
+  # 检查是否输出了 .md
+  if [[ -f "$extras_dir/$reviewer_name.md" ]]; then
+    log "extra reviewer $reviewer_name produced report"
+  else
+    log "WARN: extra reviewer $reviewer_name did not produce $extras_dir/$reviewer_name.md"
+  fi
+}
+
+# 并列派所有注册的 extra reviewers
+launch_extra_reviewers() {
+  local round="$1"
+  local reviewers
+  reviewers=$(parse_extra_reviewers)
+
+  [[ -z "$reviewers" ]] && { log "No extra reviewers registered (v3 mode)"; return 0; }
+
+  log "Launching extra reviewers: $(echo "$reviewers" | tr '\n' ' ')"
+
+  local pids=()
+  while IFS= read -r reviewer; do
+    [[ -z "$reviewer" ]] && continue
+    launch_one_extra_reviewer "$TASK_ID" "$round" "$reviewer" &
+    pids+=($!)
+  done <<< "$reviewers"
+
+  # collect-all：所有 reviewer 都返回，单路失败不阻塞
+  wait "${pids[@]}" 2>/dev/null || log "some extra reviewer subagent exited non-zero (recorded)"
+}
+
+# 合并多 reviewer 仲裁
+# 用法: arbitrate_reviews <round> verdict|aggregate
+arbitrate_reviews() {
+  local round="$1" field="$2"
+  local round_dir="$TASK_DIR/reviews/round-$round"
+  local rule
+  rule=$(read_arbitration_rule)
+
+  # 收集所有 reviewer 报告
+  local reports=()
+  [[ -f "$round_dir/REVIEW.md" ]] && reports+=("$round_dir/REVIEW.md")
+  if [[ -d "$round_dir/extras" ]]; then
+    while IFS= read -r f; do reports+=("$f"); done < <(find "$round_dir/extras" -name "*.md" 2>/dev/null)
+  fi
+
+  [[ ${#reports[@]} -eq 0 ]] && { echo "fail"; return; }
+
+  # 解析每个 reviewer 的 verdict / aggregate
+  local verdicts=() aggs=()
+  for r in "${reports[@]}"; do
+    local v
+    v=$(awk '/^## Verdict/{flag=1;next} /^## /{flag=0} flag && NF>0 {print tolower($1); exit}' "$r" 2>/dev/null)
+    [[ -z "$v" ]] && v="fail"
+    verdicts+=("$v")
+
+    local a
+    a=$(grep -oE "Aggregate:\s*[0-9.]+" "$r" 2>/dev/null | head -1 | awk '{print $2}')
+    [[ -z "$a" ]] && a=0
+    aggs+=("$a")
+  done
+
+  if [[ "$field" == "verdict" ]]; then
+    [[ ${#verdicts[@]} -eq 0 ]] && { echo "fail"; return; }
+    case "$rule" in
+      AND-pass)
+        for v in "${verdicts[@]}"; do [[ "$v" != "pass" ]] && { echo "fail"; return; }; done
+        echo "pass"
+        ;;
+      OR-pass)
+        for v in "${verdicts[@]}"; do [[ "$v" == "pass" ]] && { echo "pass"; return; }; done
+        echo "fail"
+        ;;
+      hard-rule-override)
+        for v in "${verdicts[@]}"; do [[ "$v" == "needs-redesign" ]] && { echo "fail"; return; }; done
+        for v in "${verdicts[@]}"; do [[ "$v" != "pass" ]] && { echo "fail"; return; }; done
+        echo "pass"
+        ;;
+      weighted-avg)
+        # 简化版：算术平均（精确加权需读 arbitration_weight，known limitation）
+        local sum=0 n=0
+        for a in "${aggs[@]}"; do
+          [[ "$a" == "0" ]] && continue
+          sum=$(awk -v s="$sum" -v a="$a" 'BEGIN{print s+a}')
+          n=$((n+1))
+        done
+        [[ $n -eq 0 ]] && { echo "fail"; return; }
+        local avg
+        avg=$(awk -v s="$sum" -v n="$n" 'BEGIN{printf "%.2f", s/n}')
+        local pass
+        pass=$(awk -v a="$avg" 'BEGIN{print (a >= 4.0) ? "pass" : "fail"}')
+        echo "$pass"
+        ;;
+      *) echo "fail" ;;
+    esac
+  elif [[ "$field" == "aggregate" ]]; then
+    [[ ${#aggs[@]} -eq 0 ]] && { echo "0"; return; }
+    # 几何平均（强调"两边都好"）
+    local product=1 n=0
+    for a in "${aggs[@]}"; do
+      [[ "$a" == "0" ]] && continue
+      product=$(awk -v p="$product" -v a="$a" 'BEGIN{print p*a}')
+      n=$((n+1))
+    done
+    [[ $n -eq 0 ]] && { echo "0"; return; }
+    awk -v p="$product" -v n="$n" 'BEGIN{printf "%.2f", p^(1/n)}'
+  fi
+}
+
+# 写 arbitration.md 合并视图
+write_arbitration_md() {
+  local round="$1"
+  local round_dir="$TASK_DIR/reviews/round-$round"
+  local arb_md="$round_dir/arbitration.md"
+  local rule
+  rule=$(read_arbitration_rule)
+  local overall_v overall_a
+  overall_v=$(arbitrate_reviews "$round" verdict)
+  overall_a=$(arbitrate_reviews "$round" aggregate)
+
+  {
+    echo "# Arbitration: round-$round"
+    echo
+    echo "## Rule"
+    echo "$rule"
+    echo
+    echo "## Reviewers"
+    # 内置
+    if [[ -f "$round_dir/REVIEW.md" ]]; then
+      local v a
+      v=$(awk '/^## Verdict/{flag=1;next} /^## /{flag=0} flag && NF>0 {print tolower($1); exit}' "$round_dir/REVIEW.md")
+      a=$(grep -oE "Aggregate:[[:space:]]*[0-9.]+" "$round_dir/REVIEW.md" | head -1 | awk '{print $2}')
+      echo "- codex-reviewer (内置)"
+      echo "  - verdict: ${v:-n/a}"
+      echo "  - aggregate: ${a:-n/a}"
+      echo "  - source: reviews/round-$round/REVIEW.md"
+    fi
+    # extras
+    if [[ -d "$round_dir/extras" ]]; then
+      for f in "$round_dir/extras"/*.md; do
+        [[ -f "$f" ]] || continue
+        local name v a
+        name=$(basename "$f" .md)
+        v=$(awk '/^## Verdict/{flag=1;next} /^## /{flag=0} flag && NF>0 {print tolower($1); exit}' "$f")
+        a=$(grep -oE "Aggregate:[[:space:]]*[0-9.]+" "$f" | head -1 | awk '{print $2}')
+        echo "- $name (extra)"
+        echo "  - verdict: ${v:-n/a}"
+        echo "  - aggregate: ${a:-n/a}"
+        echo "  - source: reviews/round-$round/extras/$name.md"
+      done
+    fi
+    echo
+    echo "## Combined"
+    echo "- overall_verdict: $overall_v"
+    echo "- overall_aggregate: $overall_a (geometric mean)"
+  } > "$arb_md"
+  log "arbitration.md written: $arb_md"
+}
+
 trigger_review() {
   log "Goal complete — triggering FINAL review pipeline (with hard isolation)"
 
@@ -310,28 +544,35 @@ trigger_review() {
   log "Removing readonly worktree: $review_wt"
   git worktree remove --force "$review_wt" 2>>"$LOG" || rm -rf "$review_wt"
 
-  # 6. final-review snapshot 决策（如果 verdict=pass 且分数创新高 → snapshot）
-  if [[ -f "$review_round_dir/REVIEW.md" ]]; then
-    # case-insensitive verdict 解析
-    local verdict
-    verdict=$(awk '/^## Verdict/{flag=1;next} /^## /{flag=0} flag && NF>0 {print tolower($1); exit}' "$review_round_dir/REVIEW.md" || echo "?")
-    local agg
-    agg=$(grep -oE "Aggregate:\s*[0-9.]+" "$review_round_dir/REVIEW.md" | head -1 | awk '{print $2}' || echo 0)
-    if [[ "$verdict" == "pass" ]] && [[ "$agg" != "0" ]]; then
-      bash "$SNAPSHOT" "$TASK_ID" "final-r$round" "$agg" >> "$LOG" 2>&1 || true
-    fi
+  # 5.5 启动 extra reviewers（v4: 通用 reviewer 注册机制）
+  launch_extra_reviewers "$round"
+
+  # 6. snapshot 决策（v4: 用 overall_aggregate 几何平均）
+  local overall_verdict overall_agg
+  overall_verdict=$(arbitrate_reviews "$round" verdict)
+  overall_agg=$(arbitrate_reviews "$round" aggregate)
+  if [[ "$overall_verdict" == "pass" ]] && [[ "$overall_agg" != "0" ]]; then
+    bash "$SNAPSHOT" "$TASK_ID" "final-r$round" "$overall_agg" >> "$LOG" 2>&1 || true
   fi
 
-  # 7. audit
+  # 6.5 写 arbitration.md 合并视图
+  write_arbitration_md "$round"
+
+  # 7. audit（含所有 reviewer）
   bash "$WRITE_AUDIT" "$TASK_ID" "$round" final-review >> "$LOG" 2>&1 || true
 
   # 8. notify orchestrator
+  local extra_count
+  extra_count=$(ls "$review_round_dir/extras/" 2>/dev/null | wc -l | tr -d ' ')
   notify_human "Final review round-$round complete" "
-Verdict: $(cat "$review_round_dir/REVIEW.md" 2>/dev/null | grep -A1 '^## Verdict' | tail -1 || echo 'n/a')
-Reviewer pid: $reviewer_pid (isolation verified)
+Overall verdict: $overall_verdict (rule: $(read_arbitration_rule))
+Overall aggregate: $overall_agg (geometric mean)
+Reviewers: codex-reviewer + $extra_count extra
 REVIEW.md: $review_round_dir/REVIEW.md
+Extras: $review_round_dir/extras/
+Arbitration: $review_round_dir/arbitration.md
 
-orchestrator agent: read REVIEW.md, run arbitration (blacklist > Must Fix), decide commit/retry/abort.
+orchestrator agent: read all reviewer reports + arbitration.md, decide commit/retry/abort.
 "
 
   touch "$TASK_DIR/.review-pending"

@@ -64,6 +64,39 @@ baseline_dimensions:           # 仅 mode=regression-prevention/hybrid 时生效
   - risk
 ```
 
+## Extra Reviewers（Phase 0.1 Step 5，可选注册）
+
+声明在 Step 2.3 与内置 Reviewer Codex **并列启动**的额外 reviewer（如 `director-design` 做 UI 视觉专项审）。
+
+### 极简 schema（推荐）
+
+```yaml
+extra_reviewers:
+  - director-design   # UI 任务自动建议（is_ui_task: true 时）
+  # 未来可加 director-security / director-architect / director-pm 等
+```
+
+### 详细 schema（按需扩展）
+
+```yaml
+extra_reviewers:
+  - name: director-design
+    when: is_ui_task          # 条件触发（可选；不写 = 始终启用）
+    mode: audit               # 让该 reviewer 跑哪个 mode（可选；默认按 reviewer 自己 SKILL.md）
+    arbitration_weight: 1.0   # 仲裁权重（仅 weighted-avg 模式生效）
+
+# 仲裁规则（可选）
+arbitration_rule: AND-pass    # AND-pass（默认）| OR-pass | weighted-avg | hard-rule-override
+```
+
+### 默认行为
+
+- **不写 extra_reviewers** = 只跑内置 Reviewer Codex（向下兼容 v3）
+- **arbitration_rule 默认 AND-pass**：所有 reviewer 都 pass 才整体 pass
+- **snapshot 用几何平均**：避免一边极高一边极低也通过
+
+详见 `references/reviewer-arbitration.md`。
+
 ## Custom Score Dimensions（Phase 0.1 Step 4 由 orchestrator 建议 + 人类追加）
 
 参考 `references/score-rubric-extensions.md`。例：
