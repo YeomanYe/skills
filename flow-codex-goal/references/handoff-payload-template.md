@@ -53,12 +53,16 @@
 
 ## 已使用本模板的 skill
 
+### flow-* 编排器
 - `flow-codex-goal`（上游：flow-dev-task）
 - `flow-dev-task`（上游：用户 / flow-project-bootstrap，下游：flow-codex-goal / clean-commit）
-- `flow-project-bootstrap`（下游：project-prep / flow-project-rules / frontend-design）
-- `flow-project-finish`（下游：clean-commit / delivery-gate）
+- `flow-project-bootstrap`（下游：project-prep / flow-project-rules / frontend-design / director-design）
+- `flow-project-finish`（下游：clean-commit / delivery-gate / director-design）
 - `flow-project-rules`（上游：flow-project-bootstrap，下游：project-rules-design）
-- `flow-jsx-ui`（下游：jsx-ui-audit / ui-extract）
+- `flow-jsx-ui`（下游：jsx-ui-audit / ui-extract / director-design）
 - `flow-ext-publish`（下游：ext-preflight / web-image）
 - `flow-skill-dev`（下游：skill-creator / writing-skills / skill-behavior-test / sync-skills）
 - `flow-skill-research`（下游：find-skills）
+
+### director-* 角色型 agent
+- `director-design`（上游：flow-project-finish / flow-project-bootstrap / flow-jsx-ui / delivery-gate，下游：huashu-design / web-image / ui-ux-pro-max；handoff 出口：flow-jsx-ui / web-design-guidelines / delivery-gate）

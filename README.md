@@ -74,11 +74,34 @@ skillshare sync --force
 
 **正确**：开发位置 → GitHub → skillshare source（用 `git pull` / `skillshare update`）。
 
+## Skill 命名空间约定
+
+| 前缀 | 含义 | 例子 |
+|---|---|---|
+| `flow-*` | **编排型流水线**（既定流程，强制阶段，按 step 推进） | flow-codex-goal / flow-dev-task |
+| `director-*` | **角色型 agent**（专业判断 + 自己领域工具调度，不越界） | director-design |
+| 无前缀 | **单体能力**（工具 / 资源 / 单一职责） | clean-commit / web-image |
+
+### director-* 与 flow-* 的关键差别
+
+- **flow-*** 是"流水线编排器"——每个 step 强制执行，跨多个不同领域的 skill
+- **director-*** 是"专家角色"——只在**单一专业领域**内做判断 + 调度自己领域工具，**handoff 给其他角色**而不越界
+
+未来可能扩展的 director-*：
+- `director-design` ← 设计师（当前已实现）
+- `director-pm` ← 产品经理
+- `director-architect` ← 架构师
+- `director-qa` ← QA
+- `director-security` ← 安全官
+
+参考：这套设计与 [gstack 的 cognitive modes](https://gstacks.org/) 思路一致——"虚拟专家角色"。
+
 ## 关键 skill
 
 | 类别 | skill |
 |---|---|
 | 编排器（flow-*）| flow-codex-goal / flow-dev-task / flow-ext-publish / flow-jsx-ui / flow-project-bootstrap / flow-project-finish / flow-project-rules / flow-skill-dev / flow-skill-research |
+| **角色型 agent（director-*）** | **director-design** |
 | 共享工具 | clean-commit / delivery-gate / sync-skills |
 | 设计 | project-rules-design / ui-extract / jsx-ui-audit / web-image |
 | 浏览器自动化 | cdp-browser-control |

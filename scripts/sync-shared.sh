@@ -35,10 +35,12 @@ parallelization_target_skills=(
   flow-ext-publish
   flow-project-bootstrap
   flow-codex-goal
+  director-design
 )
 
 handoff_payload_target_skills=(
   flow-codex-goal
+  director-design
 )
 
 drift_count=0
