@@ -373,3 +373,26 @@ Prompt：
 - orchestrator 在对话里告知用户
 - **不**阻塞流程（用户仍可手动看 mockup 选）
 
+
+---
+
+## v5.1 两阶段 director-design 调度（与 bootstrap 对齐）
+
+### V51-1. 3.2 改两阶段
+
+预期：
+- 3.2a 派 1 个 director-design (variants) 出 3 方向卡
+- 3.2b 基于方向卡派 3 路 director-design (mockup) 并行
+- 不再"直接派 3 路自决定方向"
+
+### V51-2. 方向卡作为约束传给 3.2b
+
+预期：
+- 每路 mockup subagent prompt 含 direction_card 完整 JSON
+- subagent 必须遵循方向卡（不能偏离），偏离即 Red Flag
+
+### V51-3. 与 bootstrap 一致性
+
+预期：
+- bootstrap 1.3 + finish 3.2 用完全相同的两阶段模式
+- 共享 push-mockups.sh 脚本（同名同行为）

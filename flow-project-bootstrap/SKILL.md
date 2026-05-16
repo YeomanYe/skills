@@ -40,19 +40,25 @@ description: Use when a user wants the **full multi-stage** project kickoff chai
 
 ## Stage 1 · Discovery & Direction
 
-### Stage 1 并行编排
-
-`1.1` 是 Stage 1 的串行起点（其他子节都依赖 MVP 输出），`1.4` 和 `1.5` 可在 `1.1` 完成后**并行**（彼此独立），`1.2` 和 `1.3` 都依赖 `1.1` 但相互独立。
+### Stage 1 并行编排（**v5 简化**）
 
 **执行顺序**：
-1. **串行**：`1.1` project-prep（必须先完成，输出 MVP / 技术栈 / Preview decision）
-2. **并行 1**（4 路）：`1.2` ASCII 流程图 + `1.3` preview 设计 + `1.4` 设计候选 + `1.5` 部署探测
-   - 派 subagent / 多 Bash 调用，按 `references/parallelization-template.md`
-   - 必须显式调用：`1.4` → `ui-ux-pro-max` skill
-   - `1.5` 部署探测纯 Bash（`gh repo view` / `git remote -v`），不派 subagent
-3. **串行**：`1.6` 总设计文档拼装（orchestrator 自己做 reduce，把 5 路产出按 9 节顺序合并）
 
-orchestrator 在 1.1 完成后派 4 路并行，自己进入 idle；4 路返回后做 1.6 拼装。
+1. **串行**：`1.1` project-prep（输出 MVP / 技术栈 / Preview decision；目标用户可选）
+2. **可选并行**：`1.2` ASCII 流程图（用户要求时）+ `1.5` 部署探测（Bash） — 同时跑
+3. **1.3 两阶段**（核心）：
+   - **1.3a**（串行）：派 1 个 director-design (variants) 出 3 方向卡（~2 min）
+   - **1.3b**（**3 路并行**）：基于方向卡派 3 路 director-design (mockup) 实现（~5 min）
+   - **1.3c**（串行）：飞书推送 + 等用户挑选（不超时）
+4. **串行**：`1.6` 总设计文档拼装（orchestrator 自己做 reduce，按 8 节顺序合并）
+
+**总节奏**：
+- Phase A：1.1 串行（~3 min）
+- Phase B：1.2 可选 + 1.5 并行（~1 min）
+- Phase C：1.3a → 1.3b 3 路并行 → 1.3c（~10 min + 等用户）
+- Phase D：1.6 拼装（~1 min）
+
+orchestrator 在 1.1 完成后派 Phase B/C 并行，自己进入 idle；返回后做 1.6 拼装。
 
 ---
 
@@ -60,70 +66,127 @@ orchestrator 在 1.1 完成后派 4 路并行，自己进入 idle；4 路返回�
 
 调用 `project-prep` 锁定：
 
-- **MVP 范围**（in scope / out of scope / non-goals）
-- **目标用户**与**核心流**（happy path 3-7 步）
-- **主交互设计**（屏幕清单 + 关键动作 + 状态流转 + 决策点）
-- **主要技术栈**（运行面 + 框架 + 主语言）
-- **Preview decision**：`Required` / `Not needed` / `Already satisfied`
+- **MVP 范围**（in scope / out of scope / non-goals）— **必填**
+- **目标用户**与**核心流**（happy path 3-7 步）— **可选**（用户没指定时不强求；个人项目 / 小工具常不需要）
+- **主交互设计**（屏幕清单 + 关键动作 + 状态流转 + 决策点）— **必填**
+- **主要技术栈**（运行面 + 框架 + 主语言）— **必填**
+- **Preview decision**：`Required` / `Not needed` / `Already satisfied` — **必填**
 
-### 1.2 主要流程 ASCII 图（必出）
+### 1.2 主要流程 ASCII 图（**可选**，用户没要求时跳过）
 
-把核心流转化成可读的 ASCII 流程图，至少表达入口 → 关键决策 → 出口。**不允许**只用文字描述代替。
+**v5 改可选**：默认跳过。用户明确说"我要看流程图"才出。
 
-最小可接受形式：
+理由：流程图是思考工具，对很多任务非必要；项目复杂度低时反而冗余。需要时按下面格式出：
 
 ```
 [Entry] → (Action) → ⟨Decision?⟩ ─yes→ [State A]
                             └─no──→ [State B] → (Action) → [Exit]
 ```
 
-复杂流可拆分子图（一图表达不超过 7 个节点）。流程图直接嵌进总设计文档第 2 节。
+复杂流可拆分子图（一图表达不超过 7 个节点）。
 
-### 1.3 预览功能设计（必出，遵循 Component reuse 硬性要求）
+### 1.3 设计方向 + 预览 Mockup（**v5 升级**：两阶段 director-design 调度）
 
-按 `project-prep` 的 Preview decision 处理：
+**核心改造**：合并原 1.3（预览功能设计）+ 1.4（推荐设计系统）。默认走两阶段，让用户视觉化选择，不再先文字描述再选。
 
-- **Not needed**（纯 web 项目）→ 写"主工程 dev server 即 preview"，本节结束
-- **Already satisfied** → 描述现有 preview 面，本节结束
-- **Required** → 必须输出**完整的 preview 设计**，包含：
-  - 页面布局与分页策略（单页 vs 多页 / 路由切分逻辑）
-  - Mock 数据丰富度（条数、字段多样性、关联分布）
-  - 状态切换控制器（至少 normal / empty / loading / error，列出切换方式：DevBar / URL query / 设置面板）
-  - **Component reuse plan**：
-    - 列出真实组件路径（如 `src/popup/Popup.tsx`）
-    - 适配器层切点（storage / platform API / network 在哪一层抽象）
-    - 显式禁止：另起 `_preview/MockX.tsx`、把 `if (PREVIEW_MODE)` 写进真实组件
-    - 零代码阶段允许临时占位但要写明切回 deadline
-
-**对非 web 站项目（extension / native / widget / 嵌入式）这是硬性要求**，缺任一项 Stage 1 不算完成。
-
-### 1.4 推荐的设计系统（**派 director-design subagent 编排 variants**，调 `ui-ux-pro-max`）
-
-**v4 升级**：派 subagent 调 `director-design` 的 `variants` mode 编排（避免主上下文污染），由 director-design 内部调度 `ui-ux-pro-max` 拿候选 + 自己判断 + 输出方向报告。
-
-**派工 prompt 模板**（subagent 必须**显式调用** director-design skill）：
+#### 1.3a — 派 1 个 director-design (variants) 出 3 方向卡（**规划阶段**）
 
 ```
 必须显式调用 `director-design` skill (mode: variants)
 
 输入:
   - product_type: <Stage 1.1 推断>
-  - objective: <一句话设计目标>
+  - objective: <一句话设计目标，含 MVP 摘要>
   - is_ui_task: true
-  - design_tokens_source: <none，新项目尚未建立>
+  - design_tokens_source: none（新项目尚未建立）
+  - variant_count: 3（**默认 3 路**，保证差异化但不过度发散）
 
-输出: 写到 .agent/jobs/director-design-variants/output.md
-返回 JSON: {mode: variants, verdict, variant_count, output_path, must_fix, errors}
+输出: .agent/jobs/director-design-variants/directions.md
+返回 JSON: {mode: variants, directions: [
+  {slot: 1, style_name, color_direction, font_combo, layout_strategy, key_visual, tradeoff},
+  {slot: 2, ...},
+  {slot: 3, ...}
+], errors}
 
 约束:
-  - 每套候选保留 style 名、配色方向、字体组合、布局密度、核心 tradeoff
-  - director-design 内部可调 ui-ux-pro-max 拿权威依据
-  - 不写代码，只出方向 + 取舍
+  - 3 个方向必须真正差异化（布局/信息层级/风格/主色至少 2 维度不同）
+  - 内部可调 ui-ux-pro-max 拿权威依据
+  - 不写代码，只出方向卡（文字描述，~2 min）
 ```
 
-orchestrator 派工后 idle，subagent 返回汇总进 1.6 总设计文档第 6 节。
+#### 1.3b — 基于 3 方向卡，派 3 路 director-design (mockup) 并行（**实现阶段**）
 
-**降级**：director-design 不可用时退回直调 `ui-ux-pro-max`，记录到 1.6 文档"开放决策"段。
+3 路 subagent 并行实现 mockup，每路明确指定方向卡 N：
+
+```
+Slot: preview-mockup-N  (N = 1 | 2 | 3)
+Task: 基于 1.3a 方向卡 N 实现 preview mockup
+
+必须显式调用 `director-design` skill (mode: mockup)
+
+输入:
+  - direction_card: <1.3a directions[N-1] 完整 JSON>
+  - product_type: <Stage 1.1>
+  - objective: <一句话>
+  - is_ui_task: true
+  - preview_decision: <Required / Not needed / Already satisfied>
+  - component_reuse_required: true（保留原 1.3 硬规则）
+
+输出目录: .agent/jobs/preview-mockup-N/
+  - index.html
+  - styles.css
+  - screenshots/{375,768,1024,1440}.png
+  - meta.json {slot, style_name, layout_strategy, component_reuse_plan, errors}
+
+返回 JSON: {slot, status, mockup_dir, screenshots_dir, errors}
+
+**component_reuse_plan**（**硬性要求**，原 1.3 规则保留）:
+  - 列出真实组件路径（如 src/popup/Popup.tsx）
+  - 适配器层切点（storage / platform API / network 在哪一层抽象）
+  - 显式禁止：另起 _preview/MockX.tsx、把 if (PREVIEW_MODE) 写进真实组件
+  - 零代码阶段允许临时占位但要写明切回 deadline
+
+**禁止**：
+  - 仅换主色不换布局（违反方向卡差异化）
+  - 写生产代码（实现是 Stage 2.3 的事）
+  - 单方面替用户选
+```
+
+#### 1.3c — 飞书自动推送 + 用户挑选（**不超时**）
+
+3 路就绪后调 `references/push-mockups.sh` 推到飞书：
+
+```bash
+bash references/push-mockups.sh \
+  "$TASK_DIR" \
+  ".agent/jobs/preview-mockup-1" \
+  ".agent/jobs/preview-mockup-2" \
+  ".agent/jobs/preview-mockup-3"
+```
+
+脚本行为：
+- CC_SESSION_KEY 含 `feishu:` 前缀时触发，每路推 mobile (375) + desktop (1440) 共 6 张
+- 消息含 3 个 style_name + 回复选项「选 1/2/3 / 都不行重做 / 方向 N 改 X」
+- 非飞书渠道跳过，orchestrator 在对话里贴 mockup 路径
+- 幂等 marker 防止重跑追加
+- **不超时 auto-pick**（设计选择由用户决定）
+
+用户挑定后进 Stage 2.3（被挑 mockup 落地）。
+
+#### 1.3 降级路径
+
+- director-design 不可用 → 退回直调 `ui-ux-pro-max` + `huashu-design`（同样 3 路并行）
+- cc-connect 不可用 → 跳过飞书推送，orchestrator 在对话里贴 3 个 mockup 路径
+
+#### 1.3 重做版本命名（硬规则）
+
+| 场景 | 输出路径 |
+|---|---|
+| 初始 3 路 | `.agent/jobs/preview-mockup-{1,2,3}/` |
+| "都不行 重做"（全部新派） | `-v2` / `-v3` 递增 |
+| "方向 2 改 X"（单路微调） | `.agent/jobs/preview-mockup-2-v2/`（其他不动） |
+
+**禁止**覆盖原目录（用户可能要对比 v1 / v2）。
 
 ### 1.5 部署方案选择
 
@@ -160,31 +223,29 @@ Stage 1 末尾交付**单一文档**（建议路径：`docs/design.md` 或 `DESI
 ## 4. 主要技术栈
 （运行面 / 框架 / 主语言）
 
-## 5. 预览功能设计
+## 5. 设计方向 + Preview Mockup（**v5 合并原 5 + 6**）
 - Status: Required / Not needed / Already satisfied
-- Why:
-- Surface:
-- Layout & pagination plan:
-- Mock data richness:
-- State controller:
-- Component reuse plan:（Required + 项目有 UI 组件时必填）
-- 预览页地址（占位）: `<PREVIEW_URL>`（Stage 2 完成后回填）
+- **3 路 mockup 路径**:
+  - `.agent/jobs/preview-mockup-1/` — style: <name>
+  - `.agent/jobs/preview-mockup-2/` — style: <name>
+  - `.agent/jobs/preview-mockup-3/` — style: <name>
+- **方向卡**: `.agent/jobs/director-design-variants/directions.md`
+- **飞书推送**: pushed (6 截图) | skipped (non-feishu)
+- **用户选定**: mockup-N (style: <name>) | pending | "都不行 重做"
+- **Component reuse plan**（被挑 mockup 的 meta.json 中提取）:
+- 预览页地址（占位）: `<PREVIEW_URL>`（Stage 2.3 完成后回填）
 
-## 6. 候选设计系统（≥2 套）
-（每套：style 名 / 配色 / 字体 / 布局 / tradeoff）
-
-## 7. 部署方案
+## 6. 部署方案（原 7 节）
 - Repo visibility: public / private
 - 部署目标: GitHub Pages / Cloudflare Pages / 用户指定
 - 偏离默认的理由（如有）:
 
-## 8. 后续规划（post-MVP roadmap）
+## 7. 后续规划（post-MVP roadmap，原 8 节）
 （暂缓事项 / 扩展点 / 规模预期；无则明写"本期未讨论"）
 
-## 9. Stage 1 待用户锁定的决策
+## 8. Stage 1 待用户锁定的决策（原 9 节）
 - [ ] 接受 MVP 切片
-- [ ] 选定 preview 策略
-- [ ] 选一套设计系统：候选 1 / 2 / 3 / 自混
+- [ ] **挑选 1 个 preview mockup**（mockup-1 / 2 / 3 / 都不行重做）
 - [ ] 确认部署方案
 - [ ] 确认后续规划方向
 ```
@@ -197,12 +258,14 @@ Stage 2 不得自动启动。必须显式问用户：
 
 > Stage 1 总设计文档已就绪。请确认以下决策后我再进入 Stage 2：
 > 1. MVP 切片 OK 吗？
-> 2. preview 策略采纳哪一套？
-> 3. 设计系统选哪一套？（编号或自混）
-> 4. 部署目标确认？
-> 5. 后续规划方向 OK 吗？
+> 2. **挑选 1 个 preview mockup**？（mockup-1 / 2 / 3 / "都不行 重做" / "方向 N 改 X"）
+> 3. 部署目标确认？
+> 4. 后续规划方向 OK 吗？
 
-得到至少 2 / 3 / 4 三项明确回答前不进入 Stage 2。1 与 5 可以推断默认。
+**v5 简化**：从 5 问降为 4 问（合并原"preview 策略"和"设计系统"为单一"挑 mockup"）。
+得到至少 1 / 2 / 3 三项明确回答前不进入 Stage 2。4 可以推断默认。
+
+如果用户回 "都不行 重做" / "方向 N 改 X"：回 1.3 重派（用 `-v2` 后缀，不覆盖原 mockup）。
 
 ---
 
@@ -211,7 +274,7 @@ Stage 2 不得自动启动。必须显式问用户：
 进入 Stage 2 的硬前置：
 
 - Stage 1 总设计文档已落盘
-- 用户已选定**一套**设计系统（不能"几套混"未拍板）
+- **用户已挑选 1 个 preview mockup**（不能"3 个混"未拍板）
 - 部署目标已确认
 
 ### Stage 2 并行编排
@@ -222,11 +285,12 @@ Stage 2 不得自动启动。必须显式问用户：
 |---|---|---|---|
 | `engineering-rules` | 调 `flow-project-rules` 生成规范脚手架 | `CONTRIBUTING.md` / `AGENTS.md` / `docs/<domain>/` | `flow-project-rules`（必须显式）|
 | `logo-design` | 调 `huashu-design` 出 ≥2 个 logo 方向 | `assets/logos/` 或 `branding/` | `huashu-design`（必须显式）|
-| `preview-impl` | 实现 Stage 1 第 5 节 preview 设计 | `preview/` 或项目内 preview 路由 | `frontend-design`（如适用，必须显式）|
+| `preview-impl` | 基于 Stage 1.3 已挑选的 preview-mockup-N 落地 | `preview/` 或项目内 preview 路由 | `frontend-design`（A 模式必须显式）/ 直接 cp（B 模式）|
 
 **派工 prompt 必填**（每个 subagent）：
 - Stage 1 总设计文档路径 + sha256（只读输入）
-- 已锁定的设计系统名称 + tokens（仅 2.2 / 2.3 需要）
+- 已挑选的 preview mockup 路径（`.agent/jobs/preview-mockup-N/`，仅 2.3 需要）
+- 已锁定的设计 tokens（mockup meta.json 中提取，仅 2.2 / 2.3 需要）
 - **黑名单**：禁动其他 2 路目标目录
 - 返回 JSON：`{slot, status, outputs, skills_invoked, errors}`
 
@@ -256,35 +320,47 @@ orchestrator 在派工后 idle，等待 3 路返回。
 
 输出落到 `assets/logos/` 或项目 `branding/` 目录，并在总设计文档里加引用。
 
-### 2.3 预览页实现（**先派 director-design mockup**，再实现）
+### 2.3 预览页实现（**v5：直接用 Stage 1.3 已挑选的 mockup 落地**）
 
-**v4 升级**：实现前先派 subagent 调 `director-design` 的 `mockup` mode 出高保真 mockup（基于 1.4 已选方向 + 项目设计 tokens），再用 mockup 指导实现。
+**v5 简化**：Stage 1.3 已经派过 3 路 mockup 并让用户挑了一个，本步直接拿来落生产代码（不再重派 director-design mockup）。
 
-**派工 prompt 模板**：
+**按项目栈智能选实现模式**（同 flow-project-finish v5）：
+
+| 项目栈情况 | 模式 | 行为 |
+|---|---|---|
+| 有前端栈（react/vue/svelte 等） | **A** frontend-design 重写 | 把 `.agent/jobs/preview-mockup-N/` 作为视觉基准，frontend-design 转成对应栈组件 |
+| 无前端栈（纯 CLI / lib / extension） | **B** 直接拷 | `cp -r .agent/jobs/preview-mockup-N/ preview/`（清掉 screenshots / meta.json） |
+
+##### A 模式（frontend-design）
 
 ```
-必须显式调用 `director-design` skill (mode: mockup)
+必须显式调用 `frontend-design` skill
 
 输入:
-  - 已选设计方向: <Stage 1.4 用户选定的 variant>
+  - 已挑选 mockup 路径: .agent/jobs/preview-mockup-N/
+  - mockup HTML + CSS 作为视觉基准（颜色/字体/布局都对齐）
   - design_tokens_source: <Stage 2.1 落地的 tokens 路径>
-  - is_ui_task: true
-  - preview decision: <Stage 1.3 Required / Not needed / Already satisfied>
-
-输出:
-  - HTML mockup: .agent/jobs/director-design-mockup/preview.html
-  - 4 断点截图: .agent/jobs/director-design-mockup/screenshots/{375,768,1024,1440}.png
-返回 JSON: {mockup_path, screenshots: [], must_fix, errors}
-
-约束:
-  - 不写生产代码（那是本 Step 2.3 后续的事）
-  - 复用项目已选 design system tokens
+  - target_stack: <Stage 1.1 已锁定的前端栈>
+  - target_dir: preview/ 或项目内 preview 路由
+  - component_reuse_plan: <从 mockup-N/meta.json 提取>
 ```
 
-orchestrator 派工后 idle，subagent 返回 mockup + 截图后再做实现：
+##### B 模式（直接拷）
 
-- **Required + 有 UI 组件**：套已选设计系统的 token，复用真实组件 + 适配器层，**以 mockup 为视觉验收基准**
-- **Required + 零代码阶段**：用 `huashu-design` / `frontend-design` 出占位 preview 页，标注切回 deadline
+```bash
+cp -r ".agent/jobs/preview-mockup-N/" "preview/"
+rm -rf "preview/screenshots" "preview/meta.json"  # 清过程产物
+```
+
+##### 处理被挑后剩余 mockup
+
+默认保留 `.agent/jobs/preview-mockup-{X,Y}/`（用户可参考 / 对比）。
+Stage 2 收尾报告标注"可清理"。**不要在 2.3 主动删**。
+
+##### 触发条件兼容
+
+- **Required + 有 UI 组件**：A 模式（套已选设计系统的 token + 复用真实组件 + 适配器层）
+- **Required + 零代码阶段**：B 模式（直接拷 mockup 当占位 preview，标注切回 deadline）
 - **Not needed / Already satisfied**：本节产物 = 总设计文档里的引用，不重复造
 
 **双向链接**（硬性要求）：

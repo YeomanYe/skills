@@ -174,24 +174,16 @@ orchestrator 在派工后 idle，等待 4 路返回；期间不主动 poll，sub
 - 项目调性(从 README/品牌色推断,作为给 huashu-design 的输入)
 - 是否对外发布(决定是否需要 SEO meta / OG image)
 
-#### 3.2 设计方向 —— **3 路独立 mockup 并行 + 飞书推送**（默认行为）
+#### 3.2 设计方向 + 落地页 Mockup —— **两阶段 director-design 调度**（v5.1）
 
-**v5 升级**：默认**直接派 3 路并行**出**可视 mockup**（HTML/CSS），不再先出文字方向。用户在飞书直接看截图选。
+**v5.1 升级**：从"3 路自决定方向"改为"两阶段 director-design 编排"，与 flow-project-bootstrap Stage 1.3 完全一致。
 
-**默认行为**（用户不说话也照做）：
-- 派 **3 路独立 subagent**（不是 1 路出 variants 文字方向）
-- 每路调 `director-design` (mode: mockup) 出独立 HTML/CSS mockup（约 100-200 行/路）
-- 每路独立目录：`.agent/jobs/landing-mockup-{1,2,3}/`
-- 每路自跑 4 断点截图（375 / 768 / 1024 / 1440）
-- 飞书渠道时自动 cc-connect 推送 mobile + desktop 各 1 张（共 6 张）让用户挑选
+理由：差异化由 director-design variants 这个设计专家裁决，比 3 路独立 subagent 各自瞎猜更专业，且保证发散有度（不会三路风格南辕北辙让用户挑不出）。
 
-##### 派工 prompt 模板（**必须显式调用** director-design skill，3 路各派一份）
+##### 3.2a — 派 1 个 director-design (variants) 出 3 方向卡（**规划阶段，~2 min**）
 
 ```
-Slot: landing-mockup-N  (N = 1 | 2 | 3)
-Task: 实现 <项目名> 的产品落地页 mockup（第 N 路独立方向）
-
-必须显式调用 `director-design` skill (mode: mockup)
+必须显式调用 `director-design` skill (mode: variants)
 
 输入:
   - product_type: landing-page
@@ -199,7 +191,38 @@ Task: 实现 <项目名> 的产品落地页 mockup（第 N 路独立方向）
   - is_ui_task: true
   - design_tokens_source: <Step 0 项目品牌色路径，若无填 none>
   - content_contract: <Step 3.1 收集的 8 bullets>
-  - your_slot: N (本路必须与其他 N-1 路真正独立)
+  - variant_count: 3（默认 3 路，保证差异化但不过度发散）
+
+输出: .agent/jobs/director-design-variants/directions.md
+返回 JSON: {mode: variants, directions: [
+  {slot: 1, style_name, color_direction, font_combo, layout_strategy, key_visual, tradeoff},
+  {slot: 2, ...},
+  {slot: 3, ...}
+], errors}
+
+约束:
+  - 3 方向必须真正差异化（布局/信息层级/风格/主色至少 2 维度不同）
+  - 内部可调 ui-ux-pro-max 拿权威依据
+  - 不写代码，只出方向卡（文字描述）
+```
+
+##### 3.2b — 基于 3 方向卡，派 3 路 director-design (mockup) 并行（**实现阶段，~5 min**）
+
+3 路 subagent 并行实现 mockup，每路明确指定方向卡 N：
+
+```
+Slot: landing-mockup-N  (N = 1 | 2 | 3)
+Task: 基于 3.2a 方向卡 N 实现落地页 mockup
+
+必须显式调用 `director-design` skill (mode: mockup)
+
+输入:
+  - direction_card: <3.2a directions[N-1] 完整 JSON>
+  - product_type: landing-page
+  - objective: <项目名> 的产品落地页
+  - is_ui_task: true
+  - design_tokens_source: <Step 0 项目品牌色路径，若无填 none>
+  - content_contract: <Step 3.1 收集的 8 bullets>
 
 输出目录: .agent/jobs/landing-mockup-N/
   - index.html        HTML mockup（轻量 100-200 行）
@@ -210,31 +233,25 @@ Task: 实现 <项目名> 的产品落地页 mockup（第 N 路独立方向）
     - 768.png         tablet (768×1024)
     - 1024.png        small desktop
     - 1440.png        desktop (1440×900)
-  - meta.json         {slot, style_name, key_visuals, layout_strategy, dimensions_differ_from_others: [布局/信息层级/风格/主色 至少 2 维度]}
+  - meta.json         {slot, style_name, layout_strategy, component_reuse_plan, errors}
 
 返回 JSON: {slot, status, mockup_dir, screenshots_dir, style_name, errors}
 
-**独立性硬规则**（本路必须与其他 2 路至少 2 个维度不同）：
-  - 布局结构（grid / asymmetric / centered / full-bleed）
-  - 信息层级（hero-first / features-first / story-driven）
-  - 风格调性（minimal / brutalist / playful / corporate）
-  - 主色方向（暖色 / 冷色 / 中性）
-
 **禁止**：
-  - 仅换主色不换布局
+  - 偏离方向卡 N（方向卡是约束，不是建议）
   - 复用其他 slot 的整体结构
   - 写生产代码（实现是 3.3 的事）
-  - 单方面替用户选（必须把 3 个 mockup 完整呈现）
+  - 单方面替用户选
 ```
 
-orchestrator 派 3 路 subagent 后**进入 idle**，收齐后做下一步。
+orchestrator 派 3 路 subagent 后**进入 idle**，收齐后做 3.2.5 推送。
 
 ##### 3.2.5 飞书自动推送（CC_SESSION_KEY 含 `feishu:` 时强制）
 
 3 路 mockup 全部就绪后：
 
 ```bash
-bash references/push-mockups-to-feishu.sh \
+bash references/push-mockups.sh \
   "$TASK_DIR" \
   ".agent/jobs/landing-mockup-1" \
   ".agent/jobs/landing-mockup-2" \
@@ -271,7 +288,7 @@ bash references/push-mockups-to-feishu.sh \
 
 ##### orchestrator 唤醒条件（用户回复后怎么触发）
 
-push-mockups-to-feishu.sh 写入 STATUS.md `## Pending Decision` 段（含 `<!-- pending-decision-mockup-v1 -->` marker 做幂等去重）。orchestrator 监听方式：
+push-mockups.sh 写入 STATUS.md `## Pending Decision` 段（含 `<!-- pending-decision-mockup-v1 -->` marker 做幂等去重）。orchestrator 监听方式：
 - **IM 渠道**：watcher 周期 poll cc-connect inbox，用户回 "选 N" / "都不行 重做" / "方向 N 改 X" 时，watcher 把回复追加到 STATUS.md `## Human Feedback` 段，orchestrator 下次被 ping 时读到 → 进 Step 3.3 或重派
 - **非 IM**：用户在对话里回复 → orchestrator 当场识别 → 进 Step 3.3 或重派
 - **手动**：用户编辑 STATUS.md，把 `## Pending Decision` 改成 `## Decision: 选 N` → orchestrator 下次唤醒时识别

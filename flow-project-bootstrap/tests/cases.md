@@ -251,3 +251,68 @@ Prompt：
 场景：Codex Hook 段落出现后，agent 试图把 Stage 1 决策也派 Codex。
 
 预期：必须拒绝——Codex Hook 只覆盖 Stage 2 的代码/配置生成步骤，**不影响** Stage 1 / Stage 2 之间的 user gate。设计决策仍由用户确认。
+
+---
+
+## v5 Stage 1 两阶段 director-design 改造
+
+### S1V5-1. 1.1 目标用户可选
+
+Prompt：
+> 我想做一个个人项目，给自己用，不想纠结目标用户。
+
+预期：
+- project-prep 不强求"目标用户 + 核心流"
+- 输出 MVP / 技术栈 / Preview decision（3 个必填项）
+- 总设计文档第 1 节"用户"标注 n/a 或省略
+
+### S1V5-2. 1.2 ASCII 流程图默认跳过
+
+Prompt：（无特别提"流程图"）
+
+预期：
+- 1.2 跳过
+- 总设计文档第 2 节"主流程图"标记 "跳过（用户未要求）" 或省略
+
+### S1V5-3. 1.3 两阶段调度
+
+预期：
+- 1.3a 派 1 个 director-design (variants) 出 3 方向卡（文字 ~2 min）
+- 方向卡落到 `.agent/jobs/director-design-variants/directions.md`
+- 1.3b **基于方向卡**派 3 路 director-design (mockup) 并行
+- 每路 prompt 含 direction_card 完整 JSON
+- 3 路独立目录 `.agent/jobs/preview-mockup-{1,2,3}/`
+- 每路自跑 4 断点截图
+
+### S1V5-4. 1.3c 飞书自动推送
+
+场景：CC_SESSION_KEY = feishu:chat:user
+
+预期：
+- 调 references/push-mockups.sh
+- 6 张截图（每路 mobile + desktop）+ style_name 消息
+- STATUS.md 写 ## Pending Decision 段（带 marker 幂等）
+
+### S1V5-5. User Gate 简化为 4 问
+
+预期：
+- 不再问"选哪套设计系统"（已合并到挑 mockup）
+- 4 问：MVP / mockup 选 N / 部署 / 后续规划
+- 至少 1 / 2 / 3 三项明确回答才进 Stage 2
+
+### S1V5-6. Stage 2.3 直接用挑选的 mockup
+
+场景：用户选 mockup-2，项目有 React 栈
+
+预期：
+- A 模式：调 frontend-design，mockup-2 作视觉基准转 React 组件
+- 不再"先派 director-design mockup 再实现"（重复劳动）
+- 被淘汰 mockup-1 / mockup-3 保留在 .agent/jobs/
+
+### S1V5-7. "都不行 重做"
+
+预期：
+- 回 1.3a 重派 variants（新方向卡）
+- 1.3b 重派 3 路 mockup
+- 输出到 `.agent/jobs/preview-mockup-{1,2,3}-v2/`
+- 旧 mockup 保留
