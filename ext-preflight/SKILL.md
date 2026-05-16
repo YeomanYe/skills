@@ -1,6 +1,12 @@
 ---
 name: ext-preflight
-description: Use when about to publish or submit a browser extension to Chrome Web Store, Firefox AMO, or Microsoft Edge Add-ons — triggered by phrases like "上架扩展", "提交到商店", "发布扩展", "准备上架", "帮我上架", "submit extension", "publish extension", or any intent to submit a browser extension to a store. Do NOT trigger for general extension development, code changes, or reviewing extension status.
+description: >
+  Use when running a single-shot **pre-flight checklist** before browser extension
+  submission — verify icons, screenshots, manifest, permissions justification, version
+  bump are ready. Triggered by phrases like "上架前检查", "preflight check", "扩展上架检查",
+  "上架自检", "submission readiness check". Do NOT use for the end-to-end publish flow
+  with store upload steps — use `flow-ext-publish` instead. Do NOT trigger for general
+  extension development, code changes, or reviewing extension status.
 ---
 
 ## 这个 Skill 做什么

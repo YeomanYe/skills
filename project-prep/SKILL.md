@@ -1,13 +1,14 @@
 ---
 name: project-prep
 description: >
-  Use when a user wants project prep before implementation: define the MVP,
-  main interaction design, primary tech stack, and decide whether to add a
-  preview requirement such as a mock web preview, demo surface, or preview route.
-  Trigger on requests like "开工前准备", "项目开发前准备", "定 MVP 和技术栈",
-  "要不要加 preview requirement", "need a preview plan before building", or
-  when browser extensions, native apps, embedded surfaces, and integration-heavy
-  tools need UI walkthroughs before real-environment testing.
+  **Single-stage** project prep before implementation: define the MVP, main interaction
+  design, primary tech stack, and decide whether to add a preview requirement (mock web
+  preview, demo surface, preview route). Trigger on focused asks like "开工前准备",
+  "项目开发前准备", "定 MVP 和技术栈", "要不要加 preview requirement", "need a preview
+  plan before building", or when browser extensions / native apps / embedded surfaces /
+  integration-heavy tools need UI walkthroughs before real-environment testing.
+  For the full kickoff chain (prep + engineering rules + design options), use
+  `flow-project-bootstrap` instead.
 ---
 
 # Project Prep
@@ -23,7 +24,7 @@ description: >
 
 这里的 preview requirement 不是默认强加一层 web 壳，而是判断：在真实运行环境之外，是否值得补一个更快、可 mock、可做 UI 走查的预览面。典型例子是浏览器扩展：真实能力最终仍要在浏览器里验，但可以先补一份 web preview，用 mock 数据做界面和状态流转走查，最后再做真实测试。
 
-本 skill 可单独使用，也可作为 `orchestrating-project-bootstrap` 的前置步骤。
+本 skill 可单独使用，也可作为 `flow-project-bootstrap` 的前置步骤。
 
 ## When to Use
 
@@ -208,7 +209,7 @@ Required 的 preview 必须同时满足以下三条设计要求。这些不是"�
 ## Relationship to Other Skills
 
 - 用户只要“开工前准备”时，直接用本 skill
-- 用户还要工程规范和设计方向时，由 `orchestrating-project-bootstrap` 先调用本 skill，再路由到下游 skill
+- 用户还要工程规范和设计方向时，由 `flow-project-bootstrap` 先调用本 skill，再路由到下游 skill
 - 本 skill 不产出工程规则正文，也不产出设计系统候选
 
 ## Red Flags

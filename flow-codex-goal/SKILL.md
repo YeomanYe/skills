@@ -820,7 +820,7 @@ ROI 判断：
 | 任务高风险（auth/支付）| 🔴 负 |
 | UI 循环改造（迭代式）| 🟢 高（snapshot + 同分硬规则正是为此设计）|
 
-派工细则细节以本 skill 为准，不引用 `flow-dev-task` 的 Codex Delegation Rules。
+派工细则细节以本 skill 为准，不引用 `flow-dev-task` 的 Codex Delegation Hook。
 
 ---
 

@@ -37,5 +37,5 @@
 
 ## Case 8: 集成链路收尾发布
 
-- 目标: 验证 `orchestrating-skill-development -> sync-skills` 的链路定义是否完整。
+- 目标: 验证 `flow-skill-dev -> sync-skills` 的链路定义是否完整。
 - 预期: 当工作目标包含“发布到全局”时，编排 skill 会把 `sync-skills` 作为收尾原子步骤，而不是把同步职责塞回 `writing-skills` 或最终报告文本里。

@@ -1,6 +1,13 @@
 ---
 name: flow-ext-publish
-description: Use when preparing to publish or update a browser extension to web stores (Chrome Web Store, Firefox AMO, Edge Add-ons), especially when the extension may have missing or outdated assets (icons, screenshots, promo tiles, descriptions, permissions justifications, version bumps) that need to be discovered, composed from project assets, confirmed, and submitted per each platform's rules. 用于浏览器扩展准备上架或更新到 Chrome Web Store / Firefox AMO / Edge Add-ons，尤其是可能存在缺失素材（图标、截图、宣传图、描述、权限理由、版本号）需要先排查、基于项目素材制作、补齐、再按平台规则提交的场景。
+description: >
+  Use for the **end-to-end** browser extension submission flow (preflight check + asset
+  preparation + store upload) to Chrome Web Store / Firefox AMO / Edge Add-ons.
+  Trigger on phrases like "上架扩展", "发布扩展", "提交到商店", "准备上架", "帮我上架",
+  "submit extension", "publish extension", "上架到 Chrome Store". Especially when assets
+  (icons, screenshots, promo tiles, descriptions, permissions justifications, version bumps)
+  need to be discovered, composed, confirmed, and submitted per each platform's rules.
+  For a single-shot readiness check without uploading, use `ext-preflight` instead.
 ---
 
 # 扩展发布编排
@@ -52,7 +59,7 @@ Codex 是对等 agent，**也能跑 Playwriter / cdp-browser-control**（对等�
 
 **派工时必须把这些工具约束写进 SPEC**，否则 Codex 可能改用其他工具导致登录态丢失。
 
-派工细则全部以 `flow-dev-task` 的 Codex Delegation Rules 为唯一规范，不在本 skill 重复。
+派工细则全部以 `flow-dev-task` 的 Codex Delegation Hook 为唯一规范，不在本 skill 重复。
 
 ## Execution Default
 

@@ -167,7 +167,7 @@ Step 0 的完成判定不是"看了一眼",而是已经写下:
   - 项目无前端栈 → 落地页用 `vite + pnpm + react`
   - 落地页放在 `website/` 子目录(若用户没指定其他位置)
 
-> **Codex 派工兼容**:`frontend-design` 输出的落地页代码量较大时(≥ 30 行 / ≥ 2 文件),可按项目 Codex 派工政策路由(详见 `flow-dev-task` 的 Codex Delegation Rules)。**设计方向选择和内容契约由 Claude 把关**,具体页面实现可派 Codex,但视觉细节(配色、字体、动画感)的最终验收必须由 Claude 跑过 `agent-browser` 截图验证。
+> **Codex 派工兼容**:`frontend-design` 输出的落地页代码量较大时(≥ 30 行 / ≥ 2 文件),可按项目 Codex 派工政策路由(详见 `flow-dev-task` 的 Codex Delegation Hook)。**设计方向选择和内容契约由 Claude 把关**,具体页面实现可派 Codex,但视觉细节(配色、字体、动画感)的最终验收必须由 Claude 跑过 `agent-browser` 截图验证。
 
 #### 3.4 落地页响应式截图
 
@@ -373,7 +373,7 @@ Codex 是对等 agent，能做本 skill 的所有执行工作。是否派工取�
 - **Step 4 delivery-gate**：独立 gate skill，自己有完整工作流
 - **Step 5 clean-commit**：commit message + scope 选择依赖会话上下文，Codex 拿不到
 
-派工细则（SPEC 模板、prompt 模板、review checklist、错误分类、Red Flags）全部以 `flow-dev-task` 的 "Codex Delegation Rules" 为唯一规范，不在本 skill 重复。
+派工细则（SPEC 模板、prompt 模板、review checklist、错误分类、Red Flags）全部以 `flow-dev-task` 的 "Codex Delegation Hook" 为唯一规范，不在本 skill 重复。
 
 ## Reuse
 

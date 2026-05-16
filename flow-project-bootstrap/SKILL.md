@@ -1,6 +1,6 @@
 ---
 name: flow-project-bootstrap
-description: Use when a user wants a full project kickoff bundle that combines project prep, engineering rules, and design options in one chain. Trigger on requests like "bootstrap this project", "项目初始化", "帮我定 MVP 和规范和设计", "从需求到 kickoff", or any ask that combines MVP scoping, main interaction design, preview requirement decisions, engineering setup, and design direction. Use this orchestrator when the user wants the whole package, not just prep, rules, or design alone.
+description: Use when a user wants the **full multi-stage** project kickoff chain combining project prep, engineering rules, and design options together. Trigger on requests like "bootstrap this project", "项目初始化", "帮我定 MVP 和规范和设计", "从需求到 kickoff", "完整启动新项目", or any ask that combines MVP scoping, main interaction design, preview requirement decisions, engineering setup, and design direction. For only single-stage prep (MVP + tech stack alone), use `project-prep`. For only engineering rules, use `flow-project-rules`. For only design, use `frontend-design` / `huashu-design`.
 ---
 
 # Orchestrating Project Bootstrap
@@ -31,7 +31,7 @@ description: Use when a user wants a full project kickoff bundle that combines p
 
 - 只要开发前准备（MVP / 主技术栈 / preview requirement）—— 直接用 `project-prep`
 - 只要 MVP —— 直接写，不要编排
-- 只要工程规范 —— 直接用 `project-rules-architecture` 或 `flow-project-rules`
+- 只要工程规范 —— 直接用 `flow-project-rules` 或 `flow-project-rules`
 - 只要设计系统建议 —— 直接用 `ui-ux-pro-max`
 - 只要 logo 或 preview 页 —— 直接用 `huashu-design` / `frontend-design`
 - 项目已进入实现中段，只想调整单一维度
@@ -176,13 +176,13 @@ Stage 2 不得自动启动。必须显式问用户：
 - 用户已选定**一套**设计系统（不能"几套混"未拍板）
 - 部署目标已确认
 
-### 2.1 工程规范脚手架（调 `project-rules-architecture`）
+### 2.1 工程规范脚手架（调 `flow-project-rules`）
 
-把已锁定的技术栈 + 业务域 + greenfield/adjacent 状态传给 `project-rules-architecture`。
+把已锁定的技术栈 + 业务域 + greenfield/adjacent 状态传给 `flow-project-rules`。
 
 原样接收产出；不要改述。
 
-> **Codex 派工兼容**：如果 `project-rules-architecture` 产出涉及大量样板配置文件（≥ 30 行 / ≥ 2 文件），可按项目 Codex 派工政策路由（详见 `flow-dev-task` 的 Codex Delegation Rules）。规则文档本身（CONTRIBUTING.md / AGENTS.md 等）由 Claude 自己写，不派 Codex。
+> **Codex 派工兼容**：如果 `flow-project-rules` 产出涉及大量样板配置文件（≥ 30 行 / ≥ 2 文件），可按项目 Codex 派工政策路由（详见 `flow-dev-task` 的 Codex Delegation Hook）。规则文档本身（CONTRIBUTING.md / AGENTS.md 等）由 Claude 自己写，不派 Codex。
 
 ### 2.2 项目 Logo 设计（调 `huashu-design`）
 
@@ -231,7 +231,7 @@ Stage 2 不得自动启动。必须显式问用户：
 
 部署完成后**必须**把真实 URL 回写到总设计文档的"预览页地址"和"返回总设计文档"链接两处。
 
-> **Codex 派工兼容**：workflow YAML、Cloudflare config、其他部署样板文件（≥ 30 行）可按项目 Codex 派工政策路由。"接哪个平台"的决策由 Claude 自己定，"具体写哪些 YAML 字段"可派 Codex。详见 `flow-dev-task` 的 Codex Delegation Rules。
+> **Codex 派工兼容**：workflow YAML、Cloudflare config、其他部署样板文件（≥ 30 行）可按项目 Codex 派工政策路由。"接哪个平台"的决策由 Claude 自己定，"具体写哪些 YAML 字段"可派 Codex。详见 `flow-dev-task` 的 Codex Delegation Hook。
 
 ---
 
@@ -338,7 +338,7 @@ Codex 是对等 agent，能做本 skill 的所有执行工作。是否派工取�
 - **Stage 2.2 logo 设计**：视觉工作走 `huashu-design`，Codex 调它和 Claude 调它没差别
 - **User gate 之间的决策同步**：依赖会话上下文，Codex 起新进程拿不到
 
-派工细则（SPEC 模板、prompt 模板、review checklist、错误分类、Red Flags）**全部以 `flow-dev-task` 的 "Codex Delegation Rules" 为唯一规范**，不在本 skill 重复。
+派工细则（SPEC 模板、prompt 模板、review checklist、错误分类、Red Flags）**全部以 `flow-dev-task` 的 "Codex Delegation Hook" 为唯一规范**，不在本 skill 重复。
 
 ## Reuse
 

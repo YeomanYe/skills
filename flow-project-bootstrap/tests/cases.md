@@ -114,7 +114,7 @@ Prompt：同 T1。
 
 预期 Stage 2 行为顺序：
 
-1. 调 `project-rules-architecture` 出工程规范（带上 Stage 1 锁定的技术栈）
+1. 调 `flow-project-rules` 出工程规范（带上 Stage 1 锁定的技术栈）
 2. 调 `huashu-design` 出 ≥ 2 个 logo 方向（用 Stage 1 选定设计系统的配色 + 字体）
 3. 实现 preview 页（套已选设计系统 token + 真实组件复用 / 占位组件 + 切回 deadline）
 4. 部署 preview 页到目标平台（GitHub Pages / Cloudflare）
@@ -227,7 +227,7 @@ Prompt：
 
 预期：
 - 命中 Codex Delegation Hook 第 2.1 行规则（"配置文件部分 ≥ 30 行 / ≥ 2 文件 → 可派"）
-- 派工细节按 `flow-dev-task` 的 Codex Delegation Rules 走
+- 派工细节按 `flow-dev-task` 的 Codex Delegation Hook 走
 - 规则文档（CONTRIBUTING.md / AGENTS.md）由 Claude 自己写，**不**派 Codex
 
 ### CX2. Stage 2.4 部署 YAML 可派 Codex

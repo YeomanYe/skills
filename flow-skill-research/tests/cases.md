@@ -33,7 +33,7 @@
 
 - 输入: “有没有非常特定内部平台的 skill？”
 - 预期触发: `orchestrating-skill-research`。
-- 预期行为: 若搜索无强匹配，应明确说明未找到可靠候选，并建议直接处理任务或转交 `orchestrating-skill-development` 创建自定义 skill。
+- 预期行为: 若搜索无强匹配，应明确说明未找到可靠候选，并建议直接处理任务或转交 `flow-skill-dev` 创建自定义 skill。
 - 失败信号: 为了给答案而推荐明显无关或低质量候选。
 
 ## Case 6: 误触发保护

@@ -46,7 +46,7 @@
 用户消息：
 > 我想写一个新的 agent skill，帮我搭个骨架。
 
-期望：不触发本 skill，应该进入 orchestrating-skill-development / skill-creator。
+期望：不触发本 skill，应该进入 flow-skill-dev / skill-creator。
 
 ### T8-negative-code-impl
 用户消息：
@@ -114,7 +114,7 @@
 验证：Step 5 对每个识别到的 stack skill，都让该 skill 在自己职责范围内审视规范，不越权也不省略。
 
 ### I3-no-redundant-question
-验证：上游已经在用户消息里给出了 stack / 参考项目路径，本 skill 不应再追问这些已知信息（orchestrating-skill-development 规则）。
+验证：上游已经在用户消息里给出了 stack / 参考项目路径，本 skill 不应再追问这些已知信息（flow-skill-dev 规则）。
 
 ### I4-commit-handoff
 验证：落地完成后可建议（非强制）`clean-commit`；若用户明确说「顺便提交」，本 skill 不替代它自己提交，而是 handoff。

@@ -286,4 +286,4 @@ Codex 是对等 agent，能做本 skill 的所有执行工作。是否派工取�
 - voice 保留要求："保留原句式 / 原术语 / 原作者风格"
 - 验收命令：`grep -r "<old-path>" .`（应无结果）+ 抽样人工 review
 
-派工细则全部以 `flow-dev-task` 的 Codex Delegation Rules 为唯一规范，不在本 skill 重复。
+派工细则全部以 `flow-dev-task` 的 Codex Delegation Hook 为唯一规范，不在本 skill 重复。

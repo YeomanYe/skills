@@ -209,7 +209,7 @@ Prompt：
 预期：
 - feature 链
 - Stage 5 Step 0 检查 `which codex` → 通过
-- Codex Delegation Rules 命中默认派 Codex（≥30 行 + ≥2 文件 + SPEC 可化 + 样板多）
+- Codex Delegation Hook 命中默认派 Codex（≥30 行 + ≥2 文件 + SPEC 可化 + 样板多）
 - 走 Codex 派工 5 步
 - SPEC 用 `references/codex-spec-template.md` 模板
 - prompt 用 `references/codex-delegation-prompt.md` 模板
@@ -225,7 +225,7 @@ Prompt：
 
 预期：
 - feature 链
-- Stage 5 Codex Delegation Rules 命中"必须 Claude 自写"（< 30 行）
+- Stage 5 Codex Delegation Hook 命中"必须 Claude 自写"（< 30 行）
 - 不派 Codex
 - 命中 TDD Whitelist #3（纯视觉改动）→ handoff frontend-design + delivery-gate 截图
 
@@ -237,7 +237,7 @@ Prompt：
 
 预期：
 - feature 链
-- Stage 5 Codex Delegation Rules 命中"必须 Claude 自写"（auth 是高风险）
+- Stage 5 Codex Delegation Hook 命中"必须 Claude 自写"（auth 是高风险）
 - 即使预估改动 > 30 行 也**不**派 Codex
 - 走 superpowers:test-driven-development
 
@@ -250,7 +250,7 @@ Prompt：
 > 按我们刚才说的方案实现一下。
 
 预期：
-- Stage 5 Codex Delegation Rules 命中"任务紧密依赖会话上下文"
+- Stage 5 Codex Delegation Hook 命中"任务紧密依赖会话上下文"
 - 不派 Codex（派了也丢上下文）
 - Claude 自写
 
@@ -271,7 +271,7 @@ Prompt：
 预期：
 - bugfix 链
 - systematic-debugging 不跳，根因确认
-- Stage 5 Codex Delegation Rules：根因已确认 + 多文件 → 默认派 Codex
+- Stage 5 Codex Delegation Hook：根因已确认 + 多文件 → 默认派 Codex
 - SPEC 必须显式要求"先写一个 failing repro test 复现 bug，commit 后再 fix"
 - Claude review 必须验证：
   - `git log` 显示 failing test commit 在 fix commit 之前

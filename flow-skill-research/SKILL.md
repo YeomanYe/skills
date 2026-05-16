@@ -26,7 +26,7 @@ description: Use when researching existing agent skills for a domain, technology
 以下情况通常不要使用本 skill：
 
 - 用户已经明确指定一个 skill，并且只要求立即安装
-- 用户要编写或实质更新 skill，此时应转交 `orchestrating-skill-development`
+- 用户要编写或实质更新 skill，此时应转交 `flow-skill-dev`
 - 用户要直接完成某个业务或代码任务，而不是调研 skill
 
 ## 必要流程
@@ -193,7 +193,7 @@ npx skills add owner/repo -g -y --skill skill-name
 
 如果调研发现没有合适候选，并且用户希望沉淀为能力，应转交：
 
-- `orchestrating-skill-development`
+- `flow-skill-dev`
 
 handoff 内容至少包含：
 
@@ -230,4 +230,4 @@ Codex 是对等 agent，能做本 skill 的所有执行工作（包括跑 `npx s
 - 输出 schema（JSON 或表格）
 - 不要让 Codex 做最终推荐——只做信息收集
 
-派工细则全部以 `flow-dev-task` 的 Codex Delegation Rules 为唯一规范，不在本 skill 重复。
+派工细则全部以 `flow-dev-task` 的 Codex Delegation Hook 为唯一规范，不在本 skill 重复。

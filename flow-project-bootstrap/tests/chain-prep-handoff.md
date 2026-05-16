@@ -1,6 +1,6 @@
 # 链路测试用例
 
-验证 `orchestrating-project-bootstrap -> project-prep -> project-rules-architecture / ui-ux-pro-max` 的衔接是否完整。
+验证 `flow-project-bootstrap -> project-prep -> flow-project-rules / ui-ux-pro-max` 的衔接是否完整。
 
 ## C1. 正常流转
 
@@ -10,7 +10,7 @@
 
 预期：
 
-- 入口应触发 `orchestrating-project-bootstrap`
+- 入口应触发 `flow-project-bootstrap`
 - Step 1 应先进入 `project-prep`
 - prep 产出里应包含 preview decision
 - 后续规则与设计阶段不应重复追问已在 prep 中明确的用户、主流程、技术栈、preview 背景
@@ -29,7 +29,7 @@
 
 预期：
 
-- 不应触发 `orchestrating-project-bootstrap`
+- 不应触发 `flow-project-bootstrap`
 - 应直接路由到 `project-prep`
 
 失败信号：

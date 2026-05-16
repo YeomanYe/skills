@@ -195,8 +195,9 @@ description: Use when creating or substantially updating a skill and you need a 
 - 当前产物仍是半成品，不应覆盖全局版本
 - 用户明确表示本次只做本地迭代，不做全局发布
 
-若调用该 skill，默认只同步到 `~/.config/skillshare/skills/`。
-不要把“同步到编辑器或 agent 自己的全局目录”视为该步骤的职责。
+若调用该 skill，默认只同步到中心源头 `~/Documents/projects/skills/`（推 GitHub `YeomanYe/skills`）。
+注意：`~/.config/skillshare/skills/` 是 skillshare 工具的目标缓存，**不是**中心源头，不应作为同步目标。
+不要把"同步到编辑器或 agent 自己的全局目录"视为该步骤的职责。
 
 若跳过该步骤，必须在最终报告中明确说明原因。
 
@@ -382,4 +383,4 @@ Codex 是对等 agent，能做本 skill 的所有执行工作（包括 writing-s
 
 如果你要**按已有 skill 模板批量克隆 30+ 个变体**（如 lark-* 系列），SPEC 撰写成本可能 < 输出。但这种场景罕见，且即使如此每个克隆出来的 skill 仍需 Claude 逐个调整触发条件——派工净收益不显著。
 
-派工细则全部以 `flow-dev-task` 的 Codex Delegation Rules 为唯一规范，不在本 skill 重复。
+派工细则全部以 `flow-dev-task` 的 Codex Delegation Hook 为唯一规范，不在本 skill 重复。

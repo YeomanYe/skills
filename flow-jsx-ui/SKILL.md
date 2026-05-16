@@ -147,7 +147,7 @@ description: Use when handling JSX UI creation, modification, or refactoring in 
 - 不为了复用而创造万能组件
 - 不绕过前面已经得到的范围和判定结论
 
-> **Codex 派工兼容**：Step 6 是 JSX UI 代码生成密集环节，符合 Codex 派工的核心场景（样板多、SPEC 可化）。可按项目 Codex 派工政策路由（详见 `flow-dev-task` 的 Codex Delegation Rules）。
+> **Codex 派工兼容**：Step 6 是 JSX UI 代码生成密集环节，符合 Codex 派工的核心场景（样板多、SPEC 可化）。可按项目 Codex 派工政策路由（详见 `flow-dev-task` 的 Codex Delegation Hook）。
 >
 > **派 Codex 时的硬约束**：
 > - **`ui-extract` 的范围 + `jsx-ui-audit` 的判定结果必须完整传入 SPEC**，否则 Codex 会绕过前面已得的结论
@@ -233,4 +233,4 @@ Codex 是对等 agent，能做本 skill 的所有执行工作。是否派工取�
 - `jsx-ui-audit` 的前置判定结论（项目规范强度、本地模式 vs 外部参考）
 - 选定的 best-practice skill 名称（如 `vercel-react-best-practices`）和关键约束
 
-**派工细则全部以 `flow-dev-task` 的 Codex Delegation Rules 为唯一规范**，不在本 skill 重复。
+**派工细则全部以 `flow-dev-task` 的 Codex Delegation Hook 为唯一规范**，不在本 skill 重复。

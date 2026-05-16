@@ -95,7 +95,7 @@ Stage 4: Execute Mode 自动判定
   └─ 按 Execute Mode Rules 表选一种，不问
   ↓
 Stage 5: 写代码（先判执行者：Codex 派工 vs Claude 自写）
-  ├─ 按 Codex Delegation Rules 选执行者
+  ├─ 按 Codex Delegation Hook 选执行者
   ├─ Codex 执行：写 SPEC（不在 TDD Whitelist 时 SPEC 强制 RED→GREEN）
   │              → codex exec → Codex JSON 报告 → Claude review
   │              → 通过/返工（≤ 3 次）/ 退回 Claude 自写
@@ -133,7 +133,7 @@ Stage 4: Execute Mode
   └─ 单点修复通常走 direct；复杂场景按 Execute Mode Rules
   ↓
 Stage 5: 写代码（先判执行者：Codex 派工 vs Claude 自写）
-  ├─ 按 Codex Delegation Rules 选执行者
+  ├─ 按 Codex Delegation Hook 选执行者
   ├─ Codex 执行：SPEC 必须包含「先写 failing repro test 复现 bug → 再 fix」要求
   │              → Claude review 时必须确认 repro test 真复现 + fix 真过测
   └─ Claude 自写：**必须先写 failing repro test**（RED 阶段固化 bug 复现）→ 修到 GREEN
@@ -200,7 +200,7 @@ Output: Flow Dev Task Report
 - 无 worktree 且 当前分支 ∈ {main, master, dev} → **跳过**
 - 有 worktree 或 非 default 分支 → 调用 `superpowers:finishing-a-development-branch`
 
-### Codex Delegation Rules
+### Codex Delegation Hook
 
 **前提认知**：Codex 是对等 agent（不是工具），具备本机所有工具：bash / 文件 / 浏览器自动化 / skills。能做 Claude 能做的所有事。
 
