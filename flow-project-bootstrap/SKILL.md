@@ -97,11 +97,33 @@ orchestrator 在 1.1 完成后派 4 路并行，自己进入 idle；4 路返回�
 
 **对非 web 站项目（extension / native / widget / 嵌入式）这是硬性要求**，缺任一项 Stage 1 不算完成。
 
-### 1.4 推荐的设计系统（调 `ui-ux-pro-max`，候选 ≥2 套）
+### 1.4 推荐的设计系统（**派 director-design subagent 编排 variants**，调 `ui-ux-pro-max`）
 
-调用 `ui-ux-pro-max`，请求原话："Return candidates for user selection with tradeoffs. Do NOT implement or commit to a single direction."
+**v4 升级**：派 subagent 调 `director-design` 的 `variants` mode 编排（避免主上下文污染），由 director-design 内部调度 `ui-ux-pro-max` 拿候选 + 自己判断 + 输出方向报告。
 
-每套候选保留：style 名、配色方向、字体组合、布局密度思路、与其他候选的核心 tradeoff。
+**派工 prompt 模板**（subagent 必须**显式调用** director-design skill）：
+
+```
+必须显式调用 `director-design` skill (mode: variants)
+
+输入:
+  - product_type: <Stage 1.1 推断>
+  - objective: <一句话设计目标>
+  - is_ui_task: true
+  - design_tokens_source: <none，新项目尚未建立>
+
+输出: 写到 .agent/jobs/director-design-variants/output.md
+返回 JSON: {mode: variants, verdict, variant_count, output_path, must_fix, errors}
+
+约束:
+  - 每套候选保留 style 名、配色方向、字体组合、布局密度、核心 tradeoff
+  - director-design 内部可调 ui-ux-pro-max 拿权威依据
+  - 不写代码，只出方向 + 取舍
+```
+
+orchestrator 派工后 idle，subagent 返回汇总进 1.6 总设计文档第 6 节。
+
+**降级**：director-design 不可用时退回直调 `ui-ux-pro-max`，记录到 1.6 文档"开放决策"段。
 
 ### 1.5 部署方案选择
 
@@ -234,11 +256,34 @@ orchestrator 在派工后 idle，等待 3 路返回。
 
 输出落到 `assets/logos/` 或项目 `branding/` 目录，并在总设计文档里加引用。
 
-### 2.3 预览页实现（基于已选设计系统）
+### 2.3 预览页实现（**先派 director-design mockup**，再实现）
 
-实现 Stage 1 第 5 节描述的 preview 设计：
+**v4 升级**：实现前先派 subagent 调 `director-design` 的 `mockup` mode 出高保真 mockup（基于 1.4 已选方向 + 项目设计 tokens），再用 mockup 指导实现。
 
-- **Required + 有 UI 组件**：套已选设计系统的 token，复用真实组件 + 适配器层
+**派工 prompt 模板**：
+
+```
+必须显式调用 `director-design` skill (mode: mockup)
+
+输入:
+  - 已选设计方向: <Stage 1.4 用户选定的 variant>
+  - design_tokens_source: <Stage 2.1 落地的 tokens 路径>
+  - is_ui_task: true
+  - preview decision: <Stage 1.3 Required / Not needed / Already satisfied>
+
+输出:
+  - HTML mockup: .agent/jobs/director-design-mockup/preview.html
+  - 4 断点截图: .agent/jobs/director-design-mockup/screenshots/{375,768,1024,1440}.png
+返回 JSON: {mockup_path, screenshots: [], must_fix, errors}
+
+约束:
+  - 不写生产代码（那是本 Step 2.3 后续的事）
+  - 复用项目已选 design system tokens
+```
+
+orchestrator 派工后 idle，subagent 返回 mockup + 截图后再做实现：
+
+- **Required + 有 UI 组件**：套已选设计系统的 token，复用真实组件 + 适配器层，**以 mockup 为视觉验收基准**
 - **Required + 零代码阶段**：用 `huashu-design` / `frontend-design` 出占位 preview 页，标注切回 deadline
 - **Not needed / Already satisfied**：本节产物 = 总设计文档里的引用，不重复造
 

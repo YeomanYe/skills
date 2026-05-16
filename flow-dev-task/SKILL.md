@@ -112,6 +112,12 @@ Stage 5: 写代码（先判执行者：Codex 派工 vs Claude 自写）
   │              → 通过/返工（≤ 3 次）/ 退回 Claude 自写
   └─ Claude 自写：不在 TDD Skip Whitelist → 调用 superpowers:test-driven-development
   ↓
+Stage 5.5: UI Audit（**v4 新增**，仅 UI 改动触发）
+  └─ 检测 git diff 含 .tsx/.vue/.svelte/.css/.scss/.html 等 UI 文件
+     → 派 subagent 调 director-design audit mode
+     → verdict needs-redesign → 回 Stage 5 重写
+     → verdict pass-with-fixes → must-fix 写进 Stage 6 verification 清单
+  ↓
 Stage 6: superpowers:verification-before-completion
   └─ Codex 派工后此 Stage 不可跳，必须 Claude 亲自验
   ↓
@@ -148,6 +154,10 @@ Stage 5: 写代码（先判执行者：Codex 派工 vs Claude 自写）
   ├─ Codex 执行：SPEC 必须包含「先写 failing repro test 复现 bug → 再 fix」要求
   │              → Claude review 时必须确认 repro test 真复现 + fix 真过测
   └─ Claude 自写：**必须先写 failing repro test**（RED 阶段固化 bug 复现）→ 修到 GREEN
+  ↓
+Stage 5.5: UI Audit（**v4 新增**，仅 UI bug 触发）
+  └─ UI 相关 bug（视觉错位 / 交互失效 / 响应式 bug 等）修完后
+     → 派 subagent 调 director-design audit mode 确认修复有效
   ↓
 Stage 6: superpowers:verification-before-completion
   └─ 必须真跑 repro test 验证 fix，不能"我觉得修好了"
@@ -210,6 +220,38 @@ Output: Flow Dev Task Report
 
 - 无 worktree 且 当前分支 ∈ {main, master, dev} → **跳过**
 - 有 worktree 或 非 default 分支 → 调用 `superpowers:finishing-a-development-branch`
+
+### Director-Design Trigger Rule（**v4 新增**，Stage 5.5）
+
+Stage 5 写代码完成后，按以下规则决定是否触发 Stage 5.5 UI Audit：
+
+**触发条件**（任一命中）：
+1. `git diff --name-only main` 含 `.tsx` / `.jsx` / `.vue` / `.svelte` / `.html` / `.css` / `.scss` / `.module.css` 等 UI 文件
+2. 任务 prompt 含明确 UI 词汇："样式 / UI / 页面 / popup / dashboard / button / layout"
+3. flow-dev-task 上游 handoff payload 含 `is_ui_task: true`
+
+**派工方式**（subagent 调 director-design）：
+```
+必须显式调用 `director-design` skill (mode: audit)
+
+输入:
+  - evidence_paths: <截图路径，若无 → playwright 自截>
+  - is_ui_task: true
+  - design_tokens_source: <项目 tokens>
+  - product_type: <推断>
+
+输出: .agent/jobs/director-design-audit/output.md
+返回 JSON: {verdict, aggregate, must_fix, errors}
+
+约束: 不修代码，只出 audit 报告
+```
+
+**回流规则**：
+- verdict = `needs-redesign` → 回 Stage 5 重写（视觉问题严重）
+- verdict = `pass-with-fixes` → must-fix 写进 Stage 6 verification 清单
+- verdict = `pass` → 直接进 Stage 6
+
+**跳过条件**：纯后端 / API / 无 UI 改动任务
 
 ### Codex Delegation Hook
 

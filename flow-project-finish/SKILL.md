@@ -174,15 +174,34 @@ orchestrator 在派工后 idle，等待 4 路返回；期间不主动 poll，sub
 - 项目调性(从 README/品牌色推断,作为给 huashu-design 的输入)
 - 是否对外发布(决定是否需要 SEO meta / OG image)
 
-#### 3.2 设计方向 —— huashu-design
+#### 3.2 设计方向 —— **派 director-design subagent 编排 variants**
 
-调用 `huashu-design`,传入收集到的输入,框架原话使用:
+**v4 升级**：派 subagent 调 `director-design` 的 `variants` mode 编排（内部调度 huashu-design 出 3 路并行，比直接调更专业 + 不污染主上下文）。
 
-> **"Return 3 differentiated design directions for a product landing page with the constraints below. Do NOT implement; this is direction selection only."**
+**派工 prompt 模板**（subagent **必须显式调用** director-design skill）：
 
-要求 huashu-design 返回 3 个差异化方向,每个含:风格名 / 配色 / 字体 / 关键视觉 / 与其他方向的 tradeoff。
+```
+必须显式调用 `director-design` skill (mode: variants)
 
-把全部方向原样保留,让用户挑选。**不得单方面替用户选**。
+输入:
+  - product_type: landing-page
+  - objective: <项目名> 的产品落地页
+  - is_ui_task: true
+  - design_tokens_source: <Step 0 项目品牌色路径，若无填 none>
+  - acceptance_hints: 3 个差异化方向，含风格名/配色/字体/关键视觉/tradeoff
+
+输出: 写到 .agent/jobs/director-design-finish-variants/output.md
+返回 JSON: {mode: variants, verdict, variant_count: 3, output_path, must_fix, errors}
+
+约束:
+  - 不写代码（实现是 3.3 的事）
+  - 每方向必须真正差异化（布局/信息层级/风格至少 1 维度不同）
+  - 不单方面替用户选（**完整 3 方向交给 orchestrator 让用户挑**）
+```
+
+orchestrator 派工后 idle，3 方向返回汇总后让用户挑选。**不得单方面替用户选**。
+
+**降级**：director-design 不可用时退回直调 `huashu-design` + 框架原话："Return 3 differentiated design directions for a product landing page with the constraints below. Do NOT implement; this is direction selection only."
 
 #### 3.3 落地页实现 —— frontend-design
 
@@ -224,11 +243,41 @@ orchestrator 在派工后 idle，4 路返回后汇总成证据包传给 Step 4 d
 
 ### Step 4 —— Delivery Gate(交付审查)
 
+#### Step 4.0（**v4 新增**）—— Director-Design 设计审计（UI 任务前置闸门）
+
+进 delivery-gate 之前，**如果有落地页 / UI 改动**，先派 subagent 调 `director-design` 的 `audit` mode 做设计专项审：
+
+**派工 prompt 模板**：
+
+```
+必须显式调用 `director-design` skill (mode: audit)
+
+输入:
+  - evidence_paths: <Step 3.4 4 断点截图路径>
+  - product_type: landing-page
+  - is_ui_task: true
+  - design_tokens_source: <项目品牌 tokens>
+
+输出: 写到 .agent/jobs/director-design-finish-audit/output.md
+返回 JSON: {mode: audit, verdict, aggregate, must_fix, should_fix, errors}
+
+约束: 不修代码，只出 9 维度报告 + 修正建议
+```
+
+**回流规则**：
+- director-design verdict = `pass` / `pass-with-fixes` → 进 Step 4 delivery-gate
+- verdict = `needs-redesign` / `needs-direction` → 回 Step 3.3 重做落地页（带 must-fix 清单）
+
+非 UI 任务（无落地页改动）跳过 Step 4.0。
+
+#### Step 4.1 —— Delivery Gate(交付审查)
+
 Step 1~3 的实际产物全部就位后,调用 `delivery-gate`,把以下证据一次性递交:
 
 - Step 1 的文档同步明细 + 每处 patch 对应的代码位置
 - Step 2 的 README 状态 + 命令实测来源
 - Step 3 的落地页代码路径 + 3.4 的响应式截图(或缺口声明)
+- **Step 4.0 director-design audit 报告**（如有）
 - Step 0 的项目快照与 git state
 
 `delivery-gate` 的判定回流路由:
