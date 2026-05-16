@@ -66,7 +66,7 @@ Step 0 的完成判定不是"看了一眼",而是已经写下:
 
 ### Step 1 —— Code → Docs Sync（**并行执行**，4 路 subagent）
 
-**并行编排**：4 类文档同步彼此独立（各写不同文件，仅共享 Step 0 快照只读），按 `_shared/parallelization-template.md` 派 4 个 subagent 并行：
+**并行编排**：4 类文档同步彼此独立（各写不同文件，仅共享 Step 0 快照只读），按 `references/parallelization-template.md` 派 4 个 subagent 并行：
 
 | Slot | Subagent 任务 | 写入目标 | 必须调用的 skill |
 |---|---|---|---|
@@ -202,7 +202,7 @@ orchestrator 在派工后 idle，等待 4 路返回；期间不主动 poll，sub
 
 #### 3.4 落地页响应式截图（**并行执行**，4 路 subagent）
 
-**并行编排**：4 断点截图完全独立（写不同文件名），按 `_shared/parallelization-template.md` 派 4 个 subagent 并行：
+**并行编排**：4 断点截图完全独立（写不同文件名），按 `references/parallelization-template.md` 派 4 个 subagent 并行：
 
 | Slot | 断点 | 输出路径 | 必须调用的 skill |
 |---|---|---|---|

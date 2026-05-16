@@ -56,7 +56,7 @@ Step 6 之后必须停下。不允许「估计用户会同意」就直接落地�
 
 ## Parallelization Plan
 
-Step 2-4 三路探测彼此独立（仅共享项目根路径只读），按 `_shared/parallelization-template.md` 在一个 message 多个 Bash 调用真并行：
+Step 2-4 三路探测彼此独立（仅共享项目根路径只读），按 `references/parallelization-template.md` 在一个 message 多个 Bash 调用真并行：
 
 | Slot | 任务 | 形态 |
 |---|---|---|

@@ -102,7 +102,7 @@ Step 3 前不得进入 Step 4。不允许「看起来都 OK」就自己补全再
 
 ### Step 2 并行编排
 
-按 `_shared/parallelization-template.md`：
+按 `references/parallelization-template.md`：
 
 | Slot | 任务 | 并行性 | 必须调用的 skill |
 |---|---|---|---|

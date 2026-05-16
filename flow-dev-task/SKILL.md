@@ -55,7 +55,7 @@ description: >
 
 进入任何提问之前，**必须先自动提取**下列信息。能推断的绝不问。
 
-**并行执行**：以下 7 项探测全部独立只读 Bash，按 `_shared/parallelization-template.md` 在**一个 message 里多个 Bash 调用**真并行（不需要派 subagent，Claude Code Bash 工具天然支持）：
+**并行执行**：以下 7 项探测全部独立只读 Bash，按 `references/parallelization-template.md` 在**一个 message 里多个 Bash 调用**真并行（不需要派 subagent，Claude Code Bash 工具天然支持）：
 
 | 探测 | 命令 | 用途 |
 |---|---|---|

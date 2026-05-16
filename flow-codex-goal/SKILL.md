@@ -828,7 +828,7 @@ ROI 判断：
 
 ### Upstream Handoff Payload（来自 flow-dev-task）
 
-**字段规范遵循 `_shared/handoff-payload-template.md`**（所有 flow-* skill 共享同一套字段集）。
+**字段规范遵循 `references/handoff-payload-template.md`**（所有 flow-* skill 共享同一套字段集）。
 
 `flow-dev-task` Stage 5 判定"任务过长"切到本 skill 时，**必须**透传以下字段：
 

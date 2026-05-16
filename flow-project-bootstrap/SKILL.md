@@ -47,7 +47,7 @@ description: Use when a user wants the **full multi-stage** project kickoff chai
 **执行顺序**：
 1. **串行**：`1.1` project-prep（必须先完成，输出 MVP / 技术栈 / Preview decision）
 2. **并行 1**（4 路）：`1.2` ASCII 流程图 + `1.3` preview 设计 + `1.4` 设计候选 + `1.5` 部署探测
-   - 派 subagent / 多 Bash 调用，按 `_shared/parallelization-template.md`
+   - 派 subagent / 多 Bash 调用，按 `references/parallelization-template.md`
    - 必须显式调用：`1.4` → `ui-ux-pro-max` skill
    - `1.5` 部署探测纯 Bash（`gh repo view` / `git remote -v`），不派 subagent
 3. **串行**：`1.6` 总设计文档拼装（orchestrator 自己做 reduce，把 5 路产出按 9 节顺序合并）
@@ -194,7 +194,7 @@ Stage 2 不得自动启动。必须显式问用户：
 
 ### Stage 2 并行编排
 
-**2.1 / 2.2 / 2.3 三路完全独立**（写不同目录，仅共享 Stage 1 总设计文档只读），按 `_shared/parallelization-template.md` 派 3 个 subagent 并行：
+**2.1 / 2.2 / 2.3 三路完全独立**（写不同目录，仅共享 Stage 1 总设计文档只读），按 `references/parallelization-template.md` 派 3 个 subagent 并行：
 
 | Slot | Subagent 任务 | 写入目录 | 必须调用的 skill |
 |---|---|---|---|
