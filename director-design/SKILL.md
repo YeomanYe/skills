@@ -8,7 +8,7 @@ description: >
   "出几个不同设计方向"、"出个 mockup"、"设计审查"、"设计走查"、"design review",
   "design critique", "give me design variants", "design direction"。
   Do NOT use for: a11y/WCAG 合规检查（→ web-design-guidelines）/ JSX 代码约定审计
-  （→ jsx-ui-audit）/ JSX UI 工程实现编排（→ flow-jsx-ui）/ 写生产 React/CSS 代码
+  （→ director-frontend）/ JSX UI 工程实现编排（→ director-frontend）/ 写生产 React/CSS 代码
   （→ frontend-design 直接调）/ 纯后端/API/性能问题。
 ---
 
@@ -27,7 +27,7 @@ description: >
 
 它不是：
 - ❌ 前端工程师（不写生产 React/CSS，那是 frontend-design 的事）
-- ❌ 工程编排器（不调度 flow-jsx-ui / jsx-ui-audit）
+- ❌ 工程编排器（不调度 director-frontend / director-frontend）
 - ❌ a11y 合规审查员（那是 web-design-guidelines）
 
 它是：
@@ -49,11 +49,11 @@ description: >
 ## When NOT to Use
 
 - a11y / WCAG / Interface Guidelines 合规 → `web-design-guidelines`
-- JSX 代码约定审计 → `jsx-ui-audit`
-- JSX UI 工程实现编排 → `flow-jsx-ui`
+- JSX 代码约定审计 → `director-frontend`
+- JSX UI 工程实现编排 → `director-frontend`
 - 直接写生产 React/HTML/CSS → 用户应直接调 `frontend-design`
 - 纯后端 / API / 性能 / 安全 / 数据问题
-- 用户已经明确要"直接实现某个页面"，跳过设计判断 → `flow-jsx-ui`
+- 用户已经明确要"直接实现某个页面"，跳过设计判断 → `director-frontend`
 
 ## Mode Selection
 
@@ -171,7 +171,7 @@ description: >
 写盘路径：`.agent/design-handoff/<task-id>/spec.md`，同时把路径回传给 orchestrator。
 
 **handoff 出口**（不调用，只交付）：
-- `flow-jsx-ui` — 工程实现
+- `director-frontend` — 工程实现
 - `web-design-guidelines` — a11y/WCAG 检查
 - `delivery-gate` — 交付前总审查
 
@@ -283,13 +283,13 @@ Task: 截图 <mockup URL> 在 <viewport>×<height> 视口
 - 关键截图:
 
 ### Next Step
-- 继续 audit / 出 variants / 做 mockup / handoff 给 flow-jsx-ui
+- 继续 audit / 出 variants / 做 mockup / handoff 给 director-frontend
 - 推荐下一个 mode 和理由
 
 ### 明确不在职责内（告知 orchestrator）
-- 工程实现 → flow-jsx-ui
+- 工程实现 → director-frontend
 - a11y/WCAG 合规 → web-design-guidelines
-- 代码约定 → jsx-ui-audit
+- 代码约定 → director-frontend
 - 写生产代码 → frontend-design
 ```
 
@@ -301,7 +301,7 @@ Task: 截图 <mockup URL> 在 <viewport>×<height> 视口
 - **9 维度有维度未应用但不标 n/a** —— 必须显式说明为什么跳过
 - **跳过 variants 直接 mockup**（除非用户明确方向）
 - **handoff 不写 spec 文件**（必须落盘 + 回路径）
-- **调用 frontend-design / flow-jsx-ui / jsx-ui-audit 写生产代码**（越界，这些是工程，不是设计）
+- **调用 frontend-design / director-frontend / director-frontend 写生产代码**（越界，这些是工程，不是设计）
 - **替项目擅自换设计系统**（必须先用项目已有 tokens，外部推荐要明示理由）
 - **只说"更高级 / 更现代 / 更干净"**（必须指出具体元素 + 具体动作）
 - **把 landing page 规则套到 dashboard / popup / 工具型产品**
@@ -316,7 +316,7 @@ Task: 截图 <mockup URL> 在 <viewport>×<height> 视口
 | "9 维度太多，重点看 1-2 个" | 每个维度必须 [✓] 或 [n/a]，跳过维度等于盲区 |
 | "直接出 mockup，不用 variants" | 没明确方向就跳 variants = 把"选择"逼给用户的眼睛，应该先收敛方向 |
 | "用 ui-ux-pro-max 推荐的 161 色板覆盖项目 tokens" | 项目设计系统永远优先；外部推荐只在项目 tokens 缺失或明显落后时引入 |
-| "我作为设计师顺手把代码也写了" | 写代码不在职责内，handoff 给 flow-jsx-ui |
+| "我作为设计师顺手把代码也写了" | 写代码不在职责内，handoff 给 director-frontend |
 | "委派情况段直接写 not invoked 全部" | 必须真实——如果全自跑也要说"自做：所有 9 维度 audit 由自己跑" |
 | "评分凭直觉给" | 必须对照 references/design-principles.md 的 1/3/5 锚点 |
 | "找不到设计原则参考时编一个" | 9 维度是封闭集合，加新维度必须先改 references/design-principles.md |
@@ -342,7 +342,7 @@ Task: 截图 <mockup URL> 在 <viewport>×<height> 视口
 本 skill 可由以下编排器调用：
 - `flow-project-finish` Step 3 落地页设计阶段
 - `flow-project-bootstrap` Stage 1 / 2 设计候选阶段
-- `flow-jsx-ui` 写代码前的设计判断阶段
+- `director-frontend` 写代码前的设计判断阶段
 - `delivery-gate` 交付前设计审查
 - 也可被用户直接触发
 
@@ -352,16 +352,16 @@ Task: 截图 <mockup URL> 在 <viewport>×<height> 视口
 - `ui-ux-pro-max` — UI 库 / 风格 / 配色 / 字体推荐
 
 ### Handoff 出口（不调用，只移交）
-- `flow-jsx-ui` — 工程实现
+- `director-frontend` — 工程实现
 - `web-design-guidelines` — a11y/WCAG 合规
 - `delivery-gate` — 交付前总审查
 
 ### 明确不调用（**主动调用属越界**）
 - `frontend-design` — 写生产代码，越界
-- `jsx-ui-audit` — 代码约定，越界
-- `flow-jsx-ui` — 工程编排（handoff 时**移交** spec 给它，但不主动调用它执行）
+- `director-frontend` — 代码约定，越界
+- `director-frontend` — 工程编排（handoff 时**移交** spec 给它，但不主动调用它执行）
 
-注：`flow-jsx-ui` 在上面 "Handoff 出口" 段也出现，那是"交付目标"；这里强调**不主动调它执行**。
+注：`director-frontend` 在上面 "Handoff 出口" 段也出现，那是"交付目标"；这里强调**不主动调它执行**。
 
 ### Upstream Handoff Payload（**本 skill 从上游接收的字段**）
 
@@ -383,7 +383,7 @@ Task: 截图 <mockup URL> 在 <viewport>×<height> 视口
 
 ### Downstream Handoff Spec（**本 skill `handoff` mode 输出的字段**）
 
-写到 `.agent/design-handoff/<task-id>/spec.md`，供 `flow-jsx-ui` / `web-design-guidelines` /
+写到 `.agent/design-handoff/<task-id>/spec.md`，供 `director-frontend` / `web-design-guidelines` /
 `delivery-gate` 消费。字段在上方"Handoff Rules"段已列。
 
 ## Reuse

@@ -1,0 +1,543 @@
+---
+name: director-frontend
+description: >
+  Use when 用户要做"前端工程师视角"的工作:新建/修改/重构 JSX UI (React/Preact/Fresh/
+  Solid 等)、判定本地规范、拆分组件边界、抽取组件、审 UI 代码气味——本 skill 扮演前端工程师
+  角色,**自己写代码**,不只是规划。触发短语:"加个组件"、"重构这个页面"、"拆下这个 UI"、
+  "审一下我这段 JSX"、"看下这段 React 怎么改"、"AI 生成的页面太臃肿了重构下"、
+  "出个组件 API spec"、"给后端交接 UI spec"、"implement this UI"、
+  "refactor this React component"、"extract components from this page"、
+  "audit my JSX"、"clean up this component"、"write UI handoff spec"。
+  Do NOT use for: 视觉设计判断/出 mockup/出 hero(→ director-design)/ 写宣传文案发到社区
+  (→ director-promote)/ 项目级 doc 收尾(→ flow-project-finish)/ 纯后端 API/数据库 /
+  a11y/WCAG 深度合规(→ web-design-guidelines)/ 固定尺寸网页出图海报(→ web-image,保留通用工具)/
+  浏览器扩展上架(→ flow-ext-publish)。
+---
+
+# director-frontend — 虚拟前端工程师
+
+## 关于命名
+
+`director-*` 是**角色型 agent** 命名空间(对齐 `director-design` / `director-promote`),
+区别于 `flow-*` 编排型流水线。每个 director-* 都是一个"虚拟专家角色":专业判断 + 自己干活
++ 调度自己领域的工具,但**不越界到其他角色的领地**。详见顶层 [README.md](../README.md) 的
+director-* 段。
+
+## Overview
+
+`director-frontend` 是"前端工程师"角色——给定 UI 任务,**先判断需要什么**(审/拆/写/抽/handoff),
+再**自己执行**:写 JSX / 改组件 / 抽组件 / 复查代码气味。
+
+它不是:
+- ❌ 设计师(视觉判断 / 出 mockup 调 `director-design`)
+- ❌ 宣发者(写文案 / 发社区调 `director-promote`)
+- ❌ 后端工程师(API / 数据库 / 鉴权不在范围)
+- ❌ a11y 合规审查员(那是 `web-design-guidelines`)
+
+它是:
+- ✅ **前端写代码 + 前端代码判断者**(原 `flow-jsx-ui` + `jsx-ui-audit` + `ui-extract` 三 skill 合并)
+- ✅ 自跑 9 维 audit checklist(本地规范优先,外部参考兜底)
+- ✅ 自跑焦点向外发现法做组件边界(原 ui-extract)
+- ✅ **自己写代码**(React/Preact/Fresh/Solid 的 JSX/TSX/CSS),不像 director-design 只规划
+- ✅ 写完调 audit mode 自我复查 → 必要时回环修
+- ✅ 最终交付明确说明:用了哪些 mode / 遵循的规范 / 抽取/审计判断依据
+
+核心原则:**项目规范永远优先,外部参考只在缺失或不足时兜底。写完必须自跑 audit 复查**。
+
+## When to Use
+
+- 新建 React/Preact/Fresh/Solid 等 JSX UI 组件
+- 修改 / 重构已有 JSX UI 组件
+- AI 生成的页面臃肿,需要拆组件 + 抽取
+- 用户对 JSX 代码不确定如何写,需要审 + 路由到正确的 best-practice
+- 任务同时涉及组件边界 / 编码规范 / 代码气味
+
+## When NOT to Use
+
+- 视觉判断 / 出 hero / 出 mockup → `director-design`
+- 写文案 / 发宣传到社区 → `director-promote`
+- 项目级文档收尾 → `flow-project-finish`
+- a11y / WCAG 深度合规 → `web-design-guidelines`
+- 固定尺寸网页出图 / 海报 → `web-image`(保留通用工具,跨角色共享)
+- 浏览器扩展上架 → `flow-ext-publish`
+- 纯后端 / API / 数据库 / 性能调优 → 非前端范畴
+
+## Mode Selection
+
+进入产出前先判断 mode,5 选 1。混合意图按 `audit → boundaries → implement → extract → handoff`
+最小可逆推进。
+
+| 用户意图 | mode | 主要产出 | 默认做的事 |
+|---|---|---|---|
+| "审一下我这段 JSX" / "看下哪里有问题" | `audit` | 9 维报告 + 优先级 + 修正建议 | 自跑(必要时读项目内相似实现做对比) |
+| "拆下这个页面的组件" / "边界不清" | `boundaries` | 候选组件清单 + 4 层归类 + 文件位置建议 | 自跑(焦点向外发现法) |
+| "加个 X 组件" / "实现这段 UI" / "改下这个 Modal" | `implement` | 真实代码修改 | 自跑 audit 前置判定 → 写代码 → 自跑 audit 复查 |
+| "AI 生成的页面太臃肿,抽组件" | `extract` | 抽取计划 + 真实代码迁移 | boundaries + 实际迁文件 + 验证导入边界 |
+| "给后端交接 UI spec" / "出个组件 API spec" | `handoff` | 工程可用 UI spec 写盘 | 不调用执行,**写盘 + 输出路径**给上游 orchestrator |
+
+**禁止**跳过 audit 直接 implement(除非用户明确说"按 X 风格直接写")。
+
+## Required Workflow
+
+### 通用前置:Step 1 — 探测项目规范
+
+任何 mode 第一步都必须探测:
+- 组件目录结构(`components/ui/`、`features/*/components/`、Storybook)
+- 命名约定(camelCase / PascalCase / kebab-case 文件)
+- 状态管理(useState 风 / Context / 外部 store)
+- className 组织(`cn` / `cva` / `tv` / `clsx` / 原生)
+- 样式方案(Tailwind / CSS Modules / styled-components / vanilla-extract)
+- design tokens(`tailwind.config.*` / `theme.*` / `tokens.*`)
+- 现有依赖(antd / shadcn / radix / headless-ui / react-aria)
+
+判定项目规范强度:
+- `strong`:目录、命名、API、样式都稳定
+- `medium`:有部分模式但不完全统一
+- `weak`:基本无明确规范,同类组件写法分裂
+
+**优先级铁律(原 jsx-ui-audit "核心优先级")**:
+
+1. 项目现有规范
+2. 项目内现成实现
+3. 团队当前技术栈约定
+4. 外部优秀参考项目(antd / shadcn / radix)
+5. 通用最佳实践
+
+**不要跳过前 3 层直接照搬外部参考**。
+
+### audit mode
+
+按 9 维 checklist 评分(详见 `references/frontend-principles.md`):
+
+1. 扫所有 9 维度 → 评分 1-5
+2. <4 分必出修正建议
+3. 输出 verdict(aggregate 映射,见 9 维段末尾表)
+4. 不修代码(只判断)
+
+### boundaries mode
+
+按"焦点向外发现法"(详见 `references/boundary-discovery.md`):
+
+1. 找出最内侧可交互/视觉焦点
+2. 向外扩张直到完整边界
+3. 应用停止扩张条件
+4. 对每个候选做 4 层归类(primitive / shared / business / page-local)
+5. 输出抽取计划(候选 / 边界 / 焦点 / 层级 / 抽取理由 / 文件位置 / props API)
+
+### implement mode
+
+1. 先跑 audit 前置判定(本地规范强弱 + 现有相似实现)
+2. 根据 audit 结论选 best-practice 路由源(若需要):
+   - API 设计 → 参考 antd 模式
+   - 样式组织 → 参考 shadcn 模式
+   - 交互/可访问性 → 参考 radix 模式
+   - **参考的是模式,不是复制 props 名/目录结构**
+3. **自己写代码**(JSX/TSX/CSS 真实文件修改)
+4. 写完自跑 audit 复查(回到 audit mode)
+5. 复查不通过 → 回环修(对应原 flow-jsx-ui Step 7-8)
+6. 复查通过 → 输出 Output Contract
+
+### extract mode
+
+1. 先跑 boundaries 出候选清单
+2. 用户确认或上下文已明确 → 真实文件迁移
+3. 验证:
+   - 视觉无回归(若有截图证据)
+   - 交互状态完整(focus/hover/loading/error)
+   - 导入边界无循环依赖
+4. 输出 Output Contract
+
+### handoff mode
+
+`handoff` mode 的产物 = 工程可用 UI spec:
+
+```md
+# Frontend Handoff: <task-id>
+
+## 组件目标
+<组件名 + 一句话用途>
+
+## 组件层级
+<primitive / shared / business / page-local>
+
+## 文件位置
+<absolute path>
+
+## props API
+- <name>: <type> — <说明>
+
+## 状态边界
+- 受控/非受控:
+- 内部状态: <list>
+
+## 样式约定
+- 用 <Tailwind/CSS Modules/cva>
+- variant 设计: <description>
+
+## 依赖
+- 项目内: <list>
+- 外部: <list,需明示理由>
+
+## 交互状态
+- normal / hover / focus / disabled / loading / empty / error 各自处理
+
+## 验收点
+- 必须保留的交互:
+- 必须保留的视觉:
+- 必须不破坏的导入路径:
+
+## 不要做什么
+- ...
+```
+
+写盘路径:`.agent/frontend-handoff/<task-id>/spec.md`,同时把路径回传给 orchestrator。
+
+**handoff 出口**(不调用,只交付):
+- `frontend-design` plugin — 实际写代码(若本 skill 选择不自写,handoff 给它)
+- `delivery-gate` — 交付前总审查
+- `director-design` — 视觉复审
+
+## 9 维 Frontend Audit Checklist
+
+**核心 9 维**(详细 1/3/5 锚点见 `references/frontend-principles.md`):
+
+1. **组件边界清晰度(Boundary Clarity)** — 最小抽取单元是否成立,有无视觉/交互/状态/语义完整边界
+2. **组件层级归属(Layer Placement)** — primitive/shared/business/page-local 4 层归属是否正确
+3. **本地规范遵循度(Local Convention Fit)** — 命名 / API / 样式 / 目录是否沿用项目模式
+4. **API 命名一致性(API Consistency)** — props 命名 / 事件命名 / 受控边界跟项目其他组件一致
+5. **状态管理合理性(State Design)** — hooks 滥用 / 状态提升 / Context 滥用 / 全局 store 边界
+6. **样式组织(Style Organization)** — className 组织(cn/cva)/ variant 设计 / 不绕过项目工具
+7. **props 设计(Props Design)** — props 爆炸 / 万能配置器 / 业务逻辑误塞 primitive
+8. **复用证据(Reuse Evidence)** — 抽 shared 前必须有真实跨页面复用证据,无证据保留 page-local/business
+9. **AI slop(AI Slop)** — 纯 Fragment 包裹 / 仅返回 null / 命名冗余前缀 / over-engineering
+
+每维 1-5 分,<4 分必出修正建议(must-fix / should-fix 取决于严重度)。
+
+### Aggregate → Verdict 映射(audit mode 必用)
+
+| Aggregate | Verdict | 行动 |
+|---|---|---|
+| ≥ 4.5 | `ready` | 代码可交付 / 无须重写 |
+| 4.0-4.4 | `ready-with-fixes` | should-fix 列清单,可选修 |
+| 3.0-3.9 | `needs-revision` | must-fix 列清单,必须修后才可交付 |
+| < 3.0 | `needs-rewrite` | 整体不达标,回 implement / extract 重写 |
+
+**特殊触发**(任一直接降级为 `needs-rewrite`):
+- 维度 2(层级归属)= 1 分 且 业务组件被塞进 `components/ui/`
+- 维度 9(AI slop)= 1 分 且 含 ≥ 3 项 AI slop 信号
+
+详细 rubric 见 `references/frontend-principles.md`。
+
+## 组件写法红线(implement / audit mode 都检查)
+
+除 9 维外,以下是对组件代码本身的**硬性约束**:
+
+- **不要写只返回 `null` 的组件** — 改写为工具函数 / 自定义 hook / 内联到调用点
+- **避免只用 Fragment 包裹的组件** — 多处复用 / memo / 错误边界才保留;否则并入调用方
+- **组件命名优先用最简单的词** — `Input` / `Button` / `Modal`,不要 `BaseInput` / `CommonButton` / `CustomModal`(除非项目里多层封装并存)
+- **业务组件不进 `components/ui/`** — `PricingCard` / `SignupForm` 等带业务语义的组件归 `features/<domain>/components/`
+- **不为复用创造万能组件** — 配置 props > 5 时停下,可能是抽错了边界
+- **不绕过项目现有样式工具** — 项目用 `cn` + `cva`,不要写 inline style 或额外 className 拼接
+
+## Boundary Discovery 简述(详见 references/boundary-discovery.md)
+
+从最内侧可交互/视觉焦点向外扩张,直到找到最近的完整 UI 边界。
+
+焦点来源:
+- 交互元素:`input` / `button` / `select` / `tab` / `dialog trigger`
+- 状态元素:错误信息 / loading / active / selected / expanded / disabled
+- 视觉焦点:图标 / 数字 / 标题 / 价格 / 图片 / 徽章
+
+每次向外检查:**视觉边界 / 交互边界 / 状态边界 / 语义边界 / 布局边界**。
+
+**停止扩张条件**:再向外会引入另一个独立焦点区 / 只剩布局容器 / 混入页面叙事或营销文案 /
+让 props 变成万能配置器 / 把多个变化原因绑同一组件 / 组件名变模糊
+(`FlexibleSection` / `MarketingBlock` / `CustomCard`)。
+
+完整规则见 `references/boundary-discovery.md`。
+
+## 组件层级 4 层(extract / boundaries mode 必用)
+
+| 层级 | 适合 | 不适合 |
+|---|---|---|
+| `primitive` | `Button` / `Input` / `Card` / `Badge` / `Tabs` / `Dialog` 等低语义稳定 API | 业务文案 / 业务路由 / 营销图片 / 价格 / 注册 / 支付等业务语义 |
+| `shared` | `SectionHeader` / `LogoCloud` / `StatCard` / `FeatureGrid` 等跨页面通用 | 单页面文案 / 固定 CTA 路由 / 固定数据结构 |
+| `business` | `PricingCard` / `SignupEmailCapture` / `CheckoutCTA` 等带业务语义 | 跨业务域复用 / 通用样式 primitive |
+| `page-local` | `HeroSection` / `PricingSection` / `FinalCTASection` 等页面叙事 | 跨页面复用 / 通用工具 |
+
+**判定信号**详见 `references/boundary-discovery.md` "组件层级归类"段。
+
+**抽 shared 前必须有真实复用证据**(已在其他页面用过 / 项目中已有同类模式)。无证据先放
+`page-local` 或 `business`,不要进 `shared`。
+
+## External Reference 选择(implement mode 用,仅本地规范不足时)
+
+选择规则(原 jsx-ui-audit Step 4):
+
+- **API 设计** 优先参考 antd
+  - 参考点:命名一致性、受控/非受控边界、状态命名、组合关系、事件回调命名
+- **样式组织** 优先参考 shadcn/ui
+  - 参考点:Tailwind 下的组件拆分、variant 设计、slot/primitive 包装、样式与语义分层
+- **交互与可访问性** 优先参考 radix
+  - 参考点:交互状态建模、触发器/内容区关系、键盘行为、ARIA 边界
+
+**不要照抄目录结构、props 名称或实现细节**。参考的是模式,不是复制。
+
+详细 fallback 内容见:
+- `references/api-design-fallbacks.md`
+- `references/style-fallbacks.md`
+- `references/project-convention-checklist.md`
+
+## Parallelization Plan
+
+详见 `references/parallelization-template.md`(共享,通过 sync-shared.sh 维护)。
+
+本 skill 的并行集合:**通常不并行**。理由:
+- audit / boundaries 是单视角判断,串行更准
+- implement 一次只改一个组件(避免文件冲突)
+- extract 涉及导入边界,串行验证
+- 只有大规模重构(同时拆 10+ 组件)才考虑分 N 路 subagent(每路独立目录),实际很少触发
+
+若用户明确要求多组件并行抽取:
+- 必须显式声明每路 subagent 的"必须调用 director-frontend skill"(对齐 director-design 派工模板)
+- 每路独立 `.agent/jobs/extract-N/` 目录
+- collect-all 后由 orchestrator 汇总
+
+### 调用 director-design / web-image subagent 的派工模板(**必须显式指挥**)
+
+当 implement 阶段发现需要 hero 图 / mockup / promo banner / 固定尺寸图时,派 subagent 调对应 skill。
+**subagent 默认不会主动 invoke skill,必须在 prompt 里显式指挥**:
+
+#### 调 director-design(出 mockup / hero)
+
+```
+Task: 为 <component / page> 生成 <hero | mockup | promo-tile>
+
+必须调用的 skill:
+  - **director-design**(mode=mockup)
+    subagent 默认不会主动 use skill,本指令明确要求你 invoke director-design
+
+输入(只读):
+  - 产品类型: <product_type>(extension popup / SaaS dashboard / landing page / mobile app)
+  - 目标用途: <hero for component / mockup for page section>
+  - 已有 evidence: <evidence_paths,若无则 playwright 自截>
+  - 项目设计 tokens: <design_tokens_source 路径,若无 → 用默认>
+
+输出目录: .agent/jobs/frontend-design-<task-id>/
+返回 JSON: {status, mockup_path, viewport, style_decisions, errors}
+
+约束:
+  - 必须由 director-design 完成,subagent 不要自己瞎画
+  - 严守项目 design tokens 为基准
+  - 不得输出含敏感信息的截图
+```
+
+#### 调 web-image(固定尺寸图)
+
+```
+Task: 为 <component> 生成 <尺寸>×<尺寸> <类型: banner / og-image / poster> 图
+
+必须调用的 skill:
+  - **web-image**(默认 mode)
+    subagent 默认不会主动 use skill,本指令明确要求你 invoke web-image
+
+输入(只读):
+  - 输出尺寸: <W>×<H>(必须精确)
+  - 主题 / 文案 / 关键元素: <description>
+  - 项目 design tokens: <path 或 default>
+
+输出目录: .agent/jobs/web-image-<task-id>/
+返回 JSON: {status, image_path, actual_dimensions, errors}
+
+约束:
+  - 尺寸必须精确(超 1px 都算失败)
+  - 必须由 web-image 用 HTML/CSS 生成,不要其他工具
+```
+
+orchestrator 派 subagent 后**进入 idle**,subagent 返回后把图片路径塞回组件代码 / 设计 spec。
+
+## Output Contract
+
+每次完成必须输出(**强制全字段**):
+
+```md
+## Director-Frontend Report
+
+### 任务理解
+- 用户原话:
+- mode 判定: audit | boundaries | implement | extract | handoff
+- 目标文件 / 范围: <path 或 component 名>
+- 框架: React | Preact | Fresh | Solid | other
+
+### 项目规范探测
+- 项目规范强度: strong | medium | weak
+- 现有相似实现: <path 或 none>
+- 状态管理: <useState / Context / store>
+- 样式工具: <cn / cva / clsx / 原生>
+- 已用 UI 库: <antd / shadcn / radix / headless-ui / 无>
+- design tokens 源: <path 或 none>
+
+### 委派情况(哪些 skill 被调度)
+- director-design: <为何调 / 拿到了什么> | not invoked
+- web-image: <为何调 / 拿到了什么> | not invoked
+- delivery-gate: <handoff 路径> | not invoked
+- 自做(不派工): <自跑了哪些步骤>
+
+### 遵循的 9 维 audit
+- [✓] 组件边界清晰度 — N/5 — <证据 / 结论>
+- [✓] 组件层级归属 — N/5 — ...
+- [✓] 本地规范遵循度 — N/5 — ...
+- [✓] API 命名一致性 — N/5 — ...
+- [✓] 状态管理合理性 — N/5 — ...
+- [✓] 样式组织 — N/5 — ...
+- [✓] props 设计 — N/5 — ...
+- [✓] 复用证据 — N/5 — ...
+- [✓] AI slop — N/5 — ...
+- **aggregate**: X.X / 5
+
+### 前端判断
+- verdict: ready | ready-with-fixes | needs-revision | needs-rewrite
+- diagnosis: <最大问题 1-2 句>
+- findings:
+  - [must-fix] <位置>: <问题>。影响: <为什么重要>。建议: <怎么改>
+  - [should-fix] ...
+
+### 实际修改(implement / extract mode)
+- 修改文件清单: <list>
+- 新增组件: <list 含层级归属>
+- 移动组件: <from → to>
+- 删除组件: <list>
+- 自跑复查 audit 结果: pass / 仍有 N must-fix
+
+### Boundary 候选(boundaries / extract mode)
+- 候选组件: <list>
+- 4 层归类: primitive=N / shared=N / business=N / page-local=N
+- 不进 shared 的候选 + 理由: <list>
+
+### 产出物
+- 报告 / handoff spec / 实际代码 diff 路径:
+
+### Next Step
+- 继续 implement / 用户决定是否抽 X / handoff 给 director-design 视觉复审
+- 推荐下一个 mode 和理由
+
+### 明确不在职责内(告知 orchestrator)
+- 视觉设计判断 → director-design
+- 文案/宣传发布 → director-promote
+- a11y/WCAG → web-design-guidelines
+- 固定尺寸出图 → web-image
+- 后端/API → 非前端范畴
+```
+
+## Red Flags — STOP
+
+任一命中必须停下:
+
+- **没探测项目规范就开始写代码**(必须先扫现有约定 + 找相似实现)
+- **跳过 audit 直接 implement**(除非用户明示"按 X 风格直接写")
+- **9 维有维度未应用但不标 n/a**(每维必须 [✓] 或 [n/a],跳过等于盲区)
+- **本地规范明显存在却照搬外部库写法**(违反优先级铁律)
+- **写完不自跑 audit 复查**(implement / extract 必须复查)
+- **复查不通过仍宣称完成**(必须回环修或明确说明卡点)
+- **业务组件塞进 `components/ui/`**(违反层级归属硬规则)
+- **抽 shared 没有真实复用证据**(无证据保留 page-local / business)
+- **写只返回 `null` 或纯 Fragment 包裹的"组件"**(违反组件写法红线)
+- **命名加冗余前缀**(`BaseInput` / `CustomModal`,除非多层封装并存)
+- **越界**:调用 `director-design`/`director-promote`/`flow-ext-publish` 做不属于前端的事
+- **越界**:自己生成 hero 图 / promo tile(应 handoff 给 `director-design` 或调 `web-image`)
+- **Output Contract 委派情况段写"无"**(必须真实记录哪些 skill 被调或全自跑)
+
+## Rationalizations to Reject
+
+| 说辞 | 现实 |
+|---|---|
+| "项目规范我看代码就懂了,不用专门扫" | 必须 Step 1 探测,凭"看着像"会漏目录/命名/状态/样式中至少 1 项 |
+| "9 维太多,挑 3 个看就行" | 每维必须 [✓] / [n/a],缺维等于盲区 |
+| "shadcn 写法挺好,直接照搬到项目" | 违反优先级铁律:项目规范 > 内现成实现 > 外部参考 |
+| "组件不到 100 行,跳过 audit 直接写" | implement 不论行数都必须前置 audit + 写后复查 |
+| "抽 shared 反正以后可能用得到" | 无真实复用证据不进 shared,先放 page-local/business |
+| "写完测试都过了,不用 audit" | 测试过 ≠ 代码可维护,audit 看的是结构 / 边界 / 规范 |
+| "把业务 props 塞进 Button 加个 variant 就好" | 业务 variant 是抽错了边界的信号,该单独写 PricingButton 在 features/ |
+| "命名 `BaseInput` 更明确" | 单层封装用 `Input`,加 `Base*` 前缀只在并存多层时区分 |
+| "我顺手把 hero 图也画了" | 越界 — 视觉是 director-design 的事;前端 handoff 出去 |
+| "委派情况段写'自做'就行,具体步骤太多懒得列" | 必须真实列(自跑了哪些 mode / 哪些 audit 维度) |
+
+## Codex Delegation Hook
+
+按 ROI 判断(详见 `flow-dev-task` 的 Codex Delegation Hook,本 skill 不重复细则):
+
+| Mode / Step | ROI | 备注 |
+|---|---|---|
+| Step 1 项目规范探测 | 🔴 | 需要 Claude 整体判断 |
+| audit mode 9 维评分 | 🔴 | 视觉 + 文本 + 结构 judgment-heavy |
+| boundaries mode | 🔴 | 焦点判定 + 层级归类需 Claude 理解项目 |
+| **implement mode 写代码** | **🟢 高 ROI** | 代码生成密集场景(≥ 30 行 / ≥ 2 组件),按 flow-dev-task 派工政策路由 |
+| implement 复杂业务组件(含 useReducer / Context / 自定义 hooks 编排) | 🟡 | Claude 自写复杂逻辑,Codex 处理 presentational + props |
+| extract mode 文件迁移 | 🟡 | 简单迁移可派,复杂导入边界 Claude 自做 |
+| audit 复查 | 🔴 | 全局理解,自跑判定后再外派无意义 |
+| handoff mode 写 spec | 🔴 | 上下文依赖 |
+
+**派 Codex 时必须传入的上下文**(对齐原 flow-jsx-ui):
+- 项目规范探测结论(规范强度、状态管理、样式工具、UI 库)
+- audit 前置判定结论(本地模式 vs 外部参考、应回退方向)
+- boundaries 决策(候选组件、层级归类、文件位置)
+- 选定的外部参考源(antd / shadcn / radix)和关键约束
+
+派工细则全部以 `flow-dev-task` 的 Codex Delegation Hook 为唯一规范。
+
+## Relationship to Other Skills
+
+### Upstream Orchestrator(实际对接情况)
+本 skill 当前主要由**用户直接触发**("加个组件"/"重构这个页面"/"审一下我这段 JSX")。
+
+潜在上游(**目前未自动 handoff,需手工接入**):
+- `flow-dev-task` 在 Stage 5 写代码时(若 UI 任务)可调用本 skill 替代 frontend-design plugin
+- `flow-project-finish` 落地页阶段可调用 `director-design` 出方案 → 调 `director-frontend` 实现
+
+不要假设上游会自动调本 skill;触发动作由用户(或更高层 orchestrator)决定。
+
+### 调度的工具(self orchestrates)
+- `director-design` — 需要 hero 图 / mockup 时调(mode=mockup)
+- `web-image` — 需要固定尺寸图(海报 / banner)时调
+
+### Handoff 出口(不调用,只移交)
+- `frontend-design`(plugin) — 若用户明确要让 plugin 写而不是本 skill 自写
+- `delivery-gate` — 交付前总审查
+- `director-design` — 写完后视觉复审
+
+### 明确不调用(**主动调用属越界**)
+- `director-promote` — 宣发不在前端范畴
+- `flow-ext-publish` — 商店上架不在前端范畴
+- `web-design-guidelines` — a11y 合规属于 design / 合规域
+
+### Upstream Handoff Payload(**本 skill 从上游接收的字段**)
+
+按共享模板,上游 orchestrator 调本 skill 时**必须传**:
+
+| 字段 | 必填 | 说明 |
+|---|---|---|
+| `task_id` | ✅ | 任务唯一标识 |
+| `objective` | ✅ | 一句话目标(如"加 PricingCard 组件") |
+| `project_root` | ✅ | 项目绝对路径 |
+| `framework` | 推荐 | react / preact / fresh / solid |
+| `target_files` | 推荐 | 涉及文件路径(modify/refactor 时必给) |
+| `design_handoff_path` | 推荐 | 若从 director-design handoff 来,spec 路径 |
+| `risk_class` | 推荐 | low / medium / high(high = 核心交付页面,必须 audit 复查后用户签字) |
+
+**如果上游已传**:本 skill 不重复探测,直接用 handoff 字段。
+**如果上游未传**:本 skill 自己探测(Step 1)。
+**禁止冗余追问**已在 handoff 给出的字段。
+
+### Downstream Handoff Spec(本 skill `handoff` mode 输出)
+
+写到 `.agent/frontend-handoff/<task-id>/spec.md`,字段在上方"handoff mode"段已列。
+
+## Reuse
+
+测试用例在 `tests/cases.md`。
+9 维详细 rubric 在 `references/frontend-principles.md`。
+焦点向外发现法详细规则在 `references/boundary-discovery.md`。
+外部参考 fallback 在 `references/api-design-fallbacks.md` / `style-fallbacks.md` /
+`project-convention-checklist.md`(从原 jsx-ui-audit 迁入)。
+并行编排规范在 `references/parallelization-template.md`(共享,由 sync-shared.sh 维护)。
+handoff payload schema 在 `references/handoff-payload-template.md`(共享)。

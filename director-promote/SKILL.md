@@ -334,7 +334,7 @@ orchestrator 派 subagent 后**进入 idle**,subagent 返回后把 mockup_path �
 - 产品上架应用商店执行(安装包提交) → flow-ext-publish
 - 视觉设计判断/出图 → director-design
 - a11y/WCAG → web-design-guidelines
-- 写生产代码 → flow-jsx-ui / frontend-design
+- 写生产代码 → director-frontend
 ```
 
 ## Red Flags — STOP
@@ -351,7 +351,7 @@ orchestrator 派 subagent 后**进入 idle**,subagent 返回后把 mockup_path �
 - **playwriter 不可用时回退 Playwright headless**(无用户登录态,跳出来让用户激活扩展)
 - **Output Contract 委派情况段写"无"或简化**(必须真实记录哪些 director-* / platforms 被调)
 - **本 skill 自己执行 Chrome Store 上架**(越界,必须 handoff 给 flow-ext-publish)
-- **本 skill 调用 frontend-design / flow-jsx-ui 写代码**(越界,这些是工程,不是宣发)
+- **本 skill 调用 director-frontend / frontend-design plugin 写代码**(越界,这些是工程,不是宣发)
 - **替项目擅自换调性**(变成"神器/秒杀/吊打"等过度营销词)
 
 ## Rationalizations to Reject
@@ -417,8 +417,8 @@ orchestrator 派 subagent 后**进入 idle**,subagent 返回后把 mockup_path �
 (注:Product Hunt 已**内置**,见 `references/platforms/producthunt.md`,不再 handoff 给独立 skill)
 
 ### 明确不调用(**主动调用属越界**)
-- `frontend-design` / `flow-jsx-ui` — 写生产代码,越界
-- `jsx-ui-audit` — 代码约定,越界
+- `director-frontend` / `frontend-design` plugin — 写生产代码,越界
+- 跟 director-frontend 重叠的代码审计也不调(本 skill 不审 JSX 代码,只审宣发素材)
 - `web-design-guidelines` — a11y 合规,越界
 
 ### Upstream Handoff Payload(**本 skill 从上游接收的字段**)
