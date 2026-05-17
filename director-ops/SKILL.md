@@ -81,9 +81,30 @@ description: >
 - 知识库记录模板（装 / 卸两套）：`references/record-template.md`
 - 测试用例：`tests/cases.md`
 
-## Required Workflow（7 步主干）
+## Required Workflow（8 步主干,2026-05 加 Step 0）
 
 按顺序执行，**不允许跳步**。带 🔻 的子步骤仅 `uninstall` mode 执行。
+
+### Step 0 — Question Gate(开干前澄清,**通用规范**)
+
+mode 判定 + Step 1 环境检查 + Step 2 资料收集完成后,进入 Step 3 出计划前必经 Q gate。
+详见 `references/question-gate.md`(共享)。
+
+硬约束(摘要):
+- **一轮** + **≤ 3 个问题**,每个带建议默认值
+- 模糊回复("随便/按你的来")→ 取默认,不再问
+- 无歧义 → 直接执行,不为"确认一下"而问
+- 已在 Step 1/2 探测的事实 → **禁止再问**
+
+本 skill 常见 Q gate 触发点:多包管理器都可装时选哪个 / 是否加 PATH 到 ~/.zshrc /
+uninstall 默认保留的目录是否要一并清。
+
+**Deep 段(thinking guide,按 mode 选用)**:
+
+| mode | Thinking guide |
+|---|---|
+| `install` | **模拟一年后用户在另一台机重装,问"现在的计划够不够让他不踩同样坑"**——知识库要记够 |
+| `uninstall` | **模拟一个月后用户发现某 LaunchAgent / 配置被误删导致崩溃**,反推现在该备份什么 + 验证什么 |
 
 ### Step 1 — 环境检查
 
@@ -180,6 +201,33 @@ uninstall 计划必须额外列出：需备份的路径、需保留的数据、�
   - 🔻 **只有验证通过后**，才执行 Step 5 计划里的"删除残留数据"。删除前再次区分：可删（缓存/日志/
     明确属于该软件的 support files）、默认保留（用户项目/导出文件/未知用途目录）。验证异常则不删，保留备份并报告。
 
+### Step 6.5 — 7 维 Quality Audit + Verdict 映射(**新增,对齐其他 director-***)
+
+执行 + 验证后,出 verdict 前做 7 维质量自审(每维 [✓] / [n/a] + 简短佐证):
+
+| # | 维度 | 1/3/5 锚点 |
+|---|---|---|
+| 1 | **环境探测充分性** | 1=只跑了 1 命令 / 3=核心 3 项 / 5=系统+包管理器+冲突全查 |
+| 2 | **资料来源可信** | 1=单一来源 / 3=本地+网络 / 5=本地+用户提供+官方,有适用性判断 |
+| 3 | **计划可执行性** | 1=步骤模糊 / 3=命令明确 / 5=每步含类型+风险+来源 |
+| 4 | **用户确认清晰度** | 1=模糊确认 / 3=用户明确同意 / 5=用户明确同意+理解 sudo/破坏影响 |
+| 5 | **执行成功率** | 1=失败重试无错排 / 3=有失败但停下报告 / 5=全成功或失败定位精准 |
+| 6 | **验证完整性** | 1=只验 1 项 / 3=主命令+PATH / 5=主命令+PATH+残留扫描+功能 smoke |
+| 7 | **知识库记录质量** | 1=没记 / 3=填了模板 / 5=含日期+版本+踩坑+反推可执行 |
+
+特殊触发(任一直接降级):
+- 维度 4 = 1 → `failed`(没用户确认就破坏性操作)
+- 维度 6 = 1 → `partial`(没验证就宣告完成)
+
+**Aggregate → Verdict 映射**:
+
+| Aggregate | Verdict | 行动 |
+|---|---|---|
+| ≥ 4.5 | `installed-clean` / `uninstalled-clean` | 完成,记录知识库 |
+| 4.0-4.4 | `installed-with-warnings` | 完成但要在知识库 append 注意事项 |
+| 3.0-3.9 | `partial` | 部分完成,明示未完成步骤 + 用户决定是否补 |
+| < 3.0 | `failed` | 整体失败,记录失败原因到知识库,回 Step 3 |
+
 ### Step 7 — 记录知识库
 
 写入 `~/Documents/knowledge/<tool>-install.md` 或 `<tool>-uninstall.md`（已存在则**更新**不覆盖）。
@@ -206,6 +254,20 @@ uninstall 计划必须额外列出：需备份的路径、需保留的数据、�
 - 包管理器: <可用列表>
 - 目标软件当前状态: 已装 v<x> | 未装
 
+### Question Gate
+- 问题数: 0 | 1 | 2 | 3
+- 问题清单:
+  - Q1: ...(默认值: ...)
+- 用户回复: <quote 或 "用默认值">
+- 影响的执行决策: <list>
+
+### 证据采集(对照 references/evidence-discovery.md)
+- 探测命令: <list 用了哪些 which / brew list / rg 知识库>
+- 命中: <list 知识库路径 + 命令输出摘要>
+- 缺失: <list 没找到的证据 + 影响>
+- 适用性判断: <list 资料平台/版本/路径是否匹配当前系统>
+- 降级: <若资料只覆盖部分平台,明示降级原因>
+
 ### 资料来源
 - 本地知识库: hit <path> | miss
 - 用户提供: yes <link> | no
@@ -229,6 +291,17 @@ uninstall 计划必须额外列出：需备份的路径、需保留的数据、�
 ### 验证
 - install: 版本 <pass + version | fail> / 基本功能 <pass | fail>
 - uninstall: 主命令已移除 <pass | fail> / 包管理器已不列出 <pass | fail> / 残留已清理 <yes | 保留原因>
+
+### 7 维 Quality Audit(**每维必须含 `[command 输出摘要 / 知识库路径]` 佐证**)
+- [✓] 环境探测充分性 — N/5 — `[Step 1 命令清单 + 关键输出]`
+- [✓] 资料来源可信 — N/5 — `[本地 + 网络来源 + 适用性判断]`
+- [✓] 计划可执行性 — N/5 — `[每步类型/命令/风险标注情况]`
+- [✓] 用户确认清晰度 — N/5 — `[用户原话 quote + sudo 项是否明示]`
+- [✓] 执行成功率 — N/5 — `[完成/失败步骤数 + 失败定位]`
+- [✓] 验证完整性 — N/5 — `[验证命令清单 + 覆盖项]`
+- [✓] 知识库记录质量 — N/5 — `[知识库路径 + 是否含日期/版本/踩坑]`
+- **aggregate**: X.X / 5
+- **verdict**: installed-clean | installed-with-warnings | partial | failed
 
 ### 知识库
 - 路径: ~/Documents/knowledge/<tool>-{install|uninstall}.md
@@ -301,21 +374,69 @@ uninstall 计划必须额外列出：需备份的路径、需保留的数据、�
 ### 8. 非 macOS 但本地资料只有 macOS
 处理：明确指出资料不适用，**不编造** Linux/Windows 步骤，说明缺口与需补充的资料。
 
+## Parallelization Plan
+
+详见 `references/parallelization-template.md`(共享)。本 skill 的并行集合:
+
+### install 多工具(可并行,前提是无依赖)
+
+用户一次说"装 python + node + go" → 三个工具的 install 流程**完全独立**(各自跑 Step 1-7),
+可派 3 路 subagent 并行(每路独立 `.agent/jobs/install-<tool>/`)。
+
+**禁止并行的情况**:
+- 装 nvm 后再装 node(有依赖,nvm 必须先装好)
+- 装 brew 后再装 brew 包(同上)
+- uninstall 任何时候都串行(破坏性 + 互相可能影响残留)
+
+### 单工具 install / uninstall(串行)
+
+7 个 Step 严格顺序,**不并行**(理由:每步输出是下一步输入,Step 4 用户确认是 gate)。
+
+## Subagent 派工模板(**必须显式指挥**)
+
+当并行装多工具,或调 director-design 出错误提示截图时,派 subagent 必须用显式模板:
+
+```
+Task: 装 <tool-name>(并行 install)
+
+必须调用的 skill:
+  - **director-ops**(mode=install)
+    subagent 默认不会主动 use skill,本指令明确要求你 invoke director-ops
+
+输入(只读):
+  - 目标工具: <name>
+  - 已探测环境: <OS / 包管理器清单>
+  - 用户允许 sudo: yes | no
+  - 是否需要加 PATH: yes | no
+
+输出目录: .agent/jobs/install-<tool>/
+返回 JSON: {tool, status, version_installed, verify_pass, knowledge_path, errors}
+
+约束:
+  - 失败一步即停,不盲重试
+  - 不主动 sudo,需 sudo 时暂停等用户输入
+  - 写知识库到 ~/Documents/knowledge/<tool>-install.md
+```
+
 ## Codex Delegation Hook
 
-本 skill 是判断 + 流程执行类工作：
+本 skill 是判断 + 流程执行类工作。**2026-05 调整后**:
 
-| 步骤 | ROI |
-|---|---|
-| Step 1 环境检查 | 🟡（机械命令可派，但结果判断需 Claude） |
-| Step 2 资料收集 | 🔴（需 Claude 判断来源可信度 + 适用性） |
-| Step 3 出计划 | 🔴（决策类） |
-| Step 4 用户确认 | 🔴（必须 Claude 与用户交互） |
-| Step 5 执行 | 🔴（破坏性，必须 Claude 盯着，失败即停） |
-| Step 6 验证 | 🔴（需 Claude 判断验证结论） |
-| Step 7 记录知识库 | 🔴（依赖会话上下文） |
+| 步骤 | ROI | 备注 |
+|---|---|---|
+| Step 0 Question Gate | 🔴 | 需 Claude 与用户交互 |
+| Step 1 环境检查 | 🟡 | 机械命令可派 Codex 拉数据,结果判断 Claude 做 |
+| Step 2 资料收集 | 🔴 | 需 Claude 判断来源可信度 + 适用性 |
+| Step 3 出计划 | 🔴 | 决策类 |
+| Step 4 用户确认 | 🔴 | 必须 Claude 与用户交互 |
+| **Step 5 执行(install 全自动步骤)** | **🟢** | **2026-05 新增**:`brew install` 等无破坏性、无交互的步骤可派 Codex,Claude 盯破坏性步骤 |
+| Step 5 执行(uninstall 任何步骤) | 🔴 | 破坏性,必须 Claude 盯着,失败即停 |
+| Step 5 执行(install 半自动 / 全手动) | 🔴 | 需 Claude 与用户交互 |
+| Step 6 验证 | 🟡 | 命令可派,结论 Claude 判 |
+| Step 6.5 7 维 Quality Audit | 🔴 | 判断类 |
+| Step 7 记录知识库 | 🔴 | 依赖会话上下文 |
 
-派工细则以 `flow-dev-task` 的 Codex Delegation Hook 为唯一规范，本 skill 不重复。
+派工细则以 `flow-dev-task` 的 Codex Delegation Hook 为唯一规范,本 skill 不重复。
 
 ## Relationship to Other Skills
 
@@ -329,8 +450,13 @@ uninstall 计划必须额外列出：需备份的路径、需保留的数据、�
 - **配置已装工具** → 不在职责内
 
 ### 平行角色（director-*）
-- `director-design` — 设计师角色
+- `director-design` — 设计师角色(视觉判断 / mockup)
+- `director-frontend` — 前端工程师(JSX UI 实现 / audit / 抽组件)
+- `director-promote` — 宣发者(多平台发布编排 / 文案审材料)
 - 未来：`director-pm` / `director-architect` / `director-qa` / `director-security`
+
+详见 `_shared/director-template.md`(元规范) 或同步到本目录的
+`references/director-template.md`。
 
 ## Reuse
 

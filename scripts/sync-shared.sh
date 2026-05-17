@@ -25,6 +25,9 @@ CHECK_ONLY=0
 declare -a SHARED_FILES=(
   "parallelization-template.md"
   "handoff-payload-template.md"
+  "director-template.md"
+  "evidence-discovery.md"
+  "question-gate.md"
 )
 
 # 各 _shared 文件的目标 skill（基于 grep 实际引用）
@@ -36,11 +39,39 @@ parallelization_target_skills=(
   flow-project-bootstrap
   flow-codex-goal
   director-design
+  director-frontend
+  director-promote
+  director-ops
 )
 
 handoff_payload_target_skills=(
   flow-codex-goal
   director-design
+  director-frontend
+  director-promote
+  director-ops
+)
+
+# director-* 元规范、证据查找、Question Gate 三个共享给所有 4 个 director-*
+director_template_target_skills=(
+  director-design
+  director-frontend
+  director-promote
+  director-ops
+)
+
+evidence_discovery_target_skills=(
+  director-design
+  director-frontend
+  director-promote
+  director-ops
+)
+
+question_gate_target_skills=(
+  director-design
+  director-frontend
+  director-promote
+  director-ops
 )
 
 drift_count=0
@@ -98,6 +129,18 @@ echo ""
 
 echo "[handoff-payload-template.md]"
 sync_one "handoff-payload-template.md" "${handoff_payload_target_skills[@]}"
+echo ""
+
+echo "[director-template.md]"
+sync_one "director-template.md" "${director_template_target_skills[@]}"
+echo ""
+
+echo "[evidence-discovery.md]"
+sync_one "evidence-discovery.md" "${evidence_discovery_target_skills[@]}"
+echo ""
+
+echo "[question-gate.md]"
+sync_one "question-gate.md" "${question_gate_target_skills[@]}"
 echo ""
 
 if [[ $CHECK_ONLY -eq 1 ]]; then

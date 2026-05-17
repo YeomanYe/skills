@@ -78,6 +78,19 @@ description: >
 
 每次任务按 5 步执行(对应 5 modes 之一):
 
+### Step 0 — Question Gate(开干前澄清,**通用规范**)
+
+mode 判定 + Step 1 收集材料完成后,进入执行前必经 Q gate。详见 `references/question-gate.md`(共享)。
+
+硬约束(摘要):
+- **一轮** + **≤ 3 个问题**,每个带建议默认值
+- 模糊回复("随便/按你的来")→ 取默认,不再问
+- 无歧义 → 直接执行,不为"确认一下"而问
+- 已在 Upstream Handoff Payload 给的字段 + Step 1 已探测的事实 → **禁止再问**
+
+本 skill 常见 Q gate 触发点:发哪些平台 / 配图选哪张 / v2ex 节点(create/share/qna) /
+sspai 通道(立即发布/编辑部) / variants 路数。
+
 ### Step 1 — 收集材料
 
 按优先级:
@@ -111,6 +124,18 @@ playwriter 扩展。
 - `dispatch`:按目标平台清单**串行**调 `references/platforms/<name>.md` 子模块发布,
   **每个平台必经预览门 → 等用户确认 → 才提交**
 - `recap`:汇总各平台 URL / 状态
+
+**Deep 段(thinking guide,按 mode 选用)**:
+
+| mode | Thinking guide |
+|---|---|
+| `audit` | **模拟目标平台资深用户视角**:第一眼会不会觉得这是 AI 写的?有没有"神器/碾压"等过度营销? |
+| `draft` | **模拟该平台过去 1 个月最热的 3 个帖子的语气**:跟我现在写的距离有多远? |
+| `variants` | **模拟 3 类不同人格(技术控/调皮/大众)**:每个版本能不能让对应人格停下读完? |
+| `dispatch` | **模拟用户在地铁里盯着手机审预览**:能不能 5 秒内挑出错字 / 链接死 / 字数超? |
+| `recap` | **模拟一周后用户复盘**:哪个平台带来流量,哪个被打回,要不要继续投入? |
+
+每个评分必须含 `[平台 URL / 字符数 / 配图路径 / 文案原文引用]`(详见 `references/evidence-discovery.md` 第 5 段)。
 
 ### Step 5 — 输出 Output Contract
 
@@ -286,6 +311,20 @@ orchestrator 派 subagent 后**进入 idle**,subagent 返回后把 mockup_path �
 - 各平台登录态: twitter=? / v2ex=? / appinn=? / sspai=? / producthunt=?
 - playwriter 可用: yes / no
 
+### Question Gate
+- 问题数: 0 | 1 | 2 | 3
+- 问题清单:
+  - Q1: ...(默认值: ...)
+- 用户回复: <quote 或 "用默认值">
+- 影响的执行决策: <list>
+
+### 证据采集(对照 references/evidence-discovery.md)
+- 探测命令: <list curl 200 校验 / find hero 图 / 登录态 check>
+- 命中: <list 材料路径 + 平台登录验证结果>
+- 缺失: <list 没找到的材料 + 影响>
+- 适用性判断: <list 文案是否符合各平台调性 / 链接是否仍 200>
+- 降级: <若 materials: missing,明示降级原因>
+
 ### 委派情况(哪些 skill 被调度)
 - director-design: <做了什么 / 产出路径> | not invoked
 - platforms/twitter: <做了什么 / 结果 URL> | not invoked
@@ -296,17 +335,19 @@ orchestrator 派 subagent 后**进入 idle**,subagent 返回后把 mockup_path �
 - flow-ext-publish handoff: <素材路径> | not applicable
 - 自做(不派工): <自己跑了哪些步骤>
 
-### 遵循的 9 维 audit
-- [✓] 标题钩子 — N/5 — <证据 / 结论>
-- [✓] 一句话价值 — N/5 — ...
-- [✓] 受众匹配 — N/5 — ...
-- [✓] Hero 视觉冲击 — N/5 — ...
-- [✓] 图片内容合规 — N/5 — ...
-- [✓] 图片尺寸适配 — N/5 — ...
-- [✓] 长短文齐备 — N/5 — ...
-- [✓] CTA 引导 — N/5 — ...
-- [✓] 平台原生感 — N/5 — ...
+### 遵循的 9 维 audit(**每维必须含 `[平台 URL / 字符数 / 配图路径 / 原文引用]` 佐证**)
+- [✓] 标题钩子 — N/5 — `[平台 + 字符数 + 原文]` <对照锚点>
+- [✓] 一句话价值 — N/5 — `[原文段引用]`
+- [✓] 受众匹配 — N/5 — `[对比 <平台过去 1 个月热帖>]`
+- [✓] Hero 视觉冲击 — N/5 — `[配图路径 + 缩略图模拟尺寸]`
+- [✓] 图片内容合规 — N/5 — `[扫描清单结果:IP/邮箱/钱包/...]`
+- [✓] 图片尺寸适配 — N/5 — `[实际尺寸 vs 平台规范 vs 配图路径]`
+- [✓] 长短文齐备 — N/5 — `[各平台版本字数清单]`
+- [✓] CTA 引导 — N/5 — `[主链接 + curl 200 校验]`
+- [✓] 平台原生感 — N/5 — `[AI slop 词清单扫描结果]`
 - **aggregate**: X.X / 5
+
+> 禁止用 "<证据 / 结论>" 等空泛占位符。详见 references/evidence-discovery.md 第 5 段。
 
 ### 宣发判断
 - verdict: ready | ready-with-fixes | needs-revision | blocked

@@ -71,7 +71,20 @@ description: >
 
 ## Required Workflow
 
-每次任务按 5 步执行：
+每次任务按 6 步执行(Step 0 是 2026-05 新增 Q Gate)。
+
+### Step 0 — Question Gate(开干前澄清,**通用规范**)
+
+mode 判定 + Step 1 收集证据完成后,进入执行前必经 Q gate。详见 `references/question-gate.md`(共享)。
+
+硬约束(摘要):
+- **一轮** + **≤ 3 个问题**,每个带建议默认值
+- 模糊回复("随便/按你的来")→ 取默认,不再问
+- 无歧义 → 直接执行,不为"确认一下"而问
+- 已在 Upstream Handoff Payload 给的字段 + Step 1 已探测的事实 → **禁止再问**
+
+本 skill 常见 Q gate 触发点:audit 范围(全屏 vs 局部)/ 目标视口(桌面/移动/全套)/
+variants 路数(2 vs 3)/ 是否调外援 ui-ux-pro-max。
 
 ### Step 1 — 收集证据
 
@@ -105,6 +118,19 @@ description: >
 - `direction` / `variants`：调 `ui-ux-pro-max` 或 `huashu-design` 拿候选
 - `mockup`：调 `huashu-design`（HTML 原型）/ `web-image`（固定尺寸图）
 - `handoff`：自己写设计 spec 到磁盘
+
+**Deep 段(thinking guide,按 mode 选用)**:
+
+| mode | Thinking guide |
+|---|---|
+| `audit` | **模拟首次访问用户 3 秒判断**——从信息密度 + 视觉舒适度 + 时间感 + 价值感评判 |
+| `direction` | **模拟"如果只能选一种风格 ship,会被谁喜欢谁讨厌"**——取舍 > 折中 |
+| `variants` | **模拟 3 种用户画像各自的第一眼反应**——variants 之间必须真差异化(布局/信息层级/风格 ≥ 2 维度) |
+| `mockup` | **模拟工程师 implement 时缺什么细节**——尺寸 / 边距 / 状态 / 响应式断点都要明示 |
+| `handoff` | **模拟 director-frontend 只读 spec 不看截图**——能否独立实现 + 与项目现有 UI 风格无缝衔接 |
+
+每个评分必须含 `[截图路径:视口尺寸 / 项目 design tokens 路径 / 对照锚点编号]`
+(详见 `references/evidence-discovery.md` 第 5 段佐证格式)。
 
 ### Step 5 — 出 Output Contract
 
@@ -253,23 +279,39 @@ Task: 截图 <mockup URL> 在 <viewport>×<height> 视口
 - UI 框架: <stack | none>
 - 已有 Storybook: yes | no
 
+### Question Gate
+- 问题数: 0 | 1 | 2 | 3
+- 问题清单:
+  - Q1: ...(默认值: ...)
+- 用户回复: <quote 或 "用默认值">
+- 影响的执行决策: <list>
+
+### 证据采集(对照 references/evidence-discovery.md)
+- 探测命令: <list 用了哪些 ls / Playwright 截图 / find>
+- 命中: <list 截图路径 + 视口尺寸>
+- 缺失: <list 没找到的证据 + 影响>
+- 适用性判断: <list 截图是否最新版 / 视口是否覆盖目标设备>
+- 降级: <若 evidence: missing,明示降级原因 + 不下视觉结论>
+
 ### 委派情况（哪些 skill 被调度）
 - huashu-design: <做了什么 / 产出路径 / 调用 ts> | not invoked
 - web-image: <做了什么 / 输出图> | not invoked
 - ui-ux-pro-max: <咨询了什么> | not invoked
 - 自做（不派工）: <自己跑了哪些步骤>
 
-### 遵循的设计原则（9 维度）
-- [✓] 信息层级 — N/5 — <证据 / 结论>
-- [✓] 布局密度 — N/5 — ...
-- [n/a] 字体系统 — 无证据，跳过
-- [✓] 色彩对比 — N/5 — ...
-- [✓] 组件一致性 — N/5 — ...
-- [✓] 交互状态 — N/5 — ...
-- [✓] 响应式 — N/5 — ...
-- [✓] 产品气质 — N/5 — ...
-- [✓] 完成度 — N/5 — ...
+### 遵循的设计原则（9 维度）(**每维必须含 `[截图:坐标 + 视口]` 佐证**)
+- [✓] 信息层级 — N/5 — `[hero.png:中央偏左,1440×900]` <具体观察 + 对照锚点>
+- [✓] 布局密度 — N/5 — `[文件 + 坐标 + 密度数据]`
+- [n/a] 字体系统 — 无证据，跳过(说明原因,不省略)
+- [✓] 色彩对比 — N/5 — `[截图 + WCAG 对比度计算]`
+- [✓] 组件一致性 — N/5 — `[对比 <项目内同类组件截图>]`
+- [✓] 交互状态 — N/5 — `[hover/focus/disabled 截图 ≥ 3 张]`
+- [✓] 响应式 — N/5 — `[3-4 视口截图齐]`
+- [✓] 产品气质 — N/5 — `[对照 <产品类型典型案例>]`
+- [✓] 完成度 — N/5 — `[demo 信号清单 + 截图位置]`
 - **aggregate**: X.X / 5
+
+> 禁止用 "<证据 / 结论>" 等空泛占位符。详见 references/evidence-discovery.md 第 5 段。
 
 ### 设计判断
 - verdict: pass | pass-with-fixes | needs-redesign | needs-direction
@@ -343,8 +385,15 @@ Task: 截图 <mockup URL> 在 <viewport>×<height> 视口
 - `flow-project-finish` Step 3 落地页设计阶段
 - `flow-project-bootstrap` Stage 1 / 2 设计候选阶段
 - `director-frontend` 写代码前的设计判断阶段
+- `director-promote` 需要 hero / mockup / Chrome Store promo tile 时(handoff 给本 skill 出图)
 - `delivery-gate` 交付前设计审查
 - 也可被用户直接触发
+
+### 平行角色（director-*）
+- `director-frontend` — 前端工程师(JSX UI 实现 / audit / 抽组件)
+- `director-promote` — 宣发者(多平台发布 + 文案审材料 + 需要图片时 handoff 给本 skill)
+- `director-ops` — 运维(软件装/卸,跟设计无直接交集)
+- 详见 `_shared/director-template.md`(元规范)或同步到本目录的 `references/director-template.md`
 
 ### 调度的设计工具（self orchestrates）
 - `huashu-design` — 高保真 HTML 原型 / 动画 / 设计变体

@@ -88,12 +88,27 @@ skillshare sync --force
 - **director-*** 是"专家角色"——只在**单一专业领域**内做判断 + 调度自己领域工具，**handoff 给其他角色**而不越界
 
 director-* 现状与扩展：
-- `director-design` ← 设计师（当前已实现）
-- `director-ops` ← 运维（当前已实现；软件装 / 卸的标准流程）
-- `director-pm` ← 产品经理
-- `director-architect` ← 架构师
-- `director-qa` ← QA
-- `director-security` ← 安全官
+
+| Skill | 角色 | Modes | 状态 |
+|---|---|---|---|
+| `director-design` | 设计师 | audit / direction / variants / mockup / handoff | 已实现 |
+| `director-frontend` | 前端工程师 | audit / boundaries / implement / extract / handoff | 已实现(2026-05) |
+| `director-promote` | 宣发者 | audit / draft / variants / dispatch / recap | 已实现(2026-05) |
+| `director-ops` | 运维 | install / uninstall | 已实现(2026-05) |
+| `director-pm` | 产品经理 | (规划中) | 未来 |
+| `director-architect` | 架构师 | (规划中) | 未来 |
+| `director-qa` | QA | (规划中) | 未来 |
+| `director-security` | 安全官 | (规划中) | 未来 |
+
+**元规范**:所有 director-* 必须对齐 [`_shared/director-template.md`](_shared/director-template.md):
+- 13 段标准 SKILL.md 结构(含 Step 0 Question Gate / 各 mode Deep thinking guide)
+- N 维 audit checklist + Aggregate → Verdict 映射表(4 档:ready/with-fixes/needs-revision/failed)
+- Output Contract 强制佐证字段(`[文件:行号]` / `[截图:坐标]` / `[command 输出]` 等具体引用源)
+- 共享 references:[`evidence-discovery.md`](_shared/evidence-discovery.md)(证据查找规范)
+  + [`question-gate.md`](_shared/question-gate.md)(Q gate 规则)
+- 4 director-* Relationship 互引,Subagent 派工模板显式指挥
+
+新加 director-* 角色:照 `_shared/director-template.md` 模板填,跑 `bash scripts/sync-shared.sh` 分发共享 references。
 
 参考：这套设计与 [gstack 的 cognitive modes](https://gstacks.org/) 思路一致——"虚拟专家角色"。
 

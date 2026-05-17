@@ -79,6 +79,19 @@ director-* 段。
 
 ## Required Workflow
 
+### Step 0 — Question Gate(开干前澄清,**通用规范**)
+
+mode 判定 + Step 1 探测完成后,进入执行前必经 Q gate。详见 `references/question-gate.md`(共享)。
+
+硬约束(摘要):
+- **一轮** + **≤ 3 个问题**,每个带建议默认值
+- 模糊回复("随便/按你的来")→ 取默认,不再问
+- 无歧义 → 直接执行,不为"确认一下"而问
+- 已在 Upstream Handoff Payload 给的字段 + Step 1 已探测的事实 → **禁止再问**
+
+本 skill 常见 Q gate 触发点:组件层级归类不明(primitive/business)/ 项目工具混用(cn vs cva)
+/ 是否需要 director-design 出 hero / 重构时是否动 imports。
+
 ### 通用前置:Step 1 — 探测项目规范
 
 任何 mode 第一步都必须探测:
@@ -114,6 +127,10 @@ director-* 段。
 3. 输出 verdict(aggregate 映射,见 9 维段末尾表)
 4. 不修代码(只判断)
 
+**Deep 段(thinking guide)**:**模拟一年后接手维护者读这段代码,问"5 分钟内能否理解 + 修改"**。
+不要只看语法和缩进,要看可读性 / 心智负担 / 抽象边界是否真实需要。每个评分必须能落到具体
+`[文件:行号 + 代码片段]`(对照 `references/evidence-discovery.md` 第 5 段佐证格式)。
+
 ### boundaries mode
 
 按"焦点向外发现法"(详见 `references/boundary-discovery.md`):
@@ -123,6 +140,9 @@ director-* 段。
 3. 应用停止扩张条件
 4. 对每个候选做 4 层归类(primitive / shared / business / page-local)
 5. 输出抽取计划(候选 / 边界 / 焦点 / 层级 / 抽取理由 / 文件位置 / props API)
+
+**Deep 段(thinking guide)**:**模拟新人 onboarding 第 1 周读这个组件树,问"哪些层级名称
+能直接猜对放什么"**。如果每个文件位置都得读注释才知道用途,边界划分有问题。
 
 ### implement mode
 
@@ -137,6 +157,9 @@ director-* 段。
 5. 复查不通过 → 回环修(对应原 flow-jsx-ui Step 7-8)
 6. 复查通过 → 输出 Output Contract
 
+**Deep 段(thinking guide)**:**模拟一年后维护者改这块代码,问"我能否在不读上下文的情况下
+猜对每个变量名 / props 意图 / 状态归属"**。命名 > 抽象;先写得直白,有真复用证据再抽。
+
 ### extract mode
 
 1. 先跑 boundaries 出候选清单
@@ -146,6 +169,9 @@ director-* 段。
    - 交互状态完整(focus/hover/loading/error)
    - 导入边界无循环依赖
 4. 输出 Output Contract
+
+**Deep 段(thinking guide)**:**模拟用 git blame 追责场景,问"抽完后还能不能一眼看出每个
+组件解决什么业务问题"**。优先按变化原因抽,不是按代码行数抽;变化原因不清 → 保留调用方。
 
 ### handoff mode
 
@@ -191,6 +217,9 @@ director-* 段。
 ```
 
 写盘路径:`.agent/frontend-handoff/<task-id>/spec.md`,同时把路径回传给 orchestrator。
+
+**Deep 段(thinking guide)**:**模拟后端 / plugin 工程师只读这份 spec 不看代码,问"能否照着
+独立实现且与本仓库现有 UI 风格无缝衔接"**。spec 缺一字段就会被反复来回追问。
 
 **handoff 出口**(不调用,只交付):
 - `frontend-design` plugin — 实际写代码(若本 skill 选择不自写,handoff 给它)
@@ -377,23 +406,40 @@ orchestrator 派 subagent 后**进入 idle**,subagent 返回后把图片路径�
 - 已用 UI 库: <antd / shadcn / radix / headless-ui / 无>
 - design tokens 源: <path 或 none>
 
+### Question Gate
+- 问题数: 0 | 1 | 2 | 3
+- 问题清单:
+  - Q1: ...(默认值: ...)
+  - Q2: ...
+- 用户回复: <quote 或 "用默认值">
+- 影响的执行决策: <list>
+
+### 证据采集(对照 references/evidence-discovery.md)
+- 探测命令: <list 用了哪些 rg / find / ls>
+- 命中: <list 找到的文件/相似实现>
+- 缺失: <list 没找到的证据 + 影响>
+- 适用性判断: <list 现有相似实现是否真的适用本次任务>
+- 降级: <若有,明示降级原因>
+
 ### 委派情况(哪些 skill 被调度)
 - director-design: <为何调 / 拿到了什么> | not invoked
 - web-image: <为何调 / 拿到了什么> | not invoked
 - delivery-gate: <handoff 路径> | not invoked
 - 自做(不派工): <自跑了哪些步骤>
 
-### 遵循的 9 维 audit
-- [✓] 组件边界清晰度 — N/5 — <证据 / 结论>
-- [✓] 组件层级归属 — N/5 — ...
-- [✓] 本地规范遵循度 — N/5 — ...
-- [✓] API 命名一致性 — N/5 — ...
-- [✓] 状态管理合理性 — N/5 — ...
-- [✓] 样式组织 — N/5 — ...
-- [✓] props 设计 — N/5 — ...
-- [✓] 复用证据 — N/5 — ...
-- [✓] AI slop — N/5 — ...
+### 遵循的 9 维 audit(**每维必须含 `[文件:行号 + 引用]` 佐证**)
+- [✓] 组件边界清晰度 — N/5 — `[文件:行号]` <具体观察 + 对照锚点>
+- [✓] 组件层级归属 — N/5 — `[文件路径 / 层级判定信号]`
+- [✓] 本地规范遵循度 — N/5 — `[对比 <项目内文件:行号>]`
+- [✓] API 命名一致性 — N/5 — `[对比 <项目内同类组件 props>]`
+- [✓] 状态管理合理性 — N/5 — `[文件:行号 + 状态边界证据]`
+- [✓] 样式组织 — N/5 — `[文件:行号 + cn/cva 用法]`
+- [✓] props 设计 — N/5 — `[props 清单 + 是否含业务语义]`
+- [✓] 复用证据 — N/5 — `[≥ 2 处使用路径 或 仅 1 处 → 不该 shared]`
+- [✓] AI slop — N/5 — `[具体 slop 信号:仅 null / Fragment-only / 冗余前缀 + 文件:行号]`
 - **aggregate**: X.X / 5
+
+> 禁止用 "<证据 / 结论>" 等空泛占位符。详见 references/evidence-discovery.md 第 5 段佐证格式。
 
 ### 前端判断
 - verdict: ready | ready-with-fixes | needs-revision | needs-rewrite
