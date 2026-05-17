@@ -44,6 +44,8 @@ description: Use when a project's main implementation is done and the user wants
 - **项目类型**:CLI / library / browser-extension / desktop / mobile / website / fullstack
 - **是否已是网站**:存在 `next.config.*` / `nuxt.config.*` / `astro.config.*`,或 `package.json scripts` 含明确的 web build,或根目录 `index.html` 是真实落地页(不是 popup 入口)
 - **既存落地页子目录**:扫 `website/` / `landing/` / `marketing/` / `docs/landing/` / `site/`,有则记录路径与最后构建时间;这是与"项目本身是网站"不同维度的信号
+- **既存 web 预览(preview/demo)**:扫 `preview/` / `demo/` / `playground/` / `examples/` / `sandbox/`,以及 `package.json scripts` 里有 `preview`/`demo`/`dev:preview` 一类目标的子目录。**为什么单独列**:preview 是"让人试用产物",landing 是"介绍产物 + Roadmap + Links",两者职能不同,前期常被同一个 deploy 通道顶替,但收尾时必须区分对待。检测到 preview 必须单独记录,不能并入"既存落地页"
+- **部署配置**:扫 `vercel.json` / `netlify.toml` / `.github/workflows/*pages*.y*ml` / `wrangler.toml` / `firebase.json` / `package.json` 的 `homepage` 字段,记录:配置文件路径 + 当前指向的构建产物路径(如 `vercel.json` 的 `outputDirectory`、GH Pages workflow 的 publish dir)。多文件时**全部列出**,标注哪一个是"主要部署"(优先级: vercel/netlify > gh-pages > 其他)。**为什么扫部署配置**:收尾会切换公开门面(preview → landing),不读现状就无法切换。**如果文件层面一无所获**:再扫 `README.md` / `package.json` / `docs/**` 是否出现 `deployed at` / `vercel.app` / `netlify.app` / `.pages.dev` / `*.workers.dev` / `*.fly.dev` / `github.io` 等公开域名关键词。**为什么补这一步**:Vercel/Netlify/Cloudflare 都允许仅在平台后台 UI 配置部署,toml/yml 此时不存在,文件层面与"项目从未部署"无法区分;落地后会丢失关键信息(用户其实是 Netlify 部署,但 skill 误判为无部署、不提示切换)。命中则标记为 `Deployment config: [platform-only:<inferred-platform>:primary]`,后续在 Step 3.3.5 走平台后台分支
 - **现存文档清单**:遍历 `docs/` / `README*` / `CONTRIBUTING*` / `ARCHITECTURE*` / `PRD*` / `INTERACTION*` / `DESIGN*`(包括子目录),记录每份文档的最后更新时间与覆盖的主题
 - **设计系统线索**:Tailwind config / design tokens 文件 / `theme.*` / `tokens.*` / `styles/` 下的 css variables / Storybook
 - **路线图线索**:`TODO.md` / `ROADMAP.md` / `progress.md` / `task_plan.md` / GitHub issues 标题(若可读)
@@ -55,6 +57,8 @@ Step 0 的完成判定不是"看了一眼",而是已经写下:
 - `Frontend stack: <stack | none>`
 - `Already a website: yes | no`
 - `Existing landing page: <path | none>`
+- `Existing web preview: <path | none>` (preview/demo/playground/examples,与 landing 平行的另一资产)
+- `Deployment config: [<file>:<current_target_path>:<primary|secondary>]` (空则 none)
 - `Existing docs: [<path>:<topic>:<last_updated>]`
 - `Design tokens source: <path | none>`
 - `Roadmap source: <path | none>`
@@ -149,6 +153,16 @@ orchestrator 在派工后 idle，等待 4 路返回；期间不主动 poll，sub
 - 项目无对外公开意图(纯内部工具)且用户未要求
 
 #### 3.0 既存落地页分流(refresh / rebuild / skip)
+
+**前置区分:landing ≠ preview**
+
+进入分流前,先看 Step 0 的 `Existing landing page` 与 `Existing web preview` 两个字段。为什么必须区分:preview 是开发期"让人试用产物"的资产,landing 是收尾期"介绍产物 + Roadmap + Links"的对外门面;前者经常被同一个 deploy 通道临时顶替,但两者的代码、内容、目录都不应混淆。把 preview 当 landing 来 refresh,会破坏掉一份仍有用的开发资产。
+
+| 探测结果 | 处理 |
+|---|---|
+| `landing = none`, `preview = none` | 全新生成,跳过分流,正常走 3.1~3.3 |
+| `landing = none`, `preview ≠ none` | **不进分流**,按"无既存落地页"处理,落地页生成到与 preview **平行的目录**(默认 `landing/` 或 `website/landing/`)。严禁把 preview 当成"既存落地页"来 refresh/rebuild,也严禁覆盖、改名、移动 preview 目录 —— preview 是平行资产 |
+| `landing ≠ none` | 进下方三选一,与 preview 无关(preview 仍按"平行资产"保留) |
 
 如果 Step 0 探测到 `Existing landing page: <path>`(非 none),不要直接走完整生成路径。先把三个选项摆给用户:
 
@@ -347,6 +361,66 @@ rm -rf "website/screenshots" "website/meta.json"  # 清掉过程产物
 
 > **Codex 派工兼容**:用户选定 mockup 后，A 模式 frontend-design 转码代码量较大时(≥ 30 行 / ≥ 2 文件),可按项目 Codex 派工政策路由(详见 `flow-dev-task` 的 Codex Delegation Hook)。**3 路 mockup 选择和内容契约由 Claude 把关**,具体页面实现可派 Codex,但视觉细节(配色、字体、动画感)的最终验收必须由 Step 4.0 director-design audit + Claude 跑过 `agent-browser` 截图验证。B 模式（直接拷 mockup）不涉及代码生成，不派 Codex。
 
+#### 3.3.5 部署目标切换 —— 落地页落码后必做
+
+**前提**:Step 0 探测到 `Deployment config ≠ none`,且 Step 3.3 真实产出了落地页代码。`Deployment config` 有三种可能的形态,分别走不同分支:
+
+| Step 0 探测结果 | 本节走法 |
+|---|---|
+| `none`(文件无 + 公开域名也无) | **跳过本节**,在报告"开放决策"段写"项目无部署配置,落地页部署留给用户后续处理" |
+| `[file:<path>:<role>, ...]`(toml/yml 可见) | 走下方"切换规则"主路径 |
+| `[platform-only:<platform>:primary]`(文件无,但公开域名暴露了平台) | **跳过自动改文件**,直接走"失败/无法切换的情况"段的"平台后台"分支,在报告里显式列"需在 <platform> 后台改 publish dir 为 <landing path>" |
+
+**为什么必须切**:项目走到收尾意味着功能成型;之前公开部署的预览(让人试用)在角色上已经被新落地页(介绍 + Roadmap + Links)替代。如果只产出落地页代码却不动部署配置,用户线上看到的还是过期预览,等于这步白做。
+
+**核心原则**:**部署目标切换;preview 代码留;子路径迁移交给用户**。
+
+##### 切换规则
+
+1. **识别 primary 部署配置**:Step 0 标注 `primary` 的那一个
+2. **改其 build/publish 路径** 指向落地页产物:
+   - `vercel.json` → `outputDirectory` 或 `builds[].config.distDir`
+   - `netlify.toml` → `[build] publish = ...`
+   - GitHub Pages workflow → `actions/upload-pages-artifact` 的 `path`,或 `gh-pages` action 的 `folder`
+   - `wrangler.toml` → `[site] bucket` / `pages_build_output_dir`
+   - `package.json` 的 `homepage`(仅 CRA 等老项目用)
+3. **secondary 部署配置** —— **不自动改**,列给用户显式确认:
+   ```
+   检测到以下辅助部署配置:
+   - <file>: 当前指向 <path>
+   - <file>: 当前指向 <path>
+   是否一并切换到 <landing build path>?  (是/否/逐个确认)
+   ```
+   为什么不替用户改:secondary 配置常承担 staging/internal preview/PR 预览等并行通道,统一切可能破坏用户有意保留的其他场景。用户没回 → **不动**,在收尾报告"开放决策"段挂等用户处理
+
+##### 预览的去向 —— **公开下线,代码保留**
+
+- **代码原位不动**:preview/demo 目录作为平行资产继续存在
+- **公开部署下线**:旧部署配置不再指向 preview,意味着旧公开 URL 切到落地页后,preview 不再有公开入口
+- **不自动迁子路径**(如 `/demo`):为什么不自动迁 —— 子路径部署涉及路由重写、子目录 build 命令、CDN 缓存失效,自动改风险高;由用户在收尾后自行决定
+- **落地页 Links 段的处理**:
+  - 用户希望 preview 仍被人访问 → 收尾报告"开放决策"段提一句"preview 子路径部署待用户后续手工配置",landing Links 段先不指 preview,等用户配好后手工补
+  - preview 仅本地可跑 → Links 段指向**仓库 README 的"Run preview locally"段落**(让感兴趣的人 clone 跑)
+
+##### 失败/无法切换的情况
+
+- 部署配置用了**变量 / 平台后台 secret** 决定路径(如 Vercel/Netlify UI 配置而非 toml) → **不强改**,在收尾报告里**显式列出**"需在 <platform> 后台手动调整 publish dir 为 <landing path>",作为开放决策
+- 检测到 deployment config 但 build 路径与已知子目录都不匹配(可能动态生成) → 同上,不强改,显式提示
+
+##### 不要做的事
+
+- ❌ 删除/重命名/移动 preview 目录(它是平行资产,删 = 丢开发能力)
+- ❌ 自动改 secondary 部署配置(必须用户确认)
+- ❌ 把 preview 内容"合并进"落地页(职能不同;让 Links 指过去即可)
+- ❌ 跳过本节直接进 3.4 截图(用户线上看到的是过期 preview,不是新落地页)
+- ❌ 在 landing Links 里直接放旧 preview URL(部署已切,旧 URL 现在指向 landing,等于自指)
+
+##### 写入 delivery-gate 证据包的新字段
+
+本节执行后,需要给 Step 4 delivery-gate 多带两项证据:
+- `Deployment switched`: `<file>:<old path> → <new path>` 列表(或 `n/a` 若无部署配置)
+- `Preview retained at`: `<path>` + 在线/离线状态
+
 #### 3.4 落地页响应式截图（**并行执行**，4 路 subagent）
 
 **并行编排**：4 断点截图完全独立（写不同文件名），按 `references/parallelization-template.md` 派 4 个 subagent 并行：
@@ -413,6 +487,7 @@ Step 1~3 的实际产物全部就位后,调用 `delivery-gate`,把以下证据�
 - Step 1 的文档同步明细 + 每处 patch 对应的代码位置
 - Step 2 的 README 状态 + 命令实测来源
 - Step 3 的落地页代码路径 + 3.4 的响应式截图(或缺口声明)
+- **Step 3.3.5 部署切换证据**(若执行):`Deployment switched: <file>:<old> → <new>` 列表 + `Preview retained at: <path>` + 在线/离线状态 + 平台后台手动事项(若有)。**递交前 self-check**:对每条声明的 `<file>` 跑 `git diff -- <file>` 确认确实有 publish/output 路径变更,避免"声明切了实际没切"骗过 delivery-gate
 - **Step 4.0 director-design audit 报告**（如有）
 - Step 0 的项目快照与 git state
 
@@ -436,8 +511,16 @@ Step 1~3 的实际产物全部就位后,调用 `delivery-gate`,把以下证据�
 
 仅当 Step 4 给出 **all clear** 时,调用 `clean-commit`,传入:
 
-- 本次收尾涉及的全部变更范围(Step 1 文档 patch、Step 2 README、Step 3 落地页代码)
-- 收尾的语义 scope:`docs`(若仅文档+README)、`docs+landing`(含落地页)、或 conventional commit 中更合适的类型
+- 本次收尾涉及的全部变更范围:
+  - Step 1 文档 patch
+  - Step 2 README
+  - Step 3 落地页代码
+  - **Step 3.3.5 改动的部署配置文件**(若有):显式列出文件路径,例如 `vercel.json` / `netlify.toml` / `.github/workflows/*pages*.y*ml` / `wrangler.toml` / `package.json#homepage`。**必须显式列**,否则 clean-commit 的 select-and-commit 模式会把根目录的部署配置当成"与当前任务无关的脏改动"而排除
+- 收尾的语义 scope:
+  - `docs`(仅文档+README)
+  - `docs+landing`(含落地页,无部署切换)
+  - **`docs+landing+deploy`**(含落地页 + 切了部署目标)
+  - 或 conventional commit 中更合适的类型
 - Step 0 探测出的 `Git state`(若 dirty,需要先把无关改动剥离;clean-commit 自带这种判断)
 
 强制规则:
@@ -459,6 +542,8 @@ Step 1~3 的实际产物全部就位后,调用 `delivery-gate`,把以下证据�
 - Frontend stack:
 - Already a website:
 - Existing landing page:
+- **Existing web preview**: <path | none>
+- **Deployment config**: <[<file>:<current_target_path>:<primary|secondary>, ...] | [platform-only:<platform>:primary] | none>
 - Existing docs:
 - Design tokens source:
 - Roadmap source:
@@ -479,6 +564,7 @@ Step 1~3 的实际产物全部就位后,调用 `delivery-gate`,把以下证据�
 ### Step 3 — Landing Page
 - 是否需要:
 - 既存落地页分流: refresh | rebuild | skip | n/a
+- **既存 preview 处理**: 保留为平行资产 <path> | 无 preview | n/a
 - 跳过原因(如适用):
 - **3 路 mockup**（v5）:
   - mockup-1: <style_name> @ .agent/jobs/landing-mockup-1/  (独立性维度: <列举>)
@@ -489,6 +575,11 @@ Step 1~3 的实际产物全部就位后,调用 `delivery-gate`,把以下证据�
 - **3.3 实现模式**: A (frontend-design 重写) | B (直接拷 mockup-N → website/) — 按项目栈智能选
 - 落地页代码位置:
 - 技术栈:
+- **部署目标切换**:
+  - 主要配置 <file>: <old path> → <new landing path> | 未检测到部署配置
+  - 辅助配置确认: [<file>: 用户确认切换 | 用户保留旧指向 | 等用户决定]
+  - **预览公开下线**: yes (preview 代码保留在 <path>) | n/a
+  - **平台后台手动事项**: 无 | <list>(需在 <platform> 后台改 publish dir)
 - 响应式截图: done | skipped(<reason>)
 - 被淘汰 mockup 处理: 保留 .agent/jobs/landing-mockup-{X,Y}/（可清理）
 
@@ -545,6 +636,15 @@ Step 1~3 的实际产物全部就位后,调用 `delivery-gate`,把以下证据�
 - **重做时覆盖原 mockup 目录（不用 -v2 后缀） → 停下,旧 mockup 必须保留**（v5）
 - 项目已经是 Next.js/Nuxt 网站还在生成"落地页" → 停下,跳过 Step 3 并说明
 - 项目里已经有 `website/` 等既存落地页子目录,却被当作"无落地页"重做 → 停下,先走 3.0 refresh/rebuild/skip 三选一
+- **把 preview/demo 目录当成"既存落地页"做 refresh/rebuild → 停下,preview 是平行资产,落地页另开目录(默认 `landing/`),preview 原位不动**
+- **删除/重命名/移动 preview 目录以"腾位置"给落地页 → 停下,平行存在,preview 不动**
+- **3.3 落地页码写完了却没动部署配置 → 停下,补 3.3.5;否则用户线上看到的还是旧 preview**
+- **检测到多个部署配置时,自动改了 secondary 配置 → 停下,primary 由 Claude 改,secondary 必须用户确认**
+- **部署配置仅存在于平台后台(toml 中不可见)却被声明"切换完成" → 停下,在报告"开放决策"里显式列"需后台手动改"**
+- **landing Links 段直接放旧 preview URL → 停下,部署已切,旧 URL 现在指向 landing,等于自指**
+- **递交 delivery-gate 时漏带 `Deployment switched` / `Preview retained at` 两项证据 → 停下,补完再 hand off,否则 gate 看不到部署侧的变更上下文**
+- **声明 `Deployment switched: vercel.json:<old> → <new>` 但 `git diff vercel.json` 实际为空 → 停下,要么真去改文件,要么删掉声明,二选一,不要骗 gate**
+- **传给 clean-commit 的变更范围只列了 `docs+landing` 没列部署配置文件 → 停下,显式列文件路径;否则 clean-commit 会把根目录的 vercel.json 当无关脏改动排除**
 - **跳过 delivery-gate 直接进 Step 5 commit** → 停下,这是硬阻断;审查必须先于提交
 - **delivery-gate 给了 must-fix 却直接 commit** → 停下,回流到对应阶段修复后重跑
 - **clean-commit 把收尾以外的改动一起夹带提交** → 停下,要求 clean-commit 走选择性 staging
@@ -563,6 +663,14 @@ Step 1~3 的实际产物全部就位后,调用 `delivery-gate`,把以下证据�
 | "项目本身是网站,落地页和它合并就行" | 网站本身 ≠ 项目落地页;但当项目就是网站时本 skill 直接跳过 Step 3,不强行造一份 |
 | "路线图从我对项目的理解写一下就行" | 路线图必须可追溯到真实文件(TODO/ROADMAP/progress);凭印象写会过期或失真 |
 | "用户没指定技术栈,我给落地页用我喜欢的" | 默认对齐项目前端栈;无栈才回退 vite+pnpm+react,这是契约 |
+| "preview 已经部署了,落地页直接顶替 preview 目录最省事" | preview 和 landing 职能不同(试用 vs 介绍),代码必须平行存在;只切部署目标,不动 preview 代码 |
+| "落地页落码就算结束了,部署等用户自己改" | 不行。3.3.5 必须切 primary 部署配置,否则用户线上看到的是过期 preview。Claude 改 primary + secondary 列给用户确认,这是契约 |
+| "多个部署配置太麻烦,统一全切了" | secondary 配置必须用户确认。统一改可能破坏用户有意保留的其他部署通道(如内部 staging / PR preview) |
+| "preview 既然下线了,代码也删掉吧" | preview 仍是有用的开发资产,代码留着;只是不再是公开部署目标。删除是用户决定,不在收尾职责内 |
+| "落地页 Links 段直接放 preview 的旧 URL" | preview 已下线,旧 URL 大概率指向新落地页(因为部署切了),贴这个等于自指。要么指向"clone 后本地跑",要么等用户后续手工部署 preview 到子路径再补 |
+| "secondary 部署改了出问题,改回来就行" | 改 secondary 不是 Claude 的权限范围,用户没确认就不改;改了出错的责任和回滚成本本可以避免 |
+| "递交 delivery-gate 时部署证据先省略,gate 应该能自己看出来" | gate 看的是 diff + 输入证据;不带 `Deployment switched` 它就不知道你切了部署,无法判断"声明 vs 实际"是否一致。证据必须显式带 |
+| "传给 clean-commit 时就说改了 docs+landing,clean-commit 会自己扫到根目录的 vercel.json" | 不会。clean-commit 默认排除"与当前任务无关的脏改动",根目录的 vercel.json 若不在显式列表里会被当成无关而排除。本 skill 必须替 clean-commit 把这些文件认领进当前任务 |
 | "PRD/架构文档差太多了,本期重写一遍" | 本 skill 是收尾不是重做。陈旧文档只 patch 实际偏差,大改属于另一项任务 |
 | "响应式截图跳过了无所谓" | 跳过可以,但必须在报告里显式声明"未截图";delivery-gate 也会拿这个缺口做判断 |
 | "delivery-gate 太重,自己走查一遍就行" | delivery-gate 是独立 gate,不只是 lint/build;它能拦下你正在合理化的"差不多就行"。必须真的调用 |
@@ -577,6 +685,12 @@ Step 1~3 的实际产物全部就位后,调用 `delivery-gate`,把以下证据�
 - 落地页的内容契约里漏掉「路线图」段(以为路线图项目内部用就够)
 - 调 huashu-design 时没说"3 套方向",拿到 1 套就开干
 - 落地页放进项目源码目录,污染主项目构建
+- **把 preview/demo 当成既存落地页,触发 refresh/rebuild 流程**
+- **生成落地页时把 preview 目录覆盖、删除或重命名(应平行存在)**
+- **落地页落码后忘记切部署目标,用户线上仍看到旧 preview**
+- **自动改了 secondary 部署配置,没让用户确认**
+- **3.3.5 改了 vercel.json/netlify.toml,但传给 clean-commit 时只列了 docs+landing,部署文件被当无关脏改动排除,commit 漏掉部署侧变更**
+- **递交 delivery-gate 时漏带 `Deployment switched` 证据,gate 通过后才发现部署没真切**
 - 跳过 delivery-gate 直接 commit
 - delivery-gate 给了 must-fix 没回流就 commit
 - clean-commit 把工作区里其他改动一起夹带
@@ -586,12 +700,17 @@ Step 1~3 的实际产物全部就位后,调用 `delivery-gate`,把以下证据�
 
 宣称收尾完成前,核对:
 
-- Step 0 的 8 个字段全部填写(项目类型 / 前端栈 / 是否网站 / 既存落地页 / 现存文档 / 设计源 / 路线图源 / git state)
+- Step 0 的 10 个字段全部填写(项目类型 / 前端栈 / 是否网站 / 既存落地页 / **既存 web 预览** / **部署配置** / 现存文档 / 设计源 / 路线图源 / git state)
 - Step 1 中 4 类文档的状态都有结论(同步过 / 未发现 / 用户决定不补)
 - README 真实存在于项目根,且其中的命令能被 `package.json scripts` 验证
 - 落地页阶段:跳过则跳过有理由记录,执行则 `huashu-design` 真的返回了 3 套方向、用户确认了选择、`frontend-design` 真实产出了代码
 - 落地页技术栈与项目栈一致(或在无栈时用 vite+pnpm+react)
 - 落地页内容三段齐全:Outline / Roadmap / Links
+- **既存 preview 在收尾后仍原位存在(未被覆盖/删除/重命名),与 landing 平行**
+- **若 Step 0 检测到 deployment config 且生成了落地页 → primary 部署配置已改指向 landing 产物;secondary 配置的去向已在收尾报告里明确(用户已确认或挂"等用户决定")**
+- **若部署属于平台后台配置(toml 中不可见) → 收尾报告"开放决策"段列出"需在 <platform> 后台改 publish dir"**
+- **递交 delivery-gate 时,部署证据 `Deployment switched` 和 `Preview retained at` 已显式带上,且每条 `Deployment switched` 都通过 `git diff -- <file>` self-check 确认文件真的变了**
+- **传给 clean-commit 的变更范围已显式列出 Step 3.3.5 改动的部署配置文件(`vercel.json` / `netlify.toml` / pages workflow 等),scope 为 `docs+landing+deploy`(若切了部署)**
 - **`delivery-gate` 真的运行过**(不是 "应该运行")且最终判定为 all clear
 - **must-fix 全部消化或被回流处理过**,没有跳过项
 - **`clean-commit` 真的产出 commit**(或被显式跳过且原因在报告里)

@@ -396,3 +396,96 @@ Prompt：
 预期：
 - bootstrap 1.3 + finish 3.2 用完全相同的两阶段模式
 - 共享 push-mockups.sh 脚本（同名同行为）
+
+
+---
+
+## Preview vs Landing + 部署目标切换（2026-05 新增）
+
+### PV1. 有 preview 没 landing → 平行生成,preview 不动
+
+Prompt：
+> 我的 Tauri 桌面工具主功能写完了,之前 deploy 了一个 web 预览(在 `preview/`,vercel 在跑),现在做收尾,出 README 和落地页,提交。
+
+预期：
+- Step 0 探测：`Existing landing page: none`、`Existing web preview: preview/`、`Deployment config: [vercel.json:preview:primary]`
+- Step 3.0 命中"`landing = none` + `preview ≠ none`"分支,**不进 refresh/rebuild/skip 三选一**,按"无既存落地页"走完整 3.1~3.3
+- 落地页生成到平行目录(默认 `landing/` 或 `website/landing/`),**不写入 `preview/`**
+- Step 3.3.5 自动改 `vercel.json` 的 `outputDirectory` 从 `preview` 改为新落地页产物路径
+- 收尾报告 Step 3 节包含:
+  - `既存 preview 处理: 保留为平行资产 preview/`
+  - `部署目标切换: 主要配置 vercel.json: preview → landing/dist`
+  - `预览公开下线: yes (preview 代码保留在 preview/)`
+
+失败信号：
+- Step 0 漏掉 preview 或 deployment config 信号
+- 把 preview 当成既存落地页触发分流
+- 落地页生成到 `preview/`,覆盖原代码
+- 落地页落码但部署配置未改
+- 删除/重命名 preview 目录
+
+### PV2. 多个部署配置:primary 自动改,secondary 必须用户确认
+
+Prompt：
+> 我的 React 应用做收尾,project 里同时有 `vercel.json`(线上 production)和 `.github/workflows/pages.yml`(给 reviewer 看的 staging),也有个 `preview/` 是早期 demo,先生成落地页,然后切部署。
+
+预期：
+- Step 0 探测出 `Deployment config: [vercel.json:dist:primary, .github/workflows/pages.yml:preview/dist:secondary]`、`Existing web preview: preview/`
+- Step 3.3.5 自动改 `vercel.json`(primary)
+- secondary 配置 `pages.yml` **不自动改**,而是问用户:
+  ```
+  检测到以下辅助部署配置:
+  - .github/workflows/pages.yml: 当前指向 preview/dist
+  是否一并切换到 landing/dist?  (是/否/逐个确认)
+  ```
+- 用户没回 → 在收尾报告"开放决策"段挂"等用户决定 pages.yml 去向",流程继续
+
+失败信号：
+- 自动改 secondary 配置不询问用户
+- primary 没改但 secondary 改了
+
+### PV3. 把 preview 当 landing 来 refresh —— 应被拦
+
+Prompt（用户施压）：
+> 我那个 `preview/` 目录就是我的落地页啊,你直接在里面 refresh 就行,不用另开目录。
+
+预期：
+- skill 显式拒绝;引用 SKILL.md 的"preview ≠ landing"边界
+- 解释:preview 是"让人试用产物",landing 是"介绍 + Roadmap + Links",职能不同
+- 仍按 PV1 的方式:landing 生成到平行目录,preview 原位保留
+- 若用户坚持把 preview 改造成 landing → 在收尾报告挂"用户要求合并 preview 与 landing,本 skill 拒绝,需用户在另一工作流执行"
+
+失败信号：
+- skill 顺从用户,在 preview 目录里 patch 内容
+- skill 删除/重命名 preview 来"腾位置"
+
+### PV4. 落地页落码后跳过 3.3.5 —— 应被拦
+
+场景：Step 3.3 已经产出 `landing/dist`,deployment config 是 `vercel.json` 当前指向 `preview`,Claude 直接进 3.4 截图。
+
+预期：
+- Delivery Check 命中"`Step 0 检测到 deployment config 且生成了落地页` → primary 部署配置必须已改"硬约束
+- delivery-gate 阶段会拦下,must-fix 回流到 3.3.5
+- 修复后(primary 切换 + secondary 确认完成)才能进 Step 5
+
+失败信号：
+- delivery-gate 放行未切部署的落地页
+- 用户线上 URL 仍指 preview 但报告写"all clear"
+
+### PV5. 部署配置仅在平台后台(toml 不可见)
+
+Prompt：
+> 我的 Netlify 部署是从 UI 配置的,repo 里没有 `netlify.toml`,落地页生成完帮我把部署切了。
+
+预期：
+- Step 0 探测:`Deployment config: none`(toml 不存在,无法读到当前 publish dir)
+- Step 3.3.5 **不强改**,显式在收尾报告"开放决策"段列出:
+  - "Netlify 部署在平台后台,需在 Netlify Dashboard 把 Publish directory 从 `preview` 改为 `landing/dist`"
+- 收尾报告 Step 3 节:
+  - `平台后台手动事项: 需在 Netlify 后台改 publish dir`
+- 流程不阻塞,继续 Step 4 / 5
+
+失败信号：
+- 假装"切换完成"但实际没动任何文件
+- 自作主张新建一份 `netlify.toml` 覆盖后台配置(可能与平台 UI 冲突)
+- 跳过提示,用户事后才发现要去后台改
