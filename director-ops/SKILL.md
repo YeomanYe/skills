@@ -444,6 +444,23 @@ Task: 装 <tool-name>(并行 install)
 - 用户直接触发为主
 - 可被 `flow-dev-task` 等编排器调用（当某任务需要先装/卸某系统级工具时）
 
+### Upstream Handoff Payload(**本 skill 从上游接收的字段**)
+
+按共享模板,上游 orchestrator 调本 skill 时**必须传**:
+
+| 字段 | 必填 | 说明 |
+|---|---|---|
+| `task_id` | ✅ | 任务唯一标识 |
+| `mode` | ✅ | install \| uninstall |
+| `target` | ✅ | 工具名 / 包名 |
+| `system_info` | 推荐 | 上游已探测的 OS / 包管理器(避免本 skill 重复 Step 1) |
+| `local_knowledge_path` | 推荐 | 已知的本地知识库路径(如 `~/Documents/knowledge/<tool>-install.md`) |
+| `user_already_confirmed` | 推荐 | 上游已与用户对齐(true 则跳过 Step 4 二次确认) |
+
+**如果上游已传**:本 skill 不重复探测,直接用 handoff 字段。
+**如果上游未传**:本 skill 自己探测(Step 1 环境检查 + Step 2 资料收集)。
+**禁止冗余追问**已在 handoff 给出的字段。
+
 ### 明确不调用 / 不越界
 - **升级已装工具** → 不走本 skill，直接 `brew upgrade` / `pip install -U`
 - **项目级依赖** → `flow-dev-task`（`npm install` / `pip install -r`）

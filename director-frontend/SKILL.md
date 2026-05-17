@@ -556,6 +556,12 @@ orchestrator 派 subagent 后**进入 idle**,subagent 返回后把图片路径�
 - `flow-ext-publish` — 商店上架不在前端范畴
 - `web-design-guidelines` — a11y 合规属于 design / 合规域
 
+### 平行角色（director-*）
+- `director-design` — 设计师(视觉判断 / mockup / 出 hero,本 skill 需要图片时 handoff 给它)
+- `director-promote` — 宣发者(多平台发布 / 文案审材料)
+- `director-ops` — 运维(软件装/卸,跟前端实现无直接交集)
+- 详见 `references/director-template.md`(元规范,sync-shared.sh 同步)
+
 ### Upstream Handoff Payload(**本 skill 从上游接收的字段**)
 
 按共享模板,上游 orchestrator 调本 skill 时**必须传**:
@@ -585,5 +591,10 @@ orchestrator 派 subagent 后**进入 idle**,subagent 返回后把图片路径�
 焦点向外发现法详细规则在 `references/boundary-discovery.md`。
 外部参考 fallback 在 `references/api-design-fallbacks.md` / `style-fallbacks.md` /
 `project-convention-checklist.md`(从原 jsx-ui-audit 迁入)。
-并行编排规范在 `references/parallelization-template.md`(共享,由 sync-shared.sh 维护)。
-handoff payload schema 在 `references/handoff-payload-template.md`(共享)。
+
+**共享元规范**(由 `sync-shared.sh` 维护,4 个 director-* 都遵循):
+- `references/director-template.md` — director-* 元规范(13 段 SKILL.md 结构 + 必备字段)
+- `references/evidence-discovery.md` — 证据查找规则(5 层优先级 + 佐证格式)
+- `references/question-gate.md` — Step 0 Q gate 规则(≤ 3 问 + 1 轮)
+- `references/parallelization-template.md` — 并行编排规范
+- `references/handoff-payload-template.md` — handoff payload schema

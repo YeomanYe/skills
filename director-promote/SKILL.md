@@ -457,6 +457,12 @@ orchestrator 派 subagent 后**进入 idle**,subagent 返回后把 mockup_path �
 
 (注:Product Hunt 已**内置**,见 `references/platforms/producthunt.md`,不再 handoff 给独立 skill)
 
+### 平行角色（director-*）
+- `director-design` — 设计师(视觉判断 / mockup / 出 hero,本 skill draft mode 需要图片时 handoff 给它)
+- `director-frontend` — 前端工程师(JSX UI 实现 / audit / 抽组件)
+- `director-ops` — 运维(软件装/卸,跟宣发无直接交集)
+- 详见 `references/director-template.md`(元规范,sync-shared.sh 同步)
+
 ### 明确不调用(**主动调用属越界**)
 - `director-frontend` / `frontend-design` plugin — 写生产代码,越界
 - 跟 director-frontend 重叠的代码审计也不调(本 skill 不审 JSX 代码,只审宣发素材)
@@ -490,5 +496,10 @@ orchestrator 派 subagent 后**进入 idle**,subagent 返回后把 mockup_path �
 9 维详细 rubric 在 `references/promote-principles.md`。
 平台子模块在 `references/platforms/<name>.md`(twitter / v2ex / appinn / sspai)。
 Chrome Store 素材规范在 `references/chrome-store-assets.md`。
-并行编排规范在 `references/parallelization-template.md`(共享,由 sync-shared.sh 维护)。
-handoff payload schema 在 `references/handoff-payload-template.md`(共享)。
+
+**共享元规范**(由 `sync-shared.sh` 维护,4 个 director-* 都遵循):
+- `references/director-template.md` — director-* 元规范(13 段 SKILL.md 结构 + 必备字段)
+- `references/evidence-discovery.md` — 证据查找规则(5 层优先级 + 佐证格式)
+- `references/question-gate.md` — Step 0 Q gate 规则(≤ 3 问 + 1 轮)
+- `references/parallelization-template.md` — 并行编排规范
+- `references/handoff-payload-template.md` — handoff payload schema
