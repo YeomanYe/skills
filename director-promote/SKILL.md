@@ -3,13 +3,16 @@ name: director-promote
 description: >
   Use when 用户要给项目/工具做**宣传/推广/对外发布内容**——本 skill 扮演宣发者角色,
   审视材料(文字+图片+图片内容合规)、写文案、出多版本调性变体、调度多平台发布、汇总回执。
-  触发短语:"做宣传"、"发个推"、"发到 v2ex / 少数派 / Appinn / Twitter"、"宣传这个项目"、
-  "写个推广文案"、"发布到社区"、"announce / promote / share project on / post to twitter /
-  post to v2ex / post to sspai / post to appinn"。
-  Do NOT use for: 产品**上架商店**(Chrome/Edge/Firefox 扩展商店 → flow-ext-publish 执行;
-  director-promote 可生成素材但不执行上架)/ Product Hunt 上架(→ producthunt-launch)/
-  纯设计审查(→ director-design)/ release changelog 生成(暂不在范围)/
-  仅浏览/搜索某平台内容 / 写技术教程/评测/深度长文/入门指南(那是内容写作,不是项目宣发)。
+  触发短语:"做宣传"、"发个推"、"发到 v2ex / 少数派 / Appinn / Twitter / Product Hunt"、
+  "宣传这个项目"、"写个推广文案"、"发布到社区"、"launch on Product Hunt"、
+  "announce / promote / share project on / post to twitter / post to v2ex /
+  post to sspai / post to appinn / submit to Product Hunt"。
+  Do NOT use for: 产品**上架应用商店**(Chrome/Edge/Firefox 扩展商店 → flow-ext-publish 执行;
+  director-promote 可生成素材但不执行上架)/ 纯设计审查(→ director-design)/
+  release changelog 生成(暂不在范围) / 仅浏览/搜索某平台内容 /
+  写技术教程/评测/深度长文/入门指南(那是内容写作,不是项目宣发)。
+  注:**Product Hunt 属于"发布到曝光平台"性质,等同 v2ex/Appinn,内置在本 skill**,
+  不再 redirect 到独立 skill。
 ---
 
 # director-promote — 虚拟宣发者
@@ -28,14 +31,13 @@ description: >
 它不是:
 - ❌ 设计师(出 hero 图调 `director-design`,不自跑视觉)
 - ❌ 商店上架工程师(Chrome Store / Edge Store / Firefox 上架调 `flow-ext-publish`)
-- ❌ Product Hunt 上架自动化救援(那是 `producthunt-launch`)
 - ❌ 写技术文档/教程(那是用户自己写或调 huashu-design 排版)
 
 它是:
 - ✅ **宣发判断 + 多平台发布调度者**
 - ✅ 自跑 9 维 audit checklist 审材料(文字+图片+图片内容合规)
-- ✅ 内置 4 个平台发布器(twitter / v2ex / appinn / sspai)——原 4 个 `post-to-*` / `*-publish`
-  skill 的逻辑已**物理合并**进本 skill,作为 `references/platforms/<name>.md` 子模块
+- ✅ 内置 5 个平台发布器(twitter / v2ex / appinn / sspai / producthunt)——原 5 个独立
+  publish skill 的逻辑已**物理合并**进本 skill,作为 `references/platforms/<name>.md` 子模块
 - ✅ 需要图片 → 调 `director-design`
 - ✅ Chrome Store 素材 → 生成后**交付给** `flow-ext-publish` 执行上架
 - ✅ 最终交付明确说明:用了哪些平台 / 各自结果 URL / 哪些材料失败 / 哪些 must-fix
@@ -45,7 +47,7 @@ description: >
 ## When to Use
 
 - 用户给项目希望对外做宣传(社区发帖/发推/写文案)
-- 用户已经在 Chrome 登录了目标平台(twitter / v2ex / appinn / sspai 任一)
+- 用户已经在 Chrome 登录了目标平台(twitter / v2ex / appinn / sspai / producthunt 任一)
 - 用户要审视宣传材料够不够、对不对(audit)
 - 用户要同一项目出 N 个调性版本(variants)
 - 用户要为 Chrome Store 上架生成 promo tile / screenshots / description 素材
@@ -53,7 +55,6 @@ description: >
 ## When NOT to Use
 
 - 用户要把扩展**上架** Chrome/Edge/Firefox 商店 → `flow-ext-publish`(本 skill 可生素材,不替它上架)
-- 用户要在 Product Hunt 提交 → `producthunt-launch`
 - 用户只是浏览/读某平台内容 → 直接答疑,不触发
 - 用户要写深度长文/评测/教程(非宣传体) → 走 huashu-design 排版或用户自写
 - 纯设计审查(没有发布意图) → `director-design`
@@ -162,7 +163,7 @@ playwriter 扩展。
 
 1. **平台清单必须明确** — 用户没说发哪些平台 → 列候选清单让用户选,**不要默认全发**。
 2. **每个平台独立子模块** — 平台细节(选择器/编辑器 API/调性/踩坑)在 `references/platforms/<name>.md`,
-   主 skill 不重复。当前内置:**twitter / v2ex / appinn / sspai**。
+   主 skill 不重复。当前内置:**twitter / v2ex / appinn / sspai / producthunt**。
 3. **必经预览门** — 每个平台都必须先填表 → 调用平台自带预览/截图 → 给用户看 → 等用户确认。
    预览未确认前**永远不点最终发布按钮**。
 4. **sspai 永远停在待发布** — sspai 由于"立即发布即公开"风险高,**agent 绝不替按发布键**,
@@ -276,13 +277,13 @@ orchestrator 派 subagent 后**进入 idle**,subagent 返回后把 mockup_path �
 - 用户原话:
 - mode 判定: audit | draft | variants | dispatch | recap
 - 目标项目: <path / repo URL>
-- 目标平台清单: [twitter, v2ex, appinn, sspai, chrome-store-assets] 或 not applicable
+- 目标平台清单: [twitter, v2ex, appinn, sspai, producthunt, chrome-store-assets] 或 not applicable
 
 ### 材料探测
 - 项目 README / package.json: 命中 / 缺失
 - 已有 hero 图: <path> 或 missing
 - git remote / version: <info>
-- 各平台登录态: twitter=? / v2ex=? / appinn=? / sspai=?
+- 各平台登录态: twitter=? / v2ex=? / appinn=? / sspai=? / producthunt=?
 - playwriter 可用: yes / no
 
 ### 委派情况(哪些 skill 被调度)
@@ -291,6 +292,7 @@ orchestrator 派 subagent 后**进入 idle**,subagent 返回后把 mockup_path �
 - platforms/v2ex: <...> | not invoked
 - platforms/appinn: <...> | not invoked
 - platforms/sspai: <...> | not invoked
+- platforms/producthunt: <...> | not invoked
 - flow-ext-publish handoff: <素材路径> | not applicable
 - 自做(不派工): <自己跑了哪些步骤>
 
@@ -318,6 +320,7 @@ orchestrator 派 subagent 后**进入 idle**,subagent 返回后把 mockup_path �
 - v2ex: <URL / preview-pending / failed> / 预览截图路径
 - appinn: <topic URL / enqueued + pending_id / failed> / 状态说明
 - sspai: <编辑器待发布 / 失败> / 由用户最后点发布
+- producthunt: <draft URL / scheduled / published / failed> / Launch Checklist 状态
 
 ### 产出物
 - 文案 / variants / handoff / 预览截图 路径:
@@ -328,8 +331,7 @@ orchestrator 派 subagent 后**进入 idle**,subagent 返回后把 mockup_path �
 - 推荐下一个 mode 和理由
 
 ### 明确不在职责内(告知 orchestrator)
-- 产品上架商店执行 → flow-ext-publish
-- Product Hunt 上架 → producthunt-launch
+- 产品上架应用商店执行(安装包提交) → flow-ext-publish
 - 视觉设计判断/出图 → director-design
 - a11y/WCAG → web-design-guidelines
 - 写生产代码 → flow-jsx-ui / frontend-design
@@ -397,11 +399,12 @@ orchestrator 派 subagent 后**进入 idle**,subagent 返回后把 mockup_path �
 
 ### 调度的工具(self orchestrates)
 - `director-design` — hero 图 / promo tile / 商店截图设计(mode=mockup)
-- 内置平台子模块(物理合并的原 4 个 skill):
+- 内置平台子模块(物理合并的原 5 个 skill):
   - `references/platforms/twitter.md`
   - `references/platforms/v2ex.md`
   - `references/platforms/appinn.md`
   - `references/platforms/sspai.md`
+  - `references/platforms/producthunt.md`
 
 ### Handoff 出口(不调用,只移交)
 - `flow-ext-publish` — Chrome/Edge/Firefox 商店上架执行
@@ -410,7 +413,8 @@ orchestrator 派 subagent 后**进入 idle**,subagent 返回后把 mockup_path �
   - 本 skill 生成的素材包是**可选 path**:用户可手动让 flow-ext-publish 跳过自带素材生成,
     直接用本 skill 产出
   - 后续若做集成升级,flow-ext-publish 应增加"检测 .agent/promote-handoff/ 已存在素材包则跳过 web-image"逻辑
-- `producthunt-launch` — Product Hunt 上架(若用户明确要 PH)
+
+(注:Product Hunt 已**内置**,见 `references/platforms/producthunt.md`,不再 handoff 给独立 skill)
 
 ### 明确不调用(**主动调用属越界**)
 - `frontend-design` / `flow-jsx-ui` — 写生产代码,越界

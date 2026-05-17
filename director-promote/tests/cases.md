@@ -51,9 +51,11 @@ director-promote 只在用户说"上架前先准备素材"或"上架后发宣传
 **Prompt**: "看下这个 landing page 设计怎么样"
 **Expected**: **不**触发 director-promote。应该触发 `director-design`。
 
-### case-non-trigger-04: Product Hunt 上架
-**Prompt**: "发到 Product Hunt"
-**Expected**: **不**触发 director-promote(本 skill 不内置 PH 平台)。应该触发 `producthunt-launch`。
+### case-trigger-07: Product Hunt 发布(已合并)
+**Prompt**: "发到 Product Hunt" / "launch on Product Hunt"
+**Expected**: 触发 director-promote。mode=dispatch,target_platforms=[producthunt]。
+调 `references/platforms/producthunt.md`(原 producthunt-launch 已合并)。
+**不再** redirect 到独立 skill。
 
 ### case-non-trigger-05: 写技术文档
 **Prompt**: "帮我写一篇 React Hooks 的教程"
@@ -203,15 +205,20 @@ project_root + target_platforms + risk_class=high
 
 ## 7. 物理合并验证
 
-### case-merge-01: 原 4 个 publish skill 已删除
-**Expected**: `~/Documents/projects/skills/{post-to-twitter,post-to-v2ex,appinn-forum-post,sspai-publish}/`
-四个目录全部不存在。
+### case-merge-01: 原 5 个 publish skill 已删除
+**Expected**: `~/Documents/projects/skills/{post-to-twitter,post-to-v2ex,appinn-forum-post,sspai-publish,producthunt-launch}/`
+五个目录全部不存在。
 
 ### case-merge-02: 原 skill 触发短语应触发本 skill
-**Input**: "发推" / "发到 v2ex" / "发到 Appinn" / "post to sspai"
-**Expected**: 全部触发 `director-promote`(对应原 4 个 skill 描述里的触发短语)。
+**Input**: "发推" / "发到 v2ex" / "发到 Appinn" / "post to sspai" / "launch on Product Hunt"
+**Expected**: 全部触发 `director-promote`(对应原 5 个 skill 描述里的触发短语)。
 
 ### case-merge-03: 平台细节可查
 **Input**: 在 dispatch twitter 时遇到 ProseMirror 编辑器报错
 **Expected**: 应能在 `references/platforms/twitter.md` 找到 "Common Pitfalls" 段的解决方案
 (`document.execCommand('insertText', false, text)`)。
+
+### case-merge-04: PH 表单陷阱可查
+**Input**: 在 dispatch producthunt 时 Launch Tag 下拉跳到顶部导航
+**Expected**: 应能在 `references/platforms/producthunt.md` 找到对应解决方案
+(`evaluate()` 直接点击下拉选项,避免触发顶部导航)。
