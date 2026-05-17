@@ -19,6 +19,27 @@ if [[ ! -f "$SOURCE_DIR/SKILL.md" ]]; then
 fi
 
 SKILL_NAME="$(basename "$SOURCE_DIR")"
+
+# Plugin prefix stripping: when the source lives under an AI tool's sync target
+# (e.g. ~/.claude/skills/_YeomanYe-skills__foo), basename gives the prefixed
+# name and syncing that to center would create a wrong directory. Detect the
+# sync-target paths and strip the prefix automatically. DEST_NAME env var
+# overrides (skips the auto logic entirely).
+if [[ "${DEST_NAME:-}" == "" ]]; then
+  case "$SOURCE_DIR" in
+    "$HOME"/.claude/skills/*|"$HOME"/.agents/skills/*|"$HOME"/.codex/skills/*)
+      if [[ "$SKILL_NAME" =~ ^_[a-zA-Z0-9-]+__(skills__)?(.+)$ ]]; then
+        naked="${BASH_REMATCH[2]}"
+        echo "note: source is under AI tool sync target; stripping plugin prefix '$SKILL_NAME' → '$naked'" >&2
+        echo "      set DEST_NAME=<name> to override" >&2
+        SKILL_NAME="$naked"
+      fi
+      ;;
+  esac
+fi
+
+SKILL_NAME="${DEST_NAME:-$SKILL_NAME}"
+
 SKILLS_ROOT="$HOME/Documents/projects/skills"
 OVERWROTE=0
 
@@ -144,6 +165,7 @@ fi
 
 printf 'source=%s\n' "$SOURCE_PATH_FMT"
 printf 'destination=["%s"]\n' "$DEST_PATH_FMT"
+printf 'effective_skill_name=%s\n' "$SKILL_NAME"
 printf 'overwrote=%s\n' "$OVERWROTE"
 printf 'git_status=%s\n' "$GIT_STATUS"
 if [[ -n "$GIT_COMMIT" ]]; then

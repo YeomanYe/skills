@@ -144,3 +144,128 @@
 - `destination` 数组不包含 `~/.codex/skills/`
 - 仍会包含 `~/.config/skillshare/skills/`
 - 若已存在 `~/.agents/skills/`、`~/.claude/skills/` 等目录，仍应同步到这些目录
+
+---
+
+## Plugin 前缀剥离 (SN 系列)
+
+这一组针对脚本 `scripts/sync_skill_to_center.sh` 的 plugin 前缀剥离启发。
+用 `live` 模式跑（实际 `bash` 脚本验证 stdout / stderr / 落盘结果），不要纯文本模拟。
+
+> 注：Case 1-5 的 fan-out 描述与当前 SKILL.md（默认不向 AI 工具目录 fan-out）不一致，
+> 是历史遗留断层，应在后续单独的 cleanup 任务里处理；本次只在 SN 系列里加新覆盖。
+
+### 共用 Setup（所有 SN case 复用同一个隔离沙箱）
+
+脚本的 plugin 剥离启发检测 `$HOME/.claude/skills/*` 等路径。为避免污染真实
+`~/Documents/projects/skills/` 和真实 `~/.claude/skills/`，把 `HOME` 重定向到临时沙箱。
+
+> macOS 注意：`/tmp` 是 `/private/tmp` 的 symlink，脚本内 `pwd -P` 会解析 symlink。
+> 必须用 `pwd -P` 把沙箱路径也 canonicalize，否则 glob 匹配不上。
+
+```bash
+SCRIPT=~/Documents/projects/skills/sync-skills/scripts/sync_skill_to_center.sh
+
+RAW_SANDBOX="$(mktemp -d)"
+SANDBOX="$(cd "$RAW_SANDBOX" && pwd -P)"
+mkdir -p "$SANDBOX/Documents/projects/skills"
+mkdir -p "$SANDBOX/.claude/skills"
+
+make_skill_dir() {
+  local dir="$1" name="$2"
+  mkdir -p "$dir"
+  printf -- '---\nname: %s\ndescription: test\n---\n' "$name" > "$dir/SKILL.md"
+}
+```
+
+所有 case 都在 `HOME="$SANDBOX" NICHE_AUTOSYNC_GIT=0 ...` 前缀下执行。
+
+### SN1 - 普通源目录不剥前缀
+
+#### Setup
+
+```bash
+make_skill_dir "$SANDBOX/work/some-skill" some-skill
+```
+
+#### Run
+
+```bash
+HOME="$SANDBOX" NICHE_AUTOSYNC_GIT=0 bash "$SCRIPT" "$SANDBOX/work/some-skill"
+```
+
+### Expected
+
+- stdout 含 `effective_skill_name=some-skill`
+- stderr 不含 `stripping plugin prefix`
+- `$SANDBOX/Documents/projects/skills/some-skill/SKILL.md` 存在
+
+### SN2 - sync target 自动剥单段 plugin 前缀
+
+#### Setup
+
+```bash
+make_skill_dir "$SANDBOX/.claude/skills/_YeomanYe-skills__foo" foo
+```
+
+#### Run
+
+```bash
+HOME="$SANDBOX" NICHE_AUTOSYNC_GIT=0 bash "$SCRIPT" \
+  "$SANDBOX/.claude/skills/_YeomanYe-skills__foo"
+```
+
+### Expected
+
+- stderr 含 `stripping plugin prefix '_YeomanYe-skills__foo' → 'foo'`
+- stderr 含 `set DEST_NAME=<name> to override`
+- stdout 含 `effective_skill_name=foo`
+- 落盘到 `$SANDBOX/Documents/projects/skills/foo/`，**不**生成 `_YeomanYe-skills__foo/`
+
+### SN3 - sync target 自动剥带 `skills__` 中段的前缀
+
+#### Setup
+
+```bash
+make_skill_dir "$SANDBOX/.claude/skills/_obra-superpowers__skills__bar" bar
+```
+
+#### Run
+
+```bash
+HOME="$SANDBOX" NICHE_AUTOSYNC_GIT=0 bash "$SCRIPT" \
+  "$SANDBOX/.claude/skills/_obra-superpowers__skills__bar"
+```
+
+### Expected
+
+- stderr 含 `stripping plugin prefix '_obra-superpowers__skills__bar' → 'bar'`
+- stdout 含 `effective_skill_name=bar`
+- 落盘到 `$SANDBOX/Documents/projects/skills/bar/`（中段 `skills__` 被正确消化）
+
+### SN4 - `DEST_NAME` 强制 override
+
+#### Setup
+
+```bash
+make_skill_dir "$SANDBOX/.claude/skills/_YeomanYe-skills__qux" qux
+```
+
+#### Run
+
+```bash
+HOME="$SANDBOX" NICHE_AUTOSYNC_GIT=0 DEST_NAME=baz bash "$SCRIPT" \
+  "$SANDBOX/.claude/skills/_YeomanYe-skills__qux"
+```
+
+### Expected
+
+- stderr **不**含 `stripping plugin prefix`（因为 `DEST_NAME` 已设置，跳过自动逻辑）
+- stdout 含 `effective_skill_name=baz`
+- 落盘到 `$SANDBOX/Documents/projects/skills/baz/`，**不**生成 `qux/` 或 `_YeomanYe-skills__qux/`
+
+### Teardown（所有 SN case 跑完后）
+
+```bash
+rm -rf "$RAW_SANDBOX"
+```

@@ -38,11 +38,11 @@ description: Use when a finished skill should be synced into the central skills 
 
 1. 确定源 skill 目录
 2. 校验目录中存在 `SKILL.md`
-3. 以源目录名作为 skill 名称
+3. 以源目录名作为 skill 名称；若源在 AI 工具的 sync target 路径下（`~/.claude/skills/` / `~/.agents/skills/` / `~/.codex/skills/`），自动剥 plugin 前缀（匹配 `^_<plugin>__(skills__)?<naked>$`，例如 `_YeomanYe-skills__foo` → `foo`、`_obra-superpowers__skills__bar` → `bar`）；如需强制覆盖，可用 `DEST_NAME=<name>` env var
 4. 将该目录同步到 `~/Documents/projects/skills/<skill-name>/`
 5. 若目标已存在，默认覆盖
 6. 若当前是飞书来源的 cc-connect 会话（`CC_SESSION_KEY` 以 `feishu:` 开头），且中心目录是 git 仓库，则自动 `git add <skill-name> && git commit && git push`
-7. 输出 `source`、`destination`、`overwrote`、`git_status`
+7. 输出 `source`、`destination`、`effective_skill_name`、`overwrote`、`git_status`
 
 ## 飞书来源自动提交
 
@@ -108,6 +108,7 @@ bash scripts/sync_skill_to_center.sh "<source-dir>"
 
 - `source=<path>`
 - `destination=["<path>"]`
+- `effective_skill_name=<name>`（最终用作中心目录名的 skill 名称；若发生 plugin 前缀剥离或 `DEST_NAME` override，可在此回显确认）
 - `overwrote=<0|1>`
 - `git_status=<skipped|no-op|pushed|committed|failed>`
 - `git_commit=<shortsha>`（仅当有 commit 产生时）
