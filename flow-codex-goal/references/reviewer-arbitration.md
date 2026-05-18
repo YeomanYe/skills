@@ -79,6 +79,38 @@ launch_extra_reviewers() {
 
 ---
 
+## 多 Reviewer 协同细则(2-4 个 AND-pass)
+
+`flow-codex-goal` 2026-05 升级后,默认路由可同时接 2-4 个 director-* reviewer。
+对 AND-pass 默认规则的实际影响:
+
+| reviewer 数 | 整体 pass 概率(假设单 reviewer 80% pass)| 典型场景 |
+|---|---|---|
+| 1(只 codex-reviewer)| 80% | 纯逻辑代码任务 |
+| 2(codex + 1 director-*)| 64% | 纯前端代码 / 宣发 / 装卸 |
+| **3(codex + design + frontend)** | **51%** | **UI 视觉任务双 reviewer 默认** |
+| 4(codex + 3 director-*)| 41% | 混合任务(罕见,建议拆) |
+
+**含义**:接 reviewer 越多,过 round 越严。1-2 reviewer 是甜点,3+ 通常说明任务该拆。
+
+### 推荐配置
+
+| 任务类型 | reviewer 配置 | arbitration_rule |
+|---|---|---|
+| 纯逻辑代码 | 只 codex-reviewer | AND-pass(平凡) |
+| 纯前端 / 宣发 / 装卸 | codex + 1 director-* | AND-pass |
+| UI 视觉任务 | codex + director-design + director-frontend | AND-pass(默认,严格)|
+| 品牌关键页(MUST 不出错) | codex + design + frontend + (可选 director-promote 审 release 文案) | AND-pass + hard-rule-override(图片合规 1 票否决) |
+
+### 不要做什么
+
+- ❌ **AND-pass + 3+ reviewer 抱怨"太严"** → 应该拆任务,不应该改成 OR-pass(放低质量门 = 把问题留到生产)
+- ❌ **加 reviewer 但不给它探测命令信号支撑** → 路由器靠信号路由,不靠 LLM 猜测;无信号不该路由
+- ❌ **同一 reviewer 加 2 次**(重复浪费 round 资源)
+- ❌ **推未实现的 reviewer**(director-security/architect 还没建,watcher launch 会失败)
+
+详细路由规则见 `references/role-router.md`。
+
 ## 4 种仲裁规则
 
 ### 1. AND-pass（默认，推荐）

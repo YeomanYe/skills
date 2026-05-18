@@ -152,14 +152,32 @@ orchestrator agent 在 GOAL.md 落盘之前，向人类**一次性批量**提案
    - 人类可追加自定义维度（"成功反馈不能影响布局" → `Layout Stability`）
    - 所有维度（基础 4 + 扩展）必须在 EVAL.md 显式列出，reviewer 才会评
 
-5. **Extra Reviewers 注册（可选）**
-   - orchestrator 根据任务特征**主动建议**额外 reviewer：
-     - `is_ui_task: true` → 建议加 `director-design`（专项 UI 视觉审）
-     - 高风险任务（auth / 支付 / 加密）→ 未来可建议 `director-security`
-     - 数据 / API → 未来可建议 `director-architect`
-   - 用户**显式确认**后写入 GOAL.md `extra_reviewers:` 段（schema 见 `references/goal-template.md`）
-   - 仲裁规则默认 **AND-pass**（所有 reviewer 都通过才整体 pass），详见 `references/reviewer-arbitration.md`
-   - 不加 = 只跑内置 Reviewer Codex，向下兼容 v3 行为
+5. **Extra Reviewers 注册（可选,2026-05 升级 4 角色路由）**
+
+   orchestrator 根据任务特征**主动建议**额外 reviewer。详细路由规则见
+   `references/role-router.md`（任务信号 → 角色映射 + 探测命令 + 反例）。
+
+   **快速路由表**（4 director-* 全部接通）：
+
+   | 任务信号 | 推荐 extra reviewer |
+   |---|---|
+   | `is_ui_task: true` / 含截图证据 | **director-design**(视觉)+ **director-frontend**(代码 double check)|
+   | git diff 含 `*.tsx/jsx/vue/svelte/css` 但无截图 | **director-frontend**(代码气味 / 边界 / AI slop) |
+   | prompt 含 "宣传 / 发推 / release notes / post to ..." | **director-promote**(9 维材料 audit) |
+   | prompt 含 "装 / 卸 / setup / install / uninstall" | **director-ops**(7 维流程 audit) |
+   | 高风险 auth / 支付 / 加密 | (未来 director-security) |
+   | API / schema migration / 跨服务 | (未来 director-architect) |
+
+   **推荐流程（建议制 + 默认接受）**：
+   - orchestrator 探测任务信号 → 列出建议 reviewer 清单 + 一句话理由
+   - 用户回复 **"yes / 默认 / 按你的来"** → 按建议写入 GOAL.md
+   - 用户**显式说**"不要 X" → 移除该 reviewer
+   - 用户沉默 / 模糊 → **取建议默认**（降低摩擦,符合 director-* Question Gate 规则）
+
+   仲裁规则默认 **AND-pass**（所有 reviewer 都通过才整体 pass）+ **不加权**（简单 + 易解释失败,
+   详见 `references/reviewer-arbitration.md` 多 reviewer 协同段）。
+
+   不加 extra_reviewers = 只跑内置 Reviewer Codex，向下兼容 v3 行为。
 
 **禁止**：未确认就启动 Goal Codex。AC 模糊 → goal 跑飞，攻击面在 Phase 0 这里堵住。
 

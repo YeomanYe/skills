@@ -72,9 +72,24 @@ baseline_dimensions:           # 仅 mode=regression-prevention/hybrid 时生效
 
 ```yaml
 extra_reviewers:
-  - director-design   # UI 任务自动建议（is_ui_task: true 时）
-  # 未来可加 director-security / director-architect / director-pm 等
+  # 4 个已实现 director-*(任选,按 references/role-router.md 路由表自动建议):
+  - director-design       # UI 视觉审(is_ui_task: true 时自动建议)
+  - director-frontend     # JSX 代码审(UI 任务双 reviewer 之一,或纯代码任务)
+  - director-promote      # 宣发材料 9 维 audit(release notes / 多平台发布素材)
+  - director-ops          # 装卸/环境配置 7 维流程 audit(install/uninstall 任务)
+  # 未来:director-security / director-architect / director-pm / director-qa
 ```
+
+### 4 角色含义速查
+
+| Reviewer | 审什么 | 何时接 |
+|---|---|---|
+| **director-design** | 视觉(信息层级/布局/字体/对比/产品气质 等 9 维) | UI 任务 + 有截图证据 |
+| **director-frontend** | JSX 代码(组件边界/层级归属/本地规范/API 一致 等 9 维) | UI 任务 + 纯前端代码任务 |
+| **director-promote** | 宣发材料(标题钩子/受众匹配/图片合规/CTA/Native Feel 等 9 维) | release notes / 多平台发布 |
+| **director-ops** | 装卸流程(环境探测/资料可信/计划可执行/验证/知识库 等 7 维) | 装/卸/setup/install 任务 |
+
+完整路由规则(任务信号 → 角色映射 + 探测命令)见 `references/role-router.md`。
 
 ### 详细 schema（按需扩展）
 
@@ -84,6 +99,9 @@ extra_reviewers:
     when: is_ui_task          # 条件触发（可选；不写 = 始终启用）
     mode: audit               # 让该 reviewer 跑哪个 mode（可选；默认按 reviewer 自己 SKILL.md）
     arbitration_weight: 1.0   # 仲裁权重（仅 weighted-avg 模式生效）
+  - name: director-frontend
+    when: is_ui_task          # UI 任务双 reviewer(视觉师 + 工程师)
+    mode: audit
 
 # 仲裁规则（可选）
 arbitration_rule: AND-pass    # AND-pass（默认）| OR-pass | weighted-avg | hard-rule-override
