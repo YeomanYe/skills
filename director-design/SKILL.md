@@ -152,6 +152,21 @@ variants 路数(2 vs 3)/ 是否调外援 ui-ux-pro-max。
 
 每个维度 1-5 分，<4 分必出修正建议。
 
+### Aggregate → Verdict 映射（audit mode 必用）
+
+| Aggregate | Verdict | 行动 |
+|---|---|---|
+| ≥ 4.5 | `pass` | 设计可交付,无须重做 |
+| 4.0-4.4 | `pass-with-fixes` | should-fix 列清单,可选修 |
+| 3.0-3.9 | `needs-redesign` | must-fix 列清单,必须修后才可交付 |
+| < 3.0 | `blocked` | 整体不达标,回 direction / variants 重出方向 |
+
+**特殊触发**(任一直接降级为 `blocked`):
+- 维度 9(完成度)= 1 分 **且** AI slop 信号 ≥ 3 项(无意义装饰 + 临时占位 + demo 感)
+- 维度 6(交互状态)= 1 分 **且** 关键状态(disabled/loading/error)≥ 2 个缺失
+
+详细 1/3/5 锚点 + 各 verdict 的下一步行动见 `references/design-principles.md`。
+
 ## Variants vs Mockup（不要混淆）
 
 - `variants` 是**设计方向**："可以往哪几种风格走"。重点是定位 / 取舍 / 适用用户 / 实现成本

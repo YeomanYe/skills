@@ -356,6 +356,35 @@ director 根据用户输入信号自动选内部路径，**不需要用户先挑
 - 写生产代码 → director-frontend
 ```
 
+## 7 维 Quality Audit（research 输出前必跑，对齐其他 director-*）
+
+| # | 维度 | 1/3/5 锚点 |
+|---|---|---|
+| 1 | **研究充分性** | 1=只看主入口 1 文件 / 3=核心 3-5 文件 / 5=全规则体系扫齐 + 引用 ≥ 10 处 [file:line] |
+| 2 | **联合评估广度** | 1=未调任何 best-practice skill / 3=调 1-2 个 / 5=覆盖目标栈所有相关 skill,有冲突仲裁 |
+| 3 | **决策证据强度** | 1=无 [file:line] 引用 / 3=部分有 / 5=每个决策都含具体引用 + 反例 |
+| 4 | **风险识别完整性** | 1=只列功能风险 / 3=含迁移/兼容 / 5=覆盖短期+长期+迁移+回滚+人员熟悉度 |
+| 5 | **文件级变更清单可执行性** | 1=只方向描述 / 3=列文件 / 5=每个 add/modify/delete 含理由 + diff 预览 |
+| 6 | **参考项目对齐度** | 1=未对照 mirroring-checklist / 3=部分对照 / 5=完整对照 + 偏离项有明示理由 |
+| 7 | **与现有规则一致性** | 1=与现规则冲突未识别 / 3=识别但未解决 / 5=识别 + 给出迁移/合并方案 |
+
+每维 1-5 分,所有维度必须 [✓] 或 [n/a],跳过 = 盲区。<4 分必出修正建议。
+
+### Aggregate → Verdict 映射（research 输出 verdict 时必用）
+
+| Aggregate | Verdict | 行动 |
+|---|---|---|
+| ≥ 4.5 | `ready-to-land` | 可直接进 Approval Gate → land |
+| 4.0-4.4 | `ready-with-refinement` | should-fix 列清单,用户决定补研究还是直接 land |
+| 3.0-3.9 | `needs-refinement` | must-fix 列清单,Approval Gate 会拦,必须补研究 |
+| < 3.0 | `blocked` | 方案整体不可行,回 Research Phase 从头跑 |
+
+**特殊触发**(任一直接降级为 `blocked`,不看 aggregate):
+- 维度 3(决策证据)= 1 分 **且** 关键决策无 [file:line] 引用
+- 维度 7(与现有规则一致)= 1 分 **且** 与现规则有未解决冲突
+
+详细 rubric 见 `references/skill-matching-rules.md` 与 `references/mirroring-checklist.md`。
+
 ### land 输出（**仅当 Land Phase 执行后**）
 
 ```md

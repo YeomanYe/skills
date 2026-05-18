@@ -165,8 +165,8 @@ orchestrator agent 在 GOAL.md 落盘之前，向人类**一次性批量**提案
    | git diff 含 `*.tsx/jsx/vue/svelte/css` 但无截图 | **director-frontend**(代码气味 / 边界 / AI slop) |
    | prompt 含 "宣传 / 发推 / release notes / post to ..." | **director-promote**(9 维材料 audit) |
    | prompt 含 "装 / 卸 / setup / install / uninstall" | **director-ops**(7 维流程 audit) |
+   | 项目规则 / tech stack / 架构 / API schema / migration / 跨服务 | **director-architect** ✅(7 维 quality audit) |
    | 高风险 auth / 支付 / 加密 | (未来 director-security) |
-   | API / schema migration / 跨服务 | (未来 director-architect) |
 
    **推荐流程（建议制 + 默认接受）**：
    - orchestrator 探测任务信号 → 列出建议 reviewer 清单 + 一句话理由
@@ -269,7 +269,8 @@ echo $! > .agent/tasks/$TASK_ID/codex.pid
 
 ##### CLI-EXEC 模式（每个 Phase 单次启动）
 ```bash
-codex exec --skip-git-repo-check --cd "$WORKTREE" < references/goal-prompt-phase-N.md
+codex exec --skip-git-repo-check --cd "$WORKTREE" < references/goal-prompt.md
+# 默认共用 goal-prompt.md;若需按 Phase 拆分,自行创建 phase-specific prompt 文件
 # 跑完即退；watcher 检测 STATUS.md MILESTONE 后再派下一 Phase
 ```
 

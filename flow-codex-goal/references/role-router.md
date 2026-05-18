@@ -83,12 +83,29 @@ grep -iE "装一下|卸载|环境配置|install|uninstall|setup" GOAL.md
 
 ### 2.5 高风险任务(未来)
 
-| 触发信号 | 推荐 reviewer(规划中) | 理由 |
+| 触发信号 | 推荐 reviewer | 理由 |
 |---|---|---|
 | 涉及 auth / 鉴权 / 支付 / 加密 / 密钥 | director-security(未实现) | 安全审计 |
-| 涉及 API schema / migration / 跨服务接口 | director-architect(未实现) | 架构审计 |
+| 项目规则 / 技术栈选型 / 架构方案 / API schema / migration | **director-architect** ✅ | 架构 + 规则审,7 维 quality audit |
+| 跨服务接口 | director-architect ✅ + (未来 director-security) | 跨域评估 |
 
-**当前行为**:这两类只跑内置 Reviewer Codex,在 GOAL.md 备注里标 `# TODO: director-security/architect 实现后接入`。
+**当前行为**:director-architect 已实现(2026-05),自动接;director-security 仍未实现,
+在 GOAL.md 备注 `# TODO: director-security 实现后接入`,该类任务暂只跑内置 Reviewer Codex。
+
+### 2.5.1 director-architect 详细触发(architect 通常跟代码 reviewer 配对)
+
+| 任务原话 | 推荐组合 |
+|---|---|
+| "项目规则审计/重构" / "tech stack 选型" | **director-architect** 单接 |
+| "重构 API + 加新规范" | director-architect + director-frontend(若涉前端) |
+| "Migration 跨服务" | director-architect + (未来 security) |
+| "新建项目骨架(规范 + 设计)" | director-architect + director-design(视觉决策) |
+
+**自动探测命令**:
+```bash
+grep -iE "项目规则|tech stack|架构|migration|API schema|跨服务" GOAL.md
+ls AGENTS.md CONTRIBUTING.md RULE.md docs/ 2>/dev/null  # 项目规则任务通常有这些文件
+```
 
 ## 3. 多角色推荐 vs 单角色推荐
 

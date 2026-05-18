@@ -116,14 +116,15 @@ director-* 现状与扩展：
 
 | 类别 | skill |
 |---|---|
-| 编排器（flow-*）| flow-codex-goal / flow-dev-task / flow-ext-publish / flow-jsx-ui / flow-project-bootstrap / flow-project-finish / flow-skill-dev / flow-skill-research |
+| 编排器（flow-*）| flow-codex-goal / flow-dev-task / flow-ext-publish / flow-project-bootstrap / flow-project-finish / flow-skill-dev / flow-skill-research |
 | **角色型 agent（director-*）** | **director-design / director-frontend / director-promote / director-ops / director-architect** |
 | 共享工具 | clean-commit / delivery-gate / sync-skills |
-| 设计 | ui-extract / jsx-ui-audit / web-image |
+| 设计/视觉 | web-image（出图） / director-design（视觉判断 / mockup） |
+| 前端工程 | director-frontend（合并自原 flow-jsx-ui + jsx-ui-audit + ui-extract） |
 | 浏览器自动化 | cdp-browser-control |
-| 系统运维 | director-ops（软件装 / 卸） |
+| 系统运维 | director-ops（软件装 / 卸，合并自原 software-install + software-uninstall） |
 | 测试 meta | skill-behavior-test / skill-integration-test |
-| 发布渠道 | appinn-forum-post / post-to-twitter / post-to-v2ex / sspai-publish / producthunt-launch / ext-preflight |
+| 宣发/发布渠道 | director-promote（合并自原 post-to-twitter / post-to-v2ex / appinn-forum-post / sspai-publish / producthunt-launch，5 平台内置） / ext-preflight（扩展上架前检查） |
 
 完整列表见各 skill 目录的 `SKILL.md`。
 
