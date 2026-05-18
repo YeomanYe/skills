@@ -1,6 +1,6 @@
 ---
 name: flow-project-bootstrap
-description: Use when a user wants the **full multi-stage** project kickoff chain combining project prep, engineering rules, and design options together. Trigger on requests like "bootstrap this project", "项目初始化", "帮我定 MVP 和规范和设计", "从需求到 kickoff", "完整启动新项目", or any ask that combines MVP scoping, main interaction design, preview requirement decisions, engineering setup, and design direction. For only single-stage prep (MVP + tech stack alone), use `project-prep`. For only engineering rules, use `flow-project-rules`. For only design, use `frontend-design` / `huashu-design`.
+description: Use when a user wants the **full multi-stage** project kickoff chain combining project prep, engineering rules, and design options together. Trigger on requests like "bootstrap this project", "项目初始化", "帮我定 MVP 和规范和设计", "从需求到 kickoff", "完整启动新项目", or any ask that combines MVP scoping, main interaction design, preview requirement decisions, engineering setup, and design direction. For only single-stage prep (MVP + tech stack alone), use `project-prep`. For only engineering rules, use `director-architect`. For only design, use `frontend-design` / `huashu-design`.
 ---
 
 # Orchestrating Project Bootstrap
@@ -31,7 +31,7 @@ description: Use when a user wants the **full multi-stage** project kickoff chai
 
 - 只要开发前准备（MVP / 主技术栈 / preview requirement）—— 直接用 `project-prep`
 - 只要 MVP —— 直接写，不要编排
-- 只要工程规范 —— 直接用 `flow-project-rules` 或 `flow-project-rules`
+- 只要工程规范 —— 直接用 `director-architect`
 - 只要设计系统建议 —— 直接用 `ui-ux-pro-max`
 - 只要 logo 或 preview 页 —— 直接用 `huashu-design` / `frontend-design`
 - 项目已进入实现中段，只想调整单一维度
@@ -345,7 +345,7 @@ Stage 2 不得自动启动。必须显式问用户：
 
 | Slot | Subagent 任务 | 写入目录 | 必须调用的 skill |
 |---|---|---|---|
-| `engineering-rules` | 调 `flow-project-rules` 生成规范脚手架 | `CONTRIBUTING.md` / `AGENTS.md` / `docs/<domain>/` | `flow-project-rules`（必须显式）|
+| `engineering-rules` | 调 `director-architect` 生成规范脚手架 | `CONTRIBUTING.md` / `AGENTS.md` / `docs/<domain>/` | `director-architect`（必须显式）|
 | `logo-design` | 调 `huashu-design` 出 ≥2 个 logo 方向 | `assets/logos/` 或 `branding/` | `huashu-design`（必须显式）|
 | `preview-impl` | 基于 Stage 1.3 已挑选的 preview-mockup-N 落地 | `preview/` 或项目内 preview 路由 | `frontend-design`（A 模式必须显式）/ 直接 cp（B 模式）|
 
@@ -364,13 +364,16 @@ orchestrator 在派工后 idle，等待 3 路返回。
 
 ---
 
-### 2.1 工程规范脚手架（调 `flow-project-rules`）
+### 2.1 工程规范脚手架（调 `director-architect`）
 
-把已锁定的技术栈 + 业务域 + greenfield/adjacent 状态传给 `flow-project-rules`。
+把已锁定的技术栈 + 业务域 + greenfield/adjacent 状态传给 `director-architect`。
+
+handoff payload 必须含 `approval_inherited_from_orchestrator: true` 字段（因为 Stage 1 user gate
+已批准 bootstrap 全流程，Stage 2.1 不再走独立 Approval Gate）。
 
 原样接收产出；不要改述。
 
-> **Codex 派工兼容**：如果 `flow-project-rules` 产出涉及大量样板配置文件（≥ 30 行 / ≥ 2 文件），可按项目 Codex 派工政策路由（详见 `flow-dev-task` 的 Codex Delegation Hook）。规则文档本身（CONTRIBUTING.md / AGENTS.md 等）由 Claude 自己写，不派 Codex。
+> **Codex 派工兼容**：如果 `director-architect` 产出涉及大量样板配置文件（≥ 30 行 / ≥ 2 文件），可按项目 Codex 派工政策路由（详见 `flow-dev-task` 的 Codex Delegation Hook）。规则文档本身（CONTRIBUTING.md / AGENTS.md 等）由 Claude 自己写，不派 Codex。
 
 ### 2.2 项目 Logo 设计（调 `huashu-design`）
 

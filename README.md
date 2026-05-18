@@ -95,8 +95,8 @@ director-* 现状与扩展：
 | `director-frontend` | 前端工程师 | audit / boundaries / implement / extract / handoff | 已实现(2026-05) |
 | `director-promote` | 宣发者 | audit / draft / variants / dispatch / recap | 已实现(2026-05) |
 | `director-ops` | 运维 | install / uninstall | 已实现(2026-05) |
+| `director-architect` | 架构师 | research(联合评估) → approval → land(自带 mini-orchestration) | 已实现(2026-05) |
 | `director-pm` | 产品经理 | (规划中) | 未来 |
-| `director-architect` | 架构师 | (规划中) | 未来 |
 | `director-qa` | QA | (规划中) | 未来 |
 | `director-security` | 安全官 | (规划中) | 未来 |
 
@@ -116,10 +116,10 @@ director-* 现状与扩展：
 
 | 类别 | skill |
 |---|---|
-| 编排器（flow-*）| flow-codex-goal / flow-dev-task / flow-ext-publish / flow-jsx-ui / flow-project-bootstrap / flow-project-finish / flow-project-rules / flow-skill-dev / flow-skill-research |
-| **角色型 agent（director-*）** | **director-design / director-ops** |
+| 编排器（flow-*）| flow-codex-goal / flow-dev-task / flow-ext-publish / flow-jsx-ui / flow-project-bootstrap / flow-project-finish / flow-skill-dev / flow-skill-research |
+| **角色型 agent（director-*）** | **director-design / director-frontend / director-promote / director-ops / director-architect** |
 | 共享工具 | clean-commit / delivery-gate / sync-skills |
-| 设计 | project-rules-design / ui-extract / jsx-ui-audit / web-image |
+| 设计 | ui-extract / jsx-ui-audit / web-image |
 | 浏览器自动化 | cdp-browser-control |
 | 系统运维 | director-ops（软件装 / 卸） |
 | 测试 meta | skill-behavior-test / skill-integration-test |

@@ -34,7 +34,6 @@ declare -a SHARED_FILES=(
 parallelization_target_skills=(
   flow-dev-task
   flow-project-finish
-  flow-project-rules
   flow-ext-publish
   flow-project-bootstrap
   flow-codex-goal
@@ -42,6 +41,7 @@ parallelization_target_skills=(
   director-frontend
   director-promote
   director-ops
+  director-architect
 )
 
 handoff_payload_target_skills=(
@@ -50,6 +50,7 @@ handoff_payload_target_skills=(
   director-frontend
   director-promote
   director-ops
+  director-architect
 )
 
 # director-* 元规范、证据查找、Question Gate 三个共享给所有 4 个 director-*
@@ -58,6 +59,7 @@ director_template_target_skills=(
   director-frontend
   director-promote
   director-ops
+  director-architect
 )
 
 evidence_discovery_target_skills=(
@@ -65,6 +67,7 @@ evidence_discovery_target_skills=(
   director-frontend
   director-promote
   director-ops
+  director-architect
 )
 
 question_gate_target_skills=(
@@ -72,6 +75,7 @@ question_gate_target_skills=(
   director-frontend
   director-promote
   director-ops
+  director-architect
 )
 
 drift_count=0

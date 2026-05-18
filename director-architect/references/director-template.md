@@ -1,0 +1,182 @@
+# director-* 角色型 skill 元规范
+
+> 本文件定义 **director-*** 命名空间下所有角色 skill 的**标准结构**。
+> 新建角色 / 改造现有角色都必须对齐本规范。当前 4 个 director-* 都遵循此模板。
+
+## 1. 命名空间含义
+
+`director-*` 是**角色型 agent**(role-based agent),区别于 `flow-*` 编排型流水线(workflow orchestrator)。
+
+| 类型 | 命名 | 本质 | 例子 |
+|---|---|---|---|
+| **角色型** | `director-<role>` | 一个虚拟专家:**专业判断 + 自己干活 + 调度同领域工具** | director-design / director-promote / director-frontend / director-ops |
+| **编排型** | `flow-<workflow>` | 一条流水线:**串联多个 skill,推任务从起点到终点** | flow-dev-task / flow-project-finish / flow-codex-goal |
+| **工具型** | `<tool>` | 单一能力,被 director-* 或 flow-* 调用 | web-image / clean-commit / delivery-gate |
+
+## 2. 4 个核心角色(2026-05 现状)
+
+| Skill | 角色 | 5 modes 摘要 |
+|---|---|---|
+| `director-design` | 设计师 | audit / direction / variants / mockup / handoff |
+| `director-frontend` | 前端工程师 | audit / boundaries / implement / extract / handoff |
+| `director-promote` | 宣发者 | audit / draft / variants / dispatch / recap |
+| `director-ops` | 运维 | install / uninstall(2 modes,装卸主干) |
+
+未来候选:`director-pm` / `director-architect` / `director-qa` / `director-security`。
+
+## 3. 必备 13 段结构(SKILL.md)
+
+每个 director-* 的 `SKILL.md` 必须含以下段(顺序 + 命名严格一致):
+
+```
+1. Frontmatter (name + description)
+2. 关于命名 (引本元规范)
+3. Overview (角色定位 + 它不是 / 它是 / 核心信念)
+4. When to Use / When NOT to Use
+5. Mode Selection 表 (mode / 用户意图 / 主要产出 / 默认调度工具)
+6. Required Workflow
+   ├── Step 0 Question Gate(开干前澄清,≤ 3 问题,模糊回复取默认)
+   ├── Step 1 通用前置(探测/收集证据)
+   ├── Step 2..N mode-specific 流程
+   └── 每个 mode 含 Deep 段(thinking guide,一句话指引)
+7. N 维 Audit Checklist + Aggregate → Verdict 映射表
+8. Output Contract (强制全字段 + 佐证字段必填)
+9. Red Flags — STOP
+10. Rationalizations to Reject
+11. Parallelization Plan
+12. Subagent 派工模板(调其他 director-* / 工具时必须显式指挥)
+13. Codex Delegation Hook
+14. Relationship to Other Skills (4 director-* 互引 + Handoff 出口 + Upstream Payload)
+15. Reuse (tests/cases.md + references 索引)
+```
+
+## 4. references/ 必备文件
+
+```
+references/
+├── <role>-principles.md       # N 维 rubric + 1/3/5 锚点(audit 用)
+├── evidence-discovery.md      # 证据查找规则(来自 _shared/,sync-shared.sh 同步)
+├── parallelization-template.md # 并行编排(来自 _shared/,sync-shared.sh 同步)
+├── handoff-payload-template.md # handoff schema(来自 _shared/,sync-shared.sh 同步)
+└── <domain>-*.md              # 各角色特有(如 director-design 的 design-principles.md /
+                               #  director-frontend 的 boundary-discovery.md)
+```
+
+## 5. Output Contract 强制佐证字段(ACBDQC Blueprint)
+
+借鉴谷歌经理 ACBDQC 方法论 + director-ops 的 knowledge-and-citation 实践:
+**每个评分项 / 每个 finding 必须含可核对的佐证**。
+
+通用佐证字段规范:
+
+| 角色 | 评分时佐证格式 | findings 时佐证格式 |
+|---|---|---|
+| director-design | `[截图路径:视口尺寸 / 项目 design tokens 路径 / 对照锚点编号]` | `[截图:坐标 / 元素 selector]` |
+| director-frontend | `[文件:行号 / 项目内相似实现路径 / 对照锚点编号]` | `[文件:行号 + 代码片段引用]` |
+| director-promote | `[平台 URL / 字符数 / 配图路径 / 平台调性 reference]` | `[平台:位置 / 文案原文引用]` |
+| director-ops | `[command 输出摘要 / 知识库路径 / 检索命令]` | `[command:行号 / 错误日志引用]` |
+
+**禁止**写"<证据>"或"<结论>"等空泛占位符。必须落到具体引用源。
+
+## 6. Question Gate(Step 0)规范
+
+借鉴 ACBDQC Q + flow-dev-task Question Budget:
+
+```
+Step 0 — Question Gate(开干前澄清)
+
+在 mode 判定 + Step 1 探测完成后,进入执行前必须做一次 Q gate:
+1. 如果当前任务/材料有关键歧义(无法从上下文推断的决策点)
+   → 一次性列出 ≤ 3 个问题(每个带建议默认值)
+2. 如果无歧义 → 直接进入执行,**不要**为了"确认一下"而问
+3. 用户回模糊("随便/按你的来/直接做") → 取默认,不再问
+4. 用户回明确指令 → 按指令执行
+
+**硬约束**:Q gate 只一轮。第二轮追问 = Red Flag。
+```
+
+## 7. Deep 段(thinking guide)规范
+
+每个 mode 必须含一句 thinking 指引(借鉴 ACBDQC D),让 AI 进入"角色视角"而非泛泛输出。
+
+参考写法:
+
+| 角色 / mode | Deep 指引示例 |
+|---|---|
+| director-design audit | "请模拟首次访问用户 3 秒判断,从信息密度 + 视觉舒适度 + 时间感 + 价值感评判" |
+| director-frontend implement | "请模拟一年后接手维护者读这段代码,问'5 分钟内能否理解 + 修改'" |
+| director-promote audit | "请模拟目标平台资深用户的视角,问'第一眼会不会觉得这是 AI 写的'" |
+| director-ops uninstall | "请模拟一个月后用户发现某 LaunchAgent 被误删导致崩溃的场景,反推现在该做什么备份" |
+
+## 8. Subagent 派工模板规范
+
+任何 director-* 调其他 skill 必须用**显式指挥模板**(subagent 默认不会主动 invoke skill)。
+
+通用模板:
+
+```
+Task: <一句话任务>
+
+必须调用的 skill:
+  - **<skill-name>**(mode=<mode>)
+    subagent 默认不会主动 use skill,本指令明确要求你 invoke <skill-name>
+
+输入(只读):
+  - <字段 1>: <value>
+  - <字段 2>: <value>
+  ...
+
+输出目录: .agent/jobs/<task-id>/
+返回 JSON: {<schema>}
+
+约束:
+  - <硬约束 1>
+  - <硬约束 2>
+```
+
+## 9. Verdict 映射规范
+
+每个 director-* 的 N 维 audit 必须有 4 档 verdict 映射(名称按角色调整,语义对应):
+
+| Aggregate | Verdict 通用语义 | 角色名称示例 |
+|---|---|---|
+| ≥ 4.5 | 可交付,无修 | `ready` / `pass` / `installed-clean` |
+| 4.0-4.4 | 可交付,可选修 | `ready-with-fixes` / `pass-with-fixes` / `installed-with-warnings` |
+| 3.0-3.9 | 必修后可交付 | `needs-revision` / `needs-fix` |
+| < 3.0 | 整体不达标,回前置 mode | `needs-rewrite` / `needs-redesign` / `blocked` / `failed` |
+
+特殊触发(任一维度严重失分):直接降级为最差档,跳过 aggregate 计算。
+
+## 10. Parallelization Plan 规范
+
+每个 director-* 必须明确并行集合 / 串行集合,即使"通常不并行"也要写明理由。
+
+参考:`director-design` variants 模式 3 路并行 / `director-promote` dispatch 多平台串行 /
+`director-frontend` extract 通常串行 / `director-ops` 装多工具可并行(无依赖)。
+
+## 11. Codex Delegation Hook 规范
+
+每个 director-* 必须有 Codex ROI 评估表,按 step / mode 标 🟢 / 🟡 / 🔴。
+
+参考准则:
+- **决策 / 判断类** → 🔴(Claude judgment-heavy)
+- **样板代码生成 / 机械执行** → 🟢(Codex 高效)
+- **混合(逻辑 + 样板)** → 🟡(Claude 做复杂逻辑 + Codex 做样板)
+
+派工细则全部以 `flow-dev-task` 的 Codex Delegation Hook 为唯一规范,各 director-* 不重复细则。
+
+## 12. Relationship 段规范
+
+必须含 4 段:
+
+1. **Upstream Orchestrator** — 谁会触发本 skill(列已实际对接的;未对接的标"潜在,需手工接入")
+2. **调度的工具** — self orchestrates 哪些 skill / tool
+3. **Handoff 出口** — 不调用,只移交 spec 给谁
+4. **Upstream Handoff Payload** — 上游传什么字段,有 → 不重复探测;无 → 自己探测;**禁止冗余追问**
+
+必须明示其他 3 个平行 director-* 角色(列名 + 一句话职责)。
+
+## 13. README 同步规范
+
+中心仓 README.md 的 "director-* 角色" 段必须列全 4 个角色 + 元规范链接到本文件。
+新加角色时同步更新 README。

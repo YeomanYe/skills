@@ -40,7 +40,7 @@ Prompt：
 
 > 帮我审查当前项目 docs/ 下的规范，看看有没有重复或者层次错位的地方。
 
-预期：不触发。由 `flow-project-rules` 或 `project-rules-design` 直接处理。
+预期：不触发。由 `director-architect`（research-only 路径，"审一下"信号）直接处理。
 
 ### N2. 仅设计需求
 
@@ -114,7 +114,7 @@ Prompt：同 T1。
 
 预期 Stage 2 行为顺序：
 
-1. 调 `flow-project-rules` 出工程规范（带上 Stage 1 锁定的技术栈）
+1. 调 `director-architect` 出工程规范（handoff payload 含 `tech_stack` + `approval_inherited_from_orchestrator: true`）
 2. 调 `huashu-design` 出 ≥ 2 个 logo 方向（用 Stage 1 选定设计系统的配色 + 字体）
 3. 实现 preview 页（套已选设计系统 token + 真实组件复用 / 占位组件 + 切回 deadline）
 4. 部署 preview 页到目标平台（GitHub Pages / Cloudflare）

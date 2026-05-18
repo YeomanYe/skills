@@ -1,6 +1,6 @@
 # 链路测试用例
 
-验证 `flow-project-bootstrap -> project-prep -> flow-project-rules / ui-ux-pro-max` 的衔接是否完整。
+验证 `flow-project-bootstrap -> project-prep -> director-architect / ui-ux-pro-max` 的衔接是否完整。
 
 ## C1. 正常流转
 

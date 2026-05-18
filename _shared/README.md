@@ -49,8 +49,8 @@ bash scripts/sync-shared.sh --check
 
 | _shared 文件 | 引用 skill |
 |---|---|
-| `parallelization-template.md` | flow-dev-task / flow-project-finish / flow-project-rules / flow-ext-publish / flow-project-bootstrap / flow-codex-goal |
-| `handoff-payload-template.md` | flow-codex-goal |
+| `parallelization-template.md` | flow-dev-task / flow-project-finish / flow-ext-publish / flow-project-bootstrap / flow-codex-goal / director-design / director-frontend / director-promote / director-ops / director-architect |
+| `handoff-payload-template.md` | flow-codex-goal / director-design / director-frontend / director-promote / director-ops / director-architect |
 
 ## 加新共享文件的流程
 
