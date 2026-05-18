@@ -103,12 +103,33 @@ director-promote 只在用户说"上架前先准备素材"或"上架后发宣传
 ### case-success-chrome-assets-01: Chrome Store 素材完整
 **Input**: "为这个扩展生成 Chrome 商店素材"
 **Expected**:
-- 调 director-design 生成 promo tile 3 种规格 + 5 张 screenshots + icon-128
+- 调 director-design 生成 promo tile 3 种规格 + screenshots + icon-128
+- promo tile **包含产品真实截图**(不是纯文字海报)
+- screenshots 1-5 张,**至少 1 张是 1280×800**,多张之间差异化
 - 写描述(short ≤ 132 + long ≤ 16000)
 - meta.json 含 category / language / search_terms
 - 全部写到 `.agent/promote-handoff/<task-id>/store-assets/chrome/`
 - README.md 含交付清单 + audit status
 - 显式标记: handoff 目标 = flow-ext-publish
+
+### case-success-edge-assets-01: Edge Add-ons 素材完整
+**Input**: "为这个扩展生成 Edge 商店上架素材"
+**Expected**:
+- 按 `references/platforms/edge.md` 的 spec 生成
+- 含 **logo-tile-300x300.png**,且**基于项目图标源文件设计**(派工 prompt 传了 icon 路径)
+- screenshots 尺寸为 **1366×768 或 1920×1080**(不是 Chrome 的 1280×800)
+- short_description ≤ 200 字符
+- 写到 `.agent/promote-handoff/<task-id>/store-assets/edge/`
+- 显式标记: handoff 目标 = flow-ext-publish
+
+### case-success-multi-store-01: Chrome + Edge 同时出素材(平台化派工)
+**Input**: "为这个扩展生成 Chrome 和 Edge 两个商店的素材"
+**Expected**:
+- **按平台拆成 2 路并行 subagent**:`asset-chrome`(用 chrome-store-assets.md spec)
+  + `asset-edge`(用 platforms/edge.md spec)
+- 两路各自独立目录,各自一套尺寸规范(Chrome 1280×800 / Edge 1366×768)
+- **不**用一套约束给两个商店出图
+- collect-all 收齐后分别写 `store-assets/chrome/` 和 `store-assets/edge/`
 
 ---
 
@@ -146,6 +167,28 @@ director-promote 只在用户说"上架前先准备素材"或"上架后发宣传
 **Input**: audit 发现 landing page 视觉差,想直接修代码
 **Expected**: 越界拒绝。报告 must-fix("调 director-design 出新方向" 或 "建议用户调 flow-jsx-ui"),
 **不**自己调 frontend-design / flow-jsx-ui。
+
+### case-redflag-08: 同平台多图雷同
+**Input**: director-design 返回 Chrome 5 张截图,但 5 张都是同一个列表页、同取景、只换了配色
+**Expected**: orchestrator 核对 differentiation_note,发现任意两张在「展示功能/场景/取景」3 维上
+少于 2 维不同 → STOP,退回 director-design 重做,**不**进交付目录。
+
+### case-redflag-09: 商店尺寸混用
+**Input**: 要同时出 Chrome + Edge,但只派一路 subagent 用一套约束出图
+**Expected**: 拒绝。Chrome 1280×800 ≠ Edge 1366×768,必须按平台拆多路 subagent,
+每路用对应 spec(chrome-store-assets.md / platforms/edge.md)。
+
+### case-redflag-10: Chrome 截图全用 640×400
+**Input**: director-design 返回 5 张 Chrome 截图,全是 640×400
+**Expected**: STOP。至少 1 张必须是 1280×800,退回重做。
+
+### case-redflag-11: 促销图是纯文字海报
+**Input**: director-design 返回的 promo tile 只有产品名 + logo + 背景色,无产品截图
+**Expected**: STOP。Chrome promo tile 必须包含产品真实截图,退回重做。
+
+### case-redflag-12: Edge 缺 logo tile / 用缩放图凑
+**Input**: Edge 素材包里没有 300×300 logo tile,或拿 icon-128 缩放成 300×300
+**Expected**: STOP。Edge 必须有基于项目图标**重新设计**的 300×300 logo tile,不是缩放。
 
 ---
 

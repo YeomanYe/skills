@@ -198,21 +198,29 @@ playwriter 扩展。
 
 详见 `references/platforms/` 各文件。
 
-## Chrome Store 素材交付(给 flow-ext-publish 用)
+## 扩展商店素材交付(给 flow-ext-publish 用)
 
-director-promote `draft` 模式可以为 Chrome/Edge/Firefox 扩展商店生成上架**素材**(不执行上架):
+director-promote `draft` 模式可以为 Chrome / Edge / Firefox 扩展商店生成上架**素材**(不执行上架)。
+**每个商店尺寸规范不同,必须分别按各自 spec 出素材**,不能一套通用。
 
-- **促销图(promo tile)**:440×280 / 920×680 / 1400×560(Chrome Store 三种规格)
-- **截图(screenshots)**:1280×800 或 640×400(每店各自 5 张)
-- **图标(icon)**:128×128 PNG(扩展通用)
-- **描述文案**:short_description(132 字符)+ long_description(支持 Markdown)
-- **隐私政策摘要**(可选)
+**Chrome Web Store**(规范详见 `references/chrome-store-assets.md`):
+- 促销图(promo tile):440×280 / 920×680 / 1400×560 三种规格,**必含产品真实截图**
+- 截图:1-5 张,**至少 1 张必须 1280×800**(其余可 640×400),**多张之间必须差异化**
+- 图标:128×128 PNG
+- 描述文案:short_description(≤132 字符)+ long_description(Markdown)
 
-素材**写盘到** `.agent/promote-handoff/<task-id>/store-assets/`,同时:
+**Edge Add-ons**(规范详见 `references/platforms/edge.md`):
+- **logo tile:300×300,必须基于项目图标设计**(Edge 商店特有,Chrome 没有)
+- 截图:1366×768 或 1920×1080,数量与差异化要求同 Chrome
+- short_description:≤200 字符(比 Chrome 宽)
+
+**Firefox Add-ons**:见 `references/chrome-store-assets.md` 末段(本轮不展开)。
+
+素材**写盘到** `.agent/promote-handoff/<task-id>/store-assets/{chrome,edge,firefox}/`,同时:
 - 把路径返回给上游 orchestrator
 - 显式标记:"交付目标 = `flow-ext-publish`,**本 skill 不执行上架**"
 
-规范详见 `references/chrome-store-assets.md`。
+出素材时按平台派 `director-design` subagent(每平台一路,见下方"调用 director-design subagent 的派工模板")。
 
 ## Parallelization Plan
 
@@ -262,34 +270,73 @@ orchestrator 派 N 路 subagent 后**进入 idle**,各路返回触发唤醒后�
 
 单流程串行。
 
-### 调用 director-design subagent 的派工模板(**必须显式指挥**)
+### 调用 director-design subagent 的派工模板(**必须显式指挥 + 按平台分化**)
 
-当 draft / audit 阶段发现需要 hero 图 / promo tile / Chrome Store 截图时,派 subagent 调
-`director-design`。**subagent 默认不会主动 invoke skill,必须在 prompt 里显式指挥**:
+当 draft / audit 阶段需要 hero 图 / 商店素材时,派 subagent 调 `director-design`。
+**subagent 默认不会主动 invoke skill,必须在 prompt 里显式指挥**;且**每个目标平台的
+尺寸 / 格式 / 内容约束不同,必须按平台注入对应 spec**——不是造新 skill,仍是同一个
+`director-design`,只是派工 prompt 的约束段按平台分化。
+
+**第一步:按目标平台选 spec**(三类,见下表)。一次任务涉及多个平台 → 派多路 subagent,
+每路一个平台一套 spec(详见下方"多平台并行派工")。
+
+| 目标平台 | spec 来源 | 关键约束摘要 |
+|---|---|---|
+| Chrome Web Store | `references/chrome-store-assets.md` | 1-5 张截图、**≥1 张必须 1280×800**、促销图**必含截图**、5 张**必须差异化** |
+| Edge Add-ons | `references/platforms/edge.md` | **300×300 logo tile(用项目图标设计)**、截图 1366×768 或 1920×1080、同上差异化 |
+| 社区平台(twitter / v2ex / appinn / sspai / producthunt) | 对应 `references/platforms/<name>.md` | hero 图,各平台比例不同(twitter 16:9 / sspai 1600×1200 ...) |
+
+**通用派工 prompt 模板**(`<...>` 处按平台 spec 填充):
 
 ```
-Task: 为 <project> 生成 <hero | promo-tile | chrome-screenshot>
+Task: 为 <project> 生成 <平台名> 的 <hero 图 | 商店素材包>
 
 必须调用的 skill:
   - **director-design**(mode=mockup)
     subagent 默认不会主动 use skill,本指令明确要求你 invoke director-design
 
+目标平台: <chrome-web-store | edge-addons | twitter | v2ex | ...>
+平台 spec(只读,严格遵守): <对应 references 文件路径>
+
 输入(只读):
   - 产品类型: <product_type>(extension popup / SaaS dashboard / landing page / mobile app)
-  - 目标用途: <hero for twitter / promo-tile 440x280 for chrome store / screenshot 1280x800 ...>
-  - 已有 evidence: <evidence_paths>
+  - 项目图标源: <icon 文件路径>(Edge logo tile / 商店 icon-128 必须基于此)
+  - 已有 evidence / 真实截图: <evidence_paths>
   - 项目设计 tokens: <design_tokens_source 路径,若无 → 用默认>
 
-输出目录: .agent/jobs/promote-hero-<task-id>/
-返回 JSON: {status, mockup_path, viewport, style_decisions, errors}
+需产出的素材清单(按平台 spec):
+  - <例:chrome → promo-tile-440x280 + 5 张差异化截图(≥1 张 1280×800);
+         edge   → logo-tile-300x300(基于项目图标)+ 截图;
+         twitter→ 1 张 16:9 hero>
 
-约束:
+输出目录: .agent/jobs/promote-asset-<平台>-<task-id>/(禁动其他平台目录)
+返回 JSON: {status, platform, asset_paths[], dimensions[], differentiation_note, style_decisions, errors}
+
+硬约束:
   - 必须由 director-design 完成,不要 subagent 自己瞎画
-  - 严守目标平台尺寸规范(参考 references/chrome-store-assets.md / platforms/<name>.md)
+  - 严守该平台 spec 的尺寸 / 格式 / 数量规范
+  - **同平台多图必须差异化**:多张截图/宣传图在「展示功能 / 使用场景 / 取景视角」
+    至少 2 个维度不同,禁止只换配色或换 demo 数据(详见 chrome-store-assets.md
+    差异化段)。返回 JSON 的 differentiation_note 必须逐张说明差异点
   - 不得输出含敏感信息(IP/邮箱/钱包/密码)的截图
 ```
 
-orchestrator 派 subagent 后**进入 idle**,subagent 返回后把 mockup_path 塞回 audit 报告 / dispatch 流程。
+#### 多平台并行派工(每平台一路 subagent)
+
+一次任务要同时出 Chrome + Edge 素材时,**按平台拆成多路并行 subagent**,每路只负责
+一个平台、用一套平台 spec、写独立目录:
+
+| Slot | 平台 | spec | 输出目录 |
+|---|---|---|---|
+| `asset-chrome` | Chrome Web Store | `chrome-store-assets.md` | `.agent/jobs/promote-asset-chrome-<id>/` |
+| `asset-edge` | Edge Add-ons | `platforms/edge.md` | `.agent/jobs/promote-asset-edge-<id>/` |
+| `asset-<community>` | twitter / v2ex / ... | `platforms/<name>.md` | `.agent/jobs/promote-asset-<name>-<id>/` |
+
+orchestrator 派多路 subagent 后**进入 idle**,collect-all 收齐后把各平台 asset_paths
+塞回 draft 产物 / store-assets 交付目录。单路失败不阻塞其他平台。
+
+**禁止**:用同一套约束给所有平台出图(尺寸会错)、或一路 subagent 同时出多平台素材
+(平台 spec 混用,产出不可用)。
 
 ## Output Contract
 
@@ -394,6 +441,12 @@ orchestrator 派 subagent 后**进入 idle**,subagent 返回后把 mockup_path �
 - **本 skill 自己执行 Chrome Store 上架**(越界,必须 handoff 给 flow-ext-publish)
 - **本 skill 调用 director-frontend / frontend-design plugin 写代码**(越界,这些是工程,不是宣发)
 - **替项目擅自换调性**(变成"神器/秒杀/吊打"等过度营销词)
+- **同平台多张宣传图/截图雷同**(Chrome 5 张截图布局/场景/高亮功能一样,只换配色或换 demo 数据 → STOP;
+  必须满足"展示功能 / 使用场景 / 取景视角"至少 2 维不同,详见 `references/chrome-store-assets.md` 差异化段)
+- **用同一套尺寸约束给所有商店出图**(Chrome 1280×800 ≠ Edge 1366×768,平台 spec 混用 → 产出不可用)
+- **Chrome 截图全用 640×400**(至少 1 张必须 1280×800)
+- **促销图做成纯文字海报**(Chrome promo tile 必须包含产品真实截图,不能只有文字 + logo)
+- **Edge 缺 300×300 logo tile**(Edge Add-ons 必须有基于项目图标设计的 300×300 图)
 
 ## Rationalizations to Reject
 
@@ -409,6 +462,10 @@ orchestrator 派 subagent 后**进入 idle**,subagent 返回后把 mockup_path �
 | "Chrome Store 上架我顺手就做了" | 越界——本 skill 只产素材,执行交 flow-ext-publish |
 | "预览截图省一下,直接发" | 平台一旦发出无法编辑(v2ex 10 分钟,twitter/appinn 都有限制),预览门绝不可省 |
 | "audit 给 2 分但用户催,直接 dispatch" | 2 分材料发出去 = 自损品牌,先告知 must-fix 让用户决定 |
+| "5 张截图换个配色/换组数据就算差异化了" | 换皮不算差异化;必须展示不同功能 / 不同场景 / 不同取景,至少 2 维真不同 |
+| "Chrome 和 Edge 截图都是扩展界面,一套图通用" | 尺寸规范不同(1280×800 vs 1366×768),通用 = 至少一边被商店拒 |
+| "促销图放个 logo 加大标题就够吸引人" | Chrome promo tile 必含真实截图,纯文字海报让用户看不到产品长啥样 |
+| "Edge 的 logo tile 拿 Chrome 的 icon-128 缩放一下" | 300×300 与 128×128 不同用途,必须基于项目图标重新设计该尺寸 |
 
 ## Codex Delegation Hook
 
@@ -439,13 +496,17 @@ orchestrator 派 subagent 后**进入 idle**,subagent 返回后把 mockup_path �
 不要假设上游会自动调本 skill;触发动作由用户(或更高层 orchestrator)决定。
 
 ### 调度的工具(self orchestrates)
-- `director-design` — hero 图 / promo tile / 商店截图设计(mode=mockup)
-- 内置平台子模块(物理合并的原 5 个 skill):
-  - `references/platforms/twitter.md`
-  - `references/platforms/v2ex.md`
-  - `references/platforms/appinn.md`
-  - `references/platforms/sspai.md`
-  - `references/platforms/producthunt.md`
+- `director-design` — hero 图 / promo tile / 商店截图设计(mode=mockup),**按平台分化派工 spec**
+- 平台子模块,分两类:
+  - **发帖自动化子模块**(dispatch mode 用,playwriter 操控浏览器发帖):
+    - `references/platforms/twitter.md`
+    - `references/platforms/v2ex.md`
+    - `references/platforms/appinn.md`
+    - `references/platforms/sspai.md`
+    - `references/platforms/producthunt.md`
+  - **商店素材 spec**(draft mode 用,描述上架素材尺寸格式,不发帖):
+    - `references/chrome-store-assets.md` — Chrome Web Store
+    - `references/platforms/edge.md` — Edge Add-ons(300×300 logo tile 等)
 
 ### Handoff 出口(不调用,只移交)
 - `flow-ext-publish` — Chrome/Edge/Firefox 商店上架执行
@@ -494,8 +555,8 @@ orchestrator 派 subagent 后**进入 idle**,subagent 返回后把 mockup_path �
 
 测试用例在 `tests/cases.md`。
 9 维详细 rubric 在 `references/promote-principles.md`。
-平台子模块在 `references/platforms/<name>.md`(twitter / v2ex / appinn / sspai)。
-Chrome Store 素材规范在 `references/chrome-store-assets.md`。
+发帖自动化子模块在 `references/platforms/<name>.md`(twitter / v2ex / appinn / sspai / producthunt)。
+商店素材规范:Chrome 在 `references/chrome-store-assets.md`,Edge 在 `references/platforms/edge.md`。
 
 **共享元规范**(由 `sync-shared.sh` 维护,4 个 director-* 都遵循):
 - `references/director-template.md` — director-* 元规范(13 段 SKILL.md 结构 + 必备字段)
