@@ -320,6 +320,10 @@ Task: 为 <project> 生成 <平台名> 的 <hero 图 | 商店素材包>
   - **同平台多图必须差异化**:多张截图/宣传图在「展示功能 / 使用场景 / 取景视角」
     至少 2 个维度不同,禁止只换配色或换 demo 数据(详见 chrome-store-assets.md
     差异化段)。返回 JSON 的 differentiation_note 必须逐张说明差异点
+  - **单张合成图内不重复截图**:一张 promo tile 若嵌多个截图,这些截图必须各不相同
+  - **Edge logo tile 只能用项目图标**:300×300 logo tile 禁止放产品截图
+  - **合成宣传图排版均衡**:promo tile / logo tile / 海报类的元素在画布上均衡分布、
+    视觉重心居中,不堆一角、不留大片空白(产品真实截图不受此约束)
   - 不得输出含敏感信息(IP/邮箱/钱包/密码)的截图
 ```
 
@@ -448,7 +452,11 @@ orchestrator 派多路 subagent 后**进入 idle**,collect-all 收齐后把各�
 - **用同一套尺寸约束给所有商店出图**(Chrome 1280×800 ≠ Edge 1366×768,平台 spec 混用 → 产出不可用)
 - **Chrome 截图全用 640×400**(至少 1 张必须 1280×800)
 - **促销图做成纯文字海报**(Chrome promo tile 必须包含产品真实截图,不能只有文字 + logo)
+- **单张宣传图内重复同一截图**(一张 promo tile 里嵌多个截图却是同一张摆多遍 → STOP;图内的多个截图必须各不相同)
 - **Edge 缺 300×300 logo tile**(Edge Add-ons 必须有基于项目图标设计的 300×300 图)
+- **Edge logo tile 里放了产品截图**(300×300 logo tile 只能用项目图标,禁止含扩展界面/产品 UI 抓图 → STOP)
+- **合成宣传图排版失衡**(promo tile / logo tile / 海报类:元素堆一角、视觉重心偏置、大片留白 → STOP;
+  必须均衡分布、重心居中。注意此条只针对合成图,产品真实截图不适用)
 
 ## Rationalizations to Reject
 
@@ -467,7 +475,10 @@ orchestrator 派多路 subagent 后**进入 idle**,collect-all 收齐后把各�
 | "5 张截图换个配色/换组数据就算差异化了" | 换皮不算差异化;必须展示不同功能 / 不同场景 / 不同取景,至少 2 维真不同 |
 | "Chrome 和 Edge 截图都是扩展界面,一套图通用" | 尺寸规范不同(1280×800 vs 1366×768),通用 = 至少一边被商店拒 |
 | "促销图放个 logo 加大标题就够吸引人" | Chrome promo tile 必含真实截图,纯文字海报让用户看不到产品长啥样 |
+| "promo tile 里同一张截图摆两遍,看着丰富" | 图内重复截图 = 凑数,STOP;一张图里的多个截图必须各不相同 |
 | "Edge 的 logo tile 拿 Chrome 的 icon-128 缩放一下" | 300×300 与 128×128 不同用途,必须基于项目图标重新设计该尺寸 |
+| "Edge logo tile 放张产品截图更直观" | logo tile 是品牌图标位不是截图位,只能用项目图标;截图归 Edge 的 screenshots 那几张 |
+| "元素都堆左边,右边留空有呼吸感" | 大片单侧留空 ≠ 呼吸感,是排版失衡;合成图要重心居中、均衡分布 |
 
 ## Codex Delegation Hook
 

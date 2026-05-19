@@ -190,6 +190,28 @@ director-promote 只在用户说"上架前先准备素材"或"上架后发宣传
 **Input**: Edge 素材包里没有 300×300 logo tile,或拿 icon-128 缩放成 300×300
 **Expected**: STOP。Edge 必须有基于项目图标**重新设计**的 300×300 logo tile,不是缩放。
 
+### case-redflag-13: 单张宣传图内重复截图
+**Input**: director-design 返回的 Chrome promo tile 里并排嵌了 2 个截图,但两个是同一张产品截图
+**Expected**: STOP。单张合成图内的多个截图必须各不相同,退回 director-design 重做。
+注意这与 case-redflag-08(图与图之间雷同)是不同粒度——本例是**一张图内部**重复。
+
+### case-redflag-14: Edge logo tile 放产品截图
+**Input**: director-design 返回的 Edge 300×300 logo tile 里是扩展界面截图,不是项目图标
+**Expected**: STOP。logo tile 是品牌图标位,只能用项目图标,禁止含产品 UI 截图,退回重做。
+产品截图应放在 Edge 的 screenshots(1366×768/1920×1080)里,不是 logo tile。
+
+### case-redflag-15: 合成宣传图排版失衡
+**Input**: director-design 返回的 Chrome promo tile,所有元素(产品名 + 截图 + 文案)都堆在左半边,
+右半边大片空白,视觉重心明显偏置。
+**Expected**: STOP。promo tile 是合成图,元素必须在画布上均衡分布、视觉重心居中,
+不堆一角、不留大片空白,退回 director-design 重做。
+
+### case-redflag-16: 误把截图排版当失衡
+**Input**: Chrome screenshots 里某张产品真实截图,产品本身界面是左侧导航 + 右侧内容,
+看起来"重心偏左"。
+**Expected**: **不**触发排版失衡 STOP。均衡分布约束只针对合成宣传图(promo tile / logo tile),
+产品真实截图的排版由产品界面决定,不是 agent 摆的,不按此条评判。
+
 ---
 
 ## 5. 边界场景
