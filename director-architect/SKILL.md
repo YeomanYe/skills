@@ -13,6 +13,8 @@ description: >
   (→ director-design)/ 单个 skill 自己的写法(→ writing-skills)。
 ---
 
+> 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
+
 # director-architect — 虚拟架构师
 
 ## 关于命名

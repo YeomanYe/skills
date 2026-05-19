@@ -14,6 +14,8 @@ description: >
   浏览器扩展上架(→ flow-ext-publish)。
 ---
 
+> 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
+
 # director-frontend — 虚拟前端工程师
 
 ## 关于命名

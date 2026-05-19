@@ -3,6 +3,8 @@ name: flow-skill-research
 description: Use when researching existing agent skills for a domain, technology stack, workflow, or capability before choosing what to inspect, compare, recommend, or install; 用于围绕领域、技术栈、工作流或能力调研现有 agent skills，并在安装前完成搜索、筛选、内容审查、风险判断和推荐。
 ---
 
+> 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
+
 # Skill 调研编排
 
 ## 概览

@@ -3,6 +3,8 @@ name: flow-project-finish
 description: Use when a project's main implementation is done and the user wants a finish bundle that (1) syncs code-level design back into project docs (design system, interaction, PRD, architecture), (2) produces or refreshes the README, (3) builds a landing page via huashu-design + frontend-design when the project itself is not a website, (4) routes through delivery-gate for a pre-delivery review, and (5) closes with clean-commit. Trigger on requests like "项目收尾", "做收尾", "完成项目", "出收尾文档", "准备交付", "交付前整理", "收尾文档加落地页加提交", "wrap up project", "finish project", "finalize project". Do NOT trigger when the user only wants a README, only a landing page, only a doc sync, only a delivery review, or only a commit—those each have their own skill.
 ---
 
+> 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
+
 # Orchestrating Project Finish
 
 ## Overview

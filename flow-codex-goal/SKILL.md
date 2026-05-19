@@ -18,6 +18,8 @@ description: >
 type: workflow
 ---
 
+> 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
+
 # flow-codex-goal
 
 ## Overview

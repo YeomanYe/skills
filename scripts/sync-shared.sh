@@ -28,6 +28,7 @@ declare -a SHARED_FILES=(
   "director-template.md"
   "evidence-discovery.md"
   "question-gate.md"
+  "constitution.md"
 )
 
 # 各 _shared 文件的目标 skill（基于 grep 实际引用）
@@ -76,6 +77,22 @@ question_gate_target_skills=(
   director-promote
   director-ops
   director-architect
+)
+
+# constitution.md 给所有 director-* + flow-* (12 skill 顶层契约)
+constitution_target_skills=(
+  director-design
+  director-frontend
+  director-promote
+  director-ops
+  director-architect
+  flow-codex-goal
+  flow-dev-task
+  flow-ext-publish
+  flow-project-bootstrap
+  flow-project-finish
+  flow-skill-dev
+  flow-skill-research
 )
 
 drift_count=0
@@ -145,6 +162,10 @@ echo ""
 
 echo "[question-gate.md]"
 sync_one "question-gate.md" "${question_gate_target_skills[@]}"
+echo ""
+
+echo "[constitution.md]"
+sync_one "constitution.md" "${constitution_target_skills[@]}"
 echo ""
 
 if [[ $CHECK_ONLY -eq 1 ]]; then

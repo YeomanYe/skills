@@ -10,6 +10,8 @@ description: >
   / 不影响行为的 reference / 很小的 metadata 改动（minor-update 不必走 orchestrator）。
 ---
 
+> 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
+
 # Orchestrating Skill Development
 
 ## Overview

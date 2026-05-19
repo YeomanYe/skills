@@ -31,6 +31,10 @@ skillshare 工具的配置在 `~/.config/skillshare/config.yaml`，定义了 `so
 ├── README.md              # 本文件
 ├── _shared/               # skill 之间共享的 reference 源头（不是 skill 本身）
 │   ├── README.md
+│   ├── constitution.md         # always-follow 顶层契约(身份/安全/输入信任/注入防御/高风险动作门)
+│   ├── director-template.md    # director-* 元规范(13 段结构)
+│   ├── evidence-discovery.md   # 证据查找规范(5 层优先级)
+│   ├── question-gate.md        # Step 0 Q gate 规则
 │   ├── parallelization-template.md
 │   └── handoff-payload-template.md
 ├── scripts/

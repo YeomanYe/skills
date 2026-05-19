@@ -10,6 +10,8 @@ description: >
   For a single-shot readiness check without uploading, use `ext-preflight` instead.
 ---
 
+> 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
+
 # 扩展发布编排
 
 ## Overview

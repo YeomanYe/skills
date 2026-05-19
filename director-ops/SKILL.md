@@ -11,6 +11,8 @@ description: >
   requirements.txt → flow-dev-task）/ 一次性临时跑（npx <tool>）/ 删项目文件（普通 rm 即可）。
 ---
 
+> 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
+
 # director-ops — 虚拟运维
 
 ## 关于命名
