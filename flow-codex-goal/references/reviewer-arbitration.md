@@ -36,11 +36,32 @@ extra_reviewers:
     when: is_ui_task       # 条件触发（不写 = 始终）
     mode: audit            # reviewer 内部模式
     arbitration_weight: 1.0
+    checks:                # 该 reviewer 负责检查的维度（Step 0.1 第 5 项用户确认后写入）
+      - UX
+      - Layout Stability
+      - Small Popup Density
 
 arbitration_rule: AND-pass   # 可选，默认 AND-pass
 ```
 
 **不写 extra_reviewers = 只跑内置 Reviewer Codex**（向下兼容 v3）。
+
+## Reviewer 检查维度声明（`checks` 字段）
+
+每个 reviewer（含内置 Reviewer Codex）负责检查**哪些维度**，在 Phase 0 Step 0.1 第 5 项
+由用户**确认**后定下，落到 GOAL.md：
+
+- **内置 Reviewer Codex**：默认 `checks: [Correctness, Maintainability, Risk]` + 非 UI 的扩展维度。
+  这是隐式默认，不在 `extra_reviewers` 段（它必跑），但 `REVIEWER-PLAN.md` 表里必须显式列出它的 checks。
+- **每个 extra reviewer**：`checks:` 列出它认领的维度。
+
+**覆盖性约束（硬规则）**：EVAL.md 里的**每个评分维度，必须至少被一个 reviewer 的 `checks` 认领**。
+- orchestrator 在 Step 0.1 生成 Reviewer Plan 表后自检；watcher 在 Step 2.3 派 reviewer 前可再校验。
+- 出现"无人认领的维度" → 该维度不会被任何 reviewer 评 → 等于漏审 → **必须补 reviewer 或重新分配 checks**。
+- 同一维度被多个 reviewer 认领是允许的（多角度交叉审），仲裁时按 `arbitration_rule` 合并。
+
+`checks` 字段是数据驱动的：watcher.sh / launch-extra-reviewer.sh 把对应 reviewer 的 `checks`
+注入它的派工 prompt，让该 reviewer 只在被认领的维度上打分。
 
 ---
 

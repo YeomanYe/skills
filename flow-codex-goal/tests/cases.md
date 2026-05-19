@@ -425,6 +425,37 @@ Prompt：
 - EVAL.md `Reviewer Rubric` 段 0 引用扩展维度
 - 后续 mini-review codex 必须按这个维度评分
 
+### P0-5. Reviewer Plan 确认表必须呈给用户
+
+场景：Step 0.1 第 5 项，UI 任务，orchestrator 建议内置 Reviewer Codex + director-design 两个 reviewer。
+
+预期：
+- orchestrator 生成 `REVIEWER-PLAN.md`，是一张 reviewer × 检查维度映射表
+- 表里内置 Reviewer Codex 行显式列出它的 checks（Correctness/Maintainability/Risk）
+- director-design 行列出它的 checks（UX/Layout Stability 等）
+- 整张表作为 Phase 0 契约的一部分发给用户确认，**不是只问"加不加 director-design"**
+- 用户可增删 reviewer / 调整维度归属，确认后写入 GOAL.md `extra_reviewers[].checks`
+
+### P0-6. 漏审维度 → 必须补
+
+场景：EVAL.md 有 5 个评分维度，但 Reviewer Plan 表里只有 4 个被 reviewer 的 checks 认领，第 5 个无人认领。
+
+预期：
+- 覆盖性自检命中：发现"无人检查的维度"
+- orchestrator 必须补 reviewer 或把该维度并入某 reviewer 的 checks
+- **不允许**带着漏审维度启动 Goal（Red Flag）
+
+### P0-7. IM 会话下 Reviewer Plan 发回来源通道
+
+场景：goal 任务由飞书会话发起（`CC_SESSION_KEY` 非空）。
+
+预期：
+- Step 0.4 把 Reviewer Plan 确认表通过 cc-connect 发回——cc-connect 按 `CC_SESSION_KEY` 路由回飞书
+- 不写死飞书：Telegram / Discord 等其他 IM 通道发起的任务，同样发回各自来源通道
+- 用户在飞书回复 `approve goal <TASK_ID>` 视为对含 Reviewer Plan 的整个契约签字
+- 用户回复要改 reviewer → orchestrator 改表后重新发回飞书等二次确认，不直接开工
+- 模糊回复（"嗯"/"可以吧"）不算签字（constitution.md 第 6 条）
+
 ## 运行模式（RUN_MODE）
 
 ### RM-1. CLI-YOLO 模式
@@ -800,6 +831,25 @@ jq -s '[.[] | .reviewer_thread_id] | unique | length'
 - watcher 不需要改任何代码
 - 自动派 2 个 subagent，各产出 `extras/director-design.md` + `extras/director-pm.md`
 - 仲裁自动按现有规则合并
+
+### ER12. reviewer 的 checks 字段注入派工 prompt
+
+场景：GOAL.md `extra_reviewers` 里 director-design 声明 `checks: [UX, Layout Stability]`。
+
+预期：
+- watcher 派 director-design subagent 时，把 `checks` 注入 prompt 的"负责的检查维度"段
+- director-design **只在 UX / Layout Stability 上打分**，不评 Correctness 等其他维度
+- 返回 JSON 含 `checked_dimensions` 字段，与 checks 一致
+
+### ER13. checks 未声明 → REVIEWER-PLAN 表仍要显式列
+
+场景：用户用极简 schema `extra_reviewers: [director-design]`，没写 checks。
+
+预期：
+- orchestrator 在 Step 0.1 生成 Reviewer Plan 表时，仍要为 director-design **填上建议的 checks**
+- 整张表（含建议 checks）给用户确认
+- 用户确认后，checks 落到 GOAL.md（极简 schema 升级为带 checks 的详细 schema）
+- 不允许 reviewer 没有 checks 就进入 Phase 1
 
 ## 边界 / 回归
 

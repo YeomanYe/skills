@@ -99,17 +99,31 @@ extra_reviewers:
     when: is_ui_task          # 条件触发（可选；不写 = 始终启用）
     mode: audit               # 让该 reviewer 跑哪个 mode（可选；默认按 reviewer 自己 SKILL.md）
     arbitration_weight: 1.0   # 仲裁权重（仅 weighted-avg 模式生效）
+    checks:                   # 该 reviewer 负责检查的维度（Phase 0.1 第 5 项用户确认后写入）
+      - UX
+      - Layout Stability
   - name: director-frontend
     when: is_ui_task          # UI 任务双 reviewer(视觉师 + 工程师)
     mode: audit
+    checks:                   # 该 reviewer 负责检查的维度
+      - Correctness
+      - Maintainability
 
 # 仲裁规则（可选）
 arbitration_rule: AND-pass    # AND-pass（默认）| OR-pass | weighted-avg | hard-rule-override
 ```
 
+### `checks` 字段（reviewer 检查维度声明）
+
+- 每个 extra reviewer 用 `checks:` 列出它在 EVAL.md 哪些维度上打分。
+- 内置 Reviewer Codex 不在此段（它必跑），其 `checks` 默认 = `Correctness / Maintainability / Risk` + 非 UI 扩展维度，
+  在 `REVIEWER-PLAN.md` 表里显式列出。
+- **覆盖性硬规则**：EVAL.md 的每个评分维度必须至少被一个 reviewer 的 `checks` 认领，不允许"无人检查的维度"。
+- `checks` 由 Phase 0.1 第 5 项的 Reviewer Plan 确认表经用户确认后写入，详见 `references/reviewer-arbitration.md`。
+
 ### 默认行为
 
-- **不写 extra_reviewers** = 只跑内置 Reviewer Codex（向下兼容 v3）
+- **不写 extra_reviewers** = 只跑内置 Reviewer Codex（向下兼容 v3）；它仍要在 `REVIEWER-PLAN.md` 声明 checks
 - **arbitration_rule 默认 AND-pass**：所有 reviewer 都 pass 才整体 pass
 - **snapshot 用几何平均**：避免一边极高一边极低也通过
 

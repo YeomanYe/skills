@@ -154,12 +154,14 @@ orchestrator agent 在 GOAL.md 落盘之前，向人类**一次性批量**提案
    - 人类可追加自定义维度（"成功反馈不能影响布局" → `Layout Stability`）
    - 所有维度（基础 4 + 扩展）必须在 EVAL.md 显式列出，reviewer 才会评
 
-5. **Extra Reviewers 注册（可选,2026-05 升级 4 角色路由）**
+5. **Reviewer 阵容 + 各自检查维度（必须用户确认）**
+
+   分两步：先按任务信号**路由**出 reviewer 阵容，再生成 **Reviewer Plan 确认表**让用户确认每个 reviewer 查什么。
+
+   **5a. 路由 reviewer 阵容**（2026-05 升级 4 角色路由）
 
    orchestrator 根据任务特征**主动建议**额外 reviewer。详细路由规则见
-   `references/role-router.md`（任务信号 → 角色映射 + 探测命令 + 反例）。
-
-   **快速路由表**（4 director-* 全部接通）：
+   `references/role-router.md`（任务信号 → 角色映射 + 探测命令 + 反例）。快速路由表：
 
    | 任务信号 | 推荐 extra reviewer |
    |---|---|
@@ -170,18 +172,43 @@ orchestrator agent 在 GOAL.md 落盘之前，向人类**一次性批量**提案
    | 项目规则 / tech stack / 架构 / API schema / migration / 跨服务 | **director-architect** ✅(7 维 quality audit) |
    | 高风险 auth / 支付 / 加密 | (未来 director-security) |
 
-   **推荐流程（建议制 + 默认接受）**：
-   - orchestrator 探测任务信号 → 列出建议 reviewer 清单 + 一句话理由
-   - 用户回复 **"yes / 默认 / 按你的来"** → 按建议写入 GOAL.md
-   - 用户**显式说**"不要 X" → 移除该 reviewer
-   - 用户沉默 / 模糊 → **取建议默认**（降低摩擦,符合 director-* Question Gate 规则）
+   **5b. 生成 Reviewer Plan 确认表（必须用户确认）**
 
-   仲裁规则默认 **AND-pass**（所有 reviewer 都通过才整体 pass）+ **不加权**（简单 + 易解释失败,
-   详见 `references/reviewer-arbitration.md` 多 reviewer 协同段）。
+   - orchestrator 把路由出的阵容整理成一张 **reviewer × 检查维度映射表**（格式见下方"Reviewer Plan 确认表"），
+     **每个 reviewer 标注它负责检查哪几个维度**：
+     - 内置 Reviewer Codex（**必跑**）：默认负责 `Correctness / Maintainability / Risk` + 非 UI 的扩展维度
+     - `director-design` → UI 视觉维度（`UX` + Layout Stability 等）
+     - `director-frontend` → JSX 代码维度（Correctness / Maintainability 等）
+     - `director-promote` / `director-ops` / `director-architect` → 各自领域维度
+   - **整张表给用户逐项确认**——不是只确认"加不加 reviewer"，而是确认"每个 reviewer 各查什么"
+   - 用户可：增删 reviewer、把某维度从 A reviewer 挪到 B reviewer、追加维度
+   - 用户回复 "yes / 默认 / 按你的来" → 按建议表写入；显式说 "不要 X" → 移除；沉默 / 模糊 → 取建议默认
+   - 确认后写入 GOAL.md `extra_reviewers:` 段（每个 reviewer 带 `checks:` 列出其维度，schema 见 `references/goal-template.md`）
+   - 仲裁规则默认 **AND-pass**（所有 reviewer 都通过才整体 pass）+ 不加权，详见 `references/reviewer-arbitration.md`
+   - 不加 extra reviewer = 只跑内置 Reviewer Codex（它仍要在确认表里声明检查维度），向下兼容 v3 行为
 
-   不加 extra_reviewers = 只跑内置 Reviewer Codex，向下兼容 v3 行为。
+**禁止**：未确认就启动 Goal Codex。AC 模糊 / reviewer 检查范围未确认 → goal 跑飞或漏审，攻击面在 Phase 0 这里堵住。
 
-**禁止**：未确认就启动 Goal Codex。AC 模糊 → goal 跑飞，攻击面在 Phase 0 这里堵住。
+##### Reviewer Plan 确认表（Step 0.1 第 5 项的产物，必须呈给用户）
+
+orchestrator 生成下表，作为 APPROVAL 契约的一部分（IM 会话时随 Step 0.4 发回，见下文）：
+
+```md
+## Reviewer Plan — <TASK_ID>
+
+| Reviewer | 类型 | 负责检查的维度 | 仲裁权重 |
+|---|---|---|---|
+| Reviewer Codex | 内置·必跑 | Correctness / Maintainability / Risk / <非 UI 扩展维度> | 1.0 |
+| director-design | extra | UX / Layout Stability / Small Popup Density | 1.0 |
+| <其他 extra> | extra | <维度列表> | <weight> |
+
+仲裁规则: AND-pass（所有 reviewer 都 pass 才整体 pass）
+
+> 请确认：reviewer 阵容是否合适？每个 reviewer 的检查维度是否要增删 / 调整归属？
+```
+
+**覆盖性自检**：表生成后，orchestrator 必须核对 EVAL.md 里**每个评分维度都至少被一个 reviewer 认领**。
+有维度无人认领 → 补 reviewer 或把该维度并入某 reviewer，**不允许出现"无人检查的维度"**。
 
 #### Step 0.2：创建任务目录 + 隔离 worktree + 模板落盘
 
@@ -201,10 +228,11 @@ git remote get-url origin > ".agent/tasks/$TASK_ID/.original-remote" 2>/dev/null
 ```
 
 按模板创建（含 Step 0.1 确认的所有字段）：
-- `GOAL.md` — 用 `references/goal-template.md`（含 `is_ui_task` / `risk_class` / `run_mode` / 扩展维度段）
+- `GOAL.md` — 用 `references/goal-template.md`（含 `is_ui_task` / `risk_class` / `run_mode` / 扩展维度段 / `extra_reviewers` 含 `checks`）
 - `PLAN.md` — 用 `references/plan-template.md`
 - `EVAL.md` — 用 `references/eval-template.md`（含基础 4 维 + 扩展维度）
 - `STOP-CONDITIONS.md` — 用 `references/stop-conditions.md` 模板（独立成文件，方便 reviewer/orchestrator/watcher 共用）
+- `REVIEWER-PLAN.md` — Step 0.1 第 5 项生成的 reviewer × 检查维度映射表（Step 0.4 发给用户确认 / IM 会话发回来源通道）
 - `STATUS.md` — 初始化为 `Phase: 0 / Step: 0 / Last verification: never / Next action: read GOAL.md`
 
 `.gitignore` 必须加：
@@ -238,18 +266,43 @@ wait $BASELINE_PID
 
 #### Step 0.4：APPROVAL.md 人类签字
 
-orchestrator agent 把 Phase 0 产出物（GOAL/EVAL/STOP-CONDITIONS/BASELINE 全文 + 关键截图）通过 cc-connect 发送给人类。人类**必须**回复或在 worktree 内创建：
+orchestrator agent 把 Phase 0 产出物发给人类签字。产出物**必须包含**：
+- GOAL.md / EVAL.md / STOP-CONDITIONS.md / BASELINE 全文 + 关键截图
+- **Reviewer Plan 确认表**（Step 0.1 第 5 项生成的 reviewer × 检查维度映射表）
+
+人类**必须**回复或在 worktree 内创建：
 
 ```bash
 # .agent/tasks/$TASK_ID/APPROVAL.md
 APPROVED by <human-id> @ <ISO-8601 ts>
-Reviewed: GOAL.md / EVAL.md / STOP-CONDITIONS.md / BASELINE.md
+Reviewed: GOAL.md / EVAL.md / STOP-CONDITIONS.md / BASELINE.md / Reviewer Plan
 Notes: <optional>
 ```
 
 **或**通过 IM 回复关键词 `approve goal <TASK_ID>`，watcher 接收后帮人类写 APPROVAL.md（带回复者 ID + ts）。
 
-**禁止**：APPROVAL.md 不存在就启动 Goal Codex。Phase 0 是合同，没合同不开工。
+##### IM 通道发送（会话来源是 IM 时**必做**）
+
+如果当前 session 来自 IM 通道（`CC_SESSION_KEY` 环境变量非空），Phase 0 产出物——**尤其是 Reviewer Plan 确认表**——必须通过 cc-connect 发回**该会话的来源通道**：
+
+```bash
+# 检测会话来源通道（cc-connect 注入，飞书 / Telegram / Discord / WeChat / QQ 等）
+if [[ -n "${CC_SESSION_KEY:-}" ]]; then
+  cc-connect send --message "$(cat .agent/tasks/$TASK_ID/REVIEWER-PLAN.md)"
+  # GOAL/EVAL 等长文同样发；关键截图用 --image
+fi
+```
+
+通道处理规则：
+- **不写死飞书** —— cc-connect 自动按 `CC_SESSION_KEY` 路由回来源通道（飞书 / Telegram / Discord / WeChat / QQ 等）
+- **飞书**是明确支持的通道之一：飞书会话发起的 goal 任务，Reviewer Plan 表必须发回飞书等用户确认
+- 表格在窄通道（IM）可能换行错乱 → 长表降级为分条文本，但 reviewer 名 + 各自维度**不可省**
+- 用户在 IM 回复 `approve goal <TASK_ID>` 即视为对**含 Reviewer Plan 的整个 Phase 0 契约**签字；
+  若用户回复要改 reviewer / 维度归属 → orchestrator 改表后**重新发回**等二次确认，不在改后直接开工
+- IM 消息按 constitution.md 第 3 条属 **low-trust**：只接受 `approve goal <id>` 这类明确关键词，
+  模糊回复（"嗯" / "可以吧"）**不算签字**（对齐 constitution.md 第 6 条 High-Risk Action Gate）
+
+**禁止**：APPROVAL.md 不存在就启动 Goal Codex。Phase 0 是合同，**Reviewer Plan 是合同的一部分**，没合同不开工。
 
 ---
 
@@ -502,15 +555,21 @@ Task: 作为 <reviewer-name> 对当前 Goal 完成状态做专项审计
 输入（只读）:
   - GOAL.md / EVAL.md / BASELINE.md / review-input/
   - 当前 round: <N>
+  - **本 reviewer 负责的检查维度**: <从 GOAL.md extra_reviewers[name].checks 注入>
+    —— 只在这些维度上打分，不评其他维度（其他维度由别的 reviewer 负责）
 
 输出: 写到 .agent/tasks/<TASK_ID>/reviews/round-<N>/extras/<reviewer-name>.md
-返回 JSON: {reviewer_name, verdict, aggregate, must_fix, should_fix, errors}
+返回 JSON: {reviewer_name, verdict, aggregate, checked_dimensions, must_fix, should_fix, errors}
 
 约束:
+  - 只审被认领的 checks 维度，不越界评别人的维度
   - 不读 STATUS.md / ISSUES.md / logs/（与内置 Reviewer Codex 相同隔离原则）
   - 不修改任何代码
   - 必须按自己 skill 的 Output Contract 出报告
 ```
+
+watcher 派工时把该 reviewer 在 GOAL.md `extra_reviewers[].checks` 里声明的维度注入 prompt 的
+"负责的检查维度"段。内置 Reviewer Codex 同理——按 `REVIEWER-PLAN.md` 里它的 checks 行注入 review-prompt。
 
 详细注册 schema + 派工脚本见 `references/reviewer-arbitration.md`。
 
@@ -890,7 +949,10 @@ SUBAGENT 模式下 orchestrator 无法持有后台 watcher 进程。此时 orche
 - token 用量接近 budget 但不停
 - Goal Codex 修改了 SPEC 范围外文件 / boundary-watch 命中
 - 把 Codex 修改全部 `git add .` 而不是选择性 staging
-- 跳过 Step 0.1（未确认 AC / mode / budget / 自定义维度）就启动 Goal
+- 跳过 Step 0.1（未确认 AC / mode / budget / 自定义维度 / **Reviewer Plan**）就启动 Goal
+- **Reviewer Plan 未经用户确认就启动 Goal**（reviewer 阵容 + 各自检查维度是 Phase 0 合同的一部分）
+- **EVAL.md 有维度无任何 reviewer 的 `checks` 认领**（漏审维度，必须补 reviewer 或重分配）
+- **IM 会话下 Reviewer Plan 没发回来源通道**（飞书等发起的 goal，确认表必须发回该通道）
 - 跳过 Step 0.3 baseline scoring 就启动 Goal
 - 跳过运行时证据收集就裁决 verdict
 - IM 会话下跳过 milestone 推送 / UI 任务不发截图
