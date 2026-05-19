@@ -36,6 +36,10 @@ Edge 商店**没有发帖自动化**,不参与 dispatch mode。
 
 ## 素材生成原则
 
+> **原始素材处理总则同 Chrome** —— 项目图标做 logo tile、截图做 screenshots 时,
+> 只能等比缩放 + 构图性裁切,**禁止非等比拉伸变形、禁止裁掉关键内容**。
+> 完整规则见 `chrome-store-assets.md` 的"原始素材处理总则"段。
+
 ### logo tile(300×300,Edge 特有)
 
 调 `director-design mode=mockup` 生成。要求:
