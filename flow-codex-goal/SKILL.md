@@ -11,10 +11,12 @@ description: >
   mostly idle so the human can interrupt and adjust at any time. Trigger on
   phrases like "用 codex goal 跑这个长任务", "让 codex 后台跑", "无人值守长跑",
   "use codex goal mode", "long-horizon agent task", "background codex execution",
-  "ralph loop", "codex 循环改造", "let codex run for hours". Do NOT use for short
-  tasks (use `flow-dev-task` instead), exploratory work without acceptance
-  criteria (use brainstorming), or tasks where the orchestrator itself should be
-  the executor (use `flow-dev-task`).
+  "ralph loop", "codex 循环改造", "let codex run for hours". 用户明确指定
+  "用 codex-goal" 时尊重用户对任务大小的判断权——即使任务较短也进入流程（仅一次性
+  告知代价，不阻止）。Do NOT use（仅 agent 自动路由时）for short tasks (suggest
+  `flow-dev-task` instead), exploratory work without acceptance criteria (use
+  brainstorming), or tasks where the orchestrator itself should be the executor
+  (use `flow-dev-task`).
 type: workflow
 ---
 
@@ -54,23 +56,45 @@ Codex `/goal` 是 Codex CLI 0.128.0+ 的实验功能（feature flag `goals = tru
 | 没有评分基线 | Step 0.3 强制独立 baseline scoring |
 | 自报常失真（"完成"实际未跑、文件数虚报、截图错位）| watcher 跨证据交叉校验 + reviewer 独立运行时验证 |
 
+## 用户判断权优先（任务大小的最终决定权在用户）
+
+**"任务该不该用 codex-goal 跑"是"该不该做"层面的决定，属于用户**——本 skill 的
+"≥ 2 小时"门槛只是 **agent 自动路由时的建议信号**，不是准入门禁。对齐
+`constitution.md` 第 1 条：agent 只判断"怎么做"，不替用户判断"该不该"。
+
+两种入口区别对待：
+
+| 入口 | 任务大小的处理 |
+|---|---|
+| **agent 自动路由**（agent 自己判断该不该用本 skill） | "≥ 2 小时"作为建议信号——短任务时 agent **倾向建议** `flow-dev-task` |
+| **用户明确指定**（原话含"用 codex-goal"/"用 goal 模式跑"/"让 codex 后台跑"等） | **用户判断权优先**。agent 可以**一次性诚实告知**代价，但**告知后不得再阻止**，按用户意愿进入流程 |
+
+**用户明确指定短任务时的一次性告知 gate**（必做一次，且仅一次）：
+- 启动 worktree + watcher + baseline/final reviewer 的固定开销，对 < 2h 的任务可能 > 节省
+- 若任务是**图片 / 视觉 / 文案等主观评分类**：Codex 的评分能力不比 Claude 强，"刷到高分"
+  不代表真达标——主观分由 reviewer 给，不是客观验证
+- 告知后**不再重复劝阻**，不反复要求用户改用 flow-dev-task；用户坚持即进入 Phase 0
+
+**禁止**：用户已明确指定 codex-goal，agent 仍以"任务太短"为由拒绝进入或反复劝退。
+
 ## When to Use
 
-进入本 skill 必须**全部**满足：
+**建议条件**（agent 自动路由时参考；用户明确指定时第 2 条不作硬性要求）：
 
 - 任务边界清晰，可拆步骤，有可验证的 acceptance criteria
-- 预估执行时间 ≥ 2 小时
+- 预估执行时间 ≥ 2 小时 —— *建议信号，非准入门禁；用户明确指定时不受此限*
 - 用户希望"无人值守长跑"或"后台跑"
-- Codex CLI ≥ 0.128.0 且已启用 `goals` feature flag
-- 项目工作区干净（git status clean）或可创建 worktree
+- Codex CLI ≥ 0.128.0 且已启用 `goals` feature flag —— *硬性技术前提，不可豁免*
+- 项目工作区干净（git status clean）或可创建 worktree —— *硬性前提*
 
 ## When NOT to Use
 
-- 短任务（< 2 小时）→ `flow-dev-task`
+- 短任务（< 2 小时）→ **agent 自动路由时**建议 `flow-dev-task`；**用户明确指定 codex-goal 时**
+  尊重用户判断，仅走一次性告知 gate（见上方"用户判断权优先"段），不阻止
 - 模糊目标（"让 UI 更好看"无量化指标）→ `superpowers:brainstorming`
 - 探索性任务，没有 stop condition → `superpowers:brainstorming`
-- 高风险代码（auth/支付/加密）→ orchestrator agent 自写，不派 Codex
-- Codex CLI 未装或版本 < 0.128.0 → 退回 flow-dev-task
+- 高风险代码（auth/支付/加密）→ orchestrator agent 自写，不派 Codex（**安全约束，不可豁免**）
+- Codex CLI 未装或版本 < 0.128.0 → 退回 flow-dev-task（**硬性技术前提，不可豁免**）
 
 ## Run Modes（运行模式四分支）
 
@@ -857,6 +881,7 @@ SUBAGENT 模式下 orchestrator 无法持有后台 watcher 进程。此时 orche
 | 当前在 main/master/dev | 强制创建 worktree |
 | 无 acceptance commands | 警告 + 让用户写 EVAL.md 时手填 |
 | run_mode 探测失败 | 退回 flow-dev-task |
+| 任务预估 < 2 小时（用户明确指定 codex-goal） | **不是 failure**——走一次性告知 gate 后继续 Phase 0（见"用户判断权优先"段） |
 
 ### Stop Conditions（硬约束）
 
@@ -1037,7 +1062,7 @@ ROI 判断：
 | 场景 | ROI |
 |---|---|
 | 任务 ≥ 2 小时 + 清晰验收 | 🟢 高 |
-| 任务 < 2 小时 | 🔴 低（启动 worktree + watcher 开销 > 节省）|
+| 任务 < 2 小时 | 🔴 低（启动 worktree + watcher 开销 > 节省）—— *但用户明确指定 codex-goal 时仍执行，ROI 是路由建议不是准入门禁，见"用户判断权优先"段* |
 | 任务无清晰验收 | 🔴 负（goal 跑飞烧 quota）|
 | 任务高风险（auth/支付）| 🔴 负 |
 | UI 循环改造（迭代式）| 🟢 高（snapshot + 同分硬规则正是为此设计）|

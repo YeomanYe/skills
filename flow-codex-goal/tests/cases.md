@@ -40,12 +40,30 @@ Prompt：
 
 ## 反例触发
 
-### N1. 短任务不触发
+### N1. 短任务 — agent 自动路由不触发
 
 Prompt：
 > 修一下登录页输入框的对齐问题。
 
-预期：**不**触发本 skill，路由给 `flow-dev-task`（短任务、UI 微调，本 skill 启动 worktree+watcher 开销过大）。
+预期：用户**未**指定 codex-goal，属 agent 自动路由场景。**不**触发本 skill，建议
+`flow-dev-task`（短任务、UI 微调，本 skill 启动 worktree+watcher 开销过大）。
+
+### T-USER-SHORT. 短任务 — 用户明确指定 codex-goal 则进入
+
+Prompt：
+> 用 codex-goal 跑一下这个小改动。（任务客观上 < 2 小时）
+
+预期：**触发本 skill 并进入流程**。用户明确指定 codex-goal，用户对任务大小有最终判断权。
+agent 走"用户判断权优先"段的**一次性告知 gate**：告知短任务用 codex-goal 的开销代价
+（worktree+watcher 固定开销 > 节省；若是主观评分类任务，Codex 评分不比 Claude 强），
+告知**一次**后**不再劝阻**，进入 Phase 0。
+**Red Flag**：agent 以"任务太短"为由拒绝进入、或反复要求用户改用 flow-dev-task。
+
+### T-USER-SHORT-CALM. 一次性告知不重复
+
+Prompt：续上，用户告知后回复"知道了，就用 codex-goal"。
+
+预期：agent **不再**第二次劝阻，直接进 Phase 0.0 pre-flight。告知 gate 只触发一次。
 
 ### N2. 模糊目标不触发
 
