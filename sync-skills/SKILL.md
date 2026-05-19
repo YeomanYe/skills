@@ -41,27 +41,31 @@ description: Use when a finished skill should be synced into the central skills 
 3. 以源目录名作为 skill 名称；若源在 AI 工具的 sync target 路径下（`~/.claude/skills/` / `~/.agents/skills/` / `~/.codex/skills/`），自动剥 plugin 前缀（匹配 `^_<plugin>__(skills__)?<naked>$`，例如 `_YeomanYe-skills__foo` → `foo`、`_obra-superpowers__skills__bar` → `bar`）；如需强制覆盖，可用 `DEST_NAME=<name>` env var
 4. 将该目录同步到 `~/Documents/projects/skills/<skill-name>/`
 5. 若目标已存在，默认覆盖
-6. 若当前是飞书来源的 cc-connect 会话（`CC_SESSION_KEY` 以 `feishu:` 开头），且中心目录是 git 仓库，则自动 `git add <skill-name> && git commit && git push`
+6. 若当前是 IM 来源的 cc-connect 会话（`CC_SESSION_KEY` 非空），且中心目录是 git 仓库，则自动 `git add <skill-name> && git commit && git push`
 7. 输出 `source`、`destination`、`effective_skill_name`、`overwrote`、`git_status`
 
-## 飞书来源自动提交
+## IM 来源自动提交
 
-当本 skill 由飞书消息驱动运行时，自动把中心目录的 skill 变更提交并推送到 remote。
+当本 skill 由 IM 消息驱动运行时，自动把中心目录的 skill 变更提交并推送到 remote。
 
-- **触发条件**：环境变量 `CC_SESSION_KEY` 以 `feishu:` 开头（cc-connect 为飞书会话设置的格式）
+理由：调用 sync-skills 收尾本身即表达"这个 skill 要入库"的意图；且 IM 会话用户够不到
+终端、无法手动 `git push`。此行为与 `flow-dev-task` Stage 8 / `clean-commit` 对齐
+（IM 会话自动 push，本地 CLI 手动确认）。
+
+- **触发条件**：环境变量 `CC_SESSION_KEY` 非空（任何 IM 会话——飞书 / Telegram / Discord / WeChat / QQ 等，cc-connect 为 IM 会话设置此变量）
 - **作用对象**：`~/Documents/projects/skills/`
 - **前置要求**：中心目录已是 git 仓库并配置了 remote（脚本不会自动 `git init`，也不会自动配 remote）
-- **Commit message**：`feat(<skill-name>): sync from feishu session`
+- **Commit message**：`feat(<skill-name>): sync from <platform> session`（`<platform>` 取 `CC_SESSION_KEY` 的通道前缀，如 feishu / telegram）
 - **Env 覆盖**：
-  - `NICHE_AUTOSYNC_GIT=0`：强制禁用 git 步骤，即使当前是飞书会话
-  - `NICHE_AUTOSYNC_GIT=1`：强制启用，即使当前不是飞书会话
+  - `NICHE_AUTOSYNC_GIT=0`：强制禁用 git 步骤，即使当前是 IM 会话
+  - `NICHE_AUTOSYNC_GIT=1`：强制启用，即使当前不是 IM 会话（本地 CLI 也提交）
 - **结果字段**（在脚本 stdout）：
-  - `git_status=skipped`：非飞书会话或被显式禁用
-  - `git_status=no-op`：飞书会话但 skill 内容无变化
+  - `git_status=skipped`：非 IM 会话（本地 CLI 直接调用）或被显式禁用
+  - `git_status=no-op`：IM 会话但 skill 内容无变化
   - `git_status=pushed`：成功 `git commit && git push`（带 `git_commit=<shortsha>`）
   - `git_status=committed`：commit 成功但 push 失败（`git_reason` 含原因；本地已写入，不回滚）
   - `git_status=failed`：前置条件不满足（非 git 仓 / 未装 git / commit 失败）
-- **非飞书会话不触发**：其他平台（Telegram / Discord / 本地 CLI 直接调用）均走原有流程，不做 git 动作
+- **本地 CLI 会话不触发**：`CC_SESSION_KEY` 未设置（本地终端直接调用）时走原有流程，不做 git 动作——能手动 push 的就由用户手动确认（对齐 constitution 第 6 条高风险动作门的"用户可手动则手动"原则）
 
 ## 输入规则
 

@@ -264,6 +264,61 @@ HOME="$SANDBOX" NICHE_AUTOSYNC_GIT=0 DEST_NAME=baz bash "$SCRIPT" \
 - stdout 含 `effective_skill_name=baz`
 - 落盘到 `$SANDBOX/Documents/projects/skills/baz/`，**不**生成 `qux/` 或 `_YeomanYe-skills__qux/`
 
+## IM 来源自动提交触发
+
+> 这组验证自动提交的触发条件（本次放宽：飞书 → 任何 IM 会话）。
+> 需中心目录是 git 仓库；用例不带 `NICHE_AUTOSYNC_GIT=0`。
+
+### GIT1 - 飞书会话触发自动提交
+
+#### Run
+```bash
+HOME="$SANDBOX" CC_SESSION_KEY="feishu:abc123" bash "$SCRIPT" "$SANDBOX/work/some-skill"
+```
+
+#### Expected
+- stdout 含 `git_status=pushed`（或 `committed`，若 sandbox 无 remote）
+- commit message 形如 `feat(some-skill): sync from feishu session`
+
+### GIT2 - 其他 IM 会话同样触发（本次改动核心）
+
+#### Run
+```bash
+HOME="$SANDBOX" CC_SESSION_KEY="telegram:xyz789" bash "$SCRIPT" "$SANDBOX/work/some-skill"
+```
+
+#### Expected
+- stdout 含 `git_status=pushed`（或 `committed`）——**不再因为非飞书就 skip**
+- commit message 形如 `feat(some-skill): sync from telegram session`
+
+### GIT3 - 本地 CLI 会话不触发
+
+> ⚠️ 必须 `env -u CC_SESSION_KEY` 清掉变量。若测试本身在 IM 会话（如飞书）里跑，
+> `CC_SESSION_KEY` 会从父进程泄漏给子进程，导致本用例假阴性（误判为 IM 会话）。
+
+#### Run
+```bash
+env -u CC_SESSION_KEY HOME="$SANDBOX" bash "$SCRIPT" "$SANDBOX/work/some-skill"
+```
+
+#### Expected
+- stdout 含 `git_status=skipped`
+- `git_reason` 含 `non-IM session`（本地 CLI，用户应手动 push）
+
+### GIT4 - NICHE_AUTOSYNC_GIT 覆盖仍生效
+
+#### Run
+```bash
+# 强制禁用：IM 会话也不提交
+HOME="$SANDBOX" CC_SESSION_KEY="feishu:abc" NICHE_AUTOSYNC_GIT=0 bash "$SCRIPT" "$SANDBOX/work/some-skill"
+# 强制启用：本地 CLI 也提交
+HOME="$SANDBOX" NICHE_AUTOSYNC_GIT=1 bash "$SCRIPT" "$SANDBOX/work/some-skill"
+```
+
+#### Expected
+- 第一条：`git_status=skipped`，`git_reason` 含 `disabled via NICHE_AUTOSYNC_GIT=0`
+- 第二条：`git_status=pushed`/`committed`（强制启用覆盖了"非 IM 不触发"）
+
 ### Teardown（所有 SN case 跑完后）
 
 ```bash

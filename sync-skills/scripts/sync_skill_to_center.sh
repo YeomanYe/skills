@@ -106,9 +106,11 @@ DEST_PATH_FMT="$(path_with_home_var "$dest")"
 SOURCE_PATH_FMT="$(path_with_home_var "$SOURCE_DIR")"
 
 # --- IM-origin auto commit & push ---------------------------------------
-# Trigger: CC_SESSION_KEY starts with "feishu:" (a Feishu-origin cc-connect
-# session). Other IM platforms are left untouched per user request. The
-# skills dir is expected to be a git repo with a remote configured.
+# Trigger: CC_SESSION_KEY is non-empty (any IM-origin cc-connect session —
+# Feishu / Telegram / Discord / WeChat / QQ, etc.). Local CLI invocations
+# (CC_SESSION_KEY unset) are left untouched so the user commits manually.
+# Aligns with flow-dev-task / clean-commit (IM session → auto push).
+# The skills dir is expected to be a git repo with a remote configured.
 #
 # Env overrides:
 #   NICHE_AUTOSYNC_GIT=0     → disable entirely
@@ -122,10 +124,10 @@ if [[ "${NICHE_AUTOSYNC_GIT:-}" == "0" ]]; then
   GIT_REASON="disabled via NICHE_AUTOSYNC_GIT=0"
 elif [[ "${NICHE_AUTOSYNC_GIT:-}" == "1" ]]; then
   should_git=1
-elif [[ "${CC_SESSION_KEY:-}" == feishu:* ]]; then
+elif [[ -n "${CC_SESSION_KEY:-}" ]]; then
   should_git=1
 else
-  GIT_REASON="non-feishu session (CC_SESSION_KEY=${CC_SESSION_KEY:-unset})"
+  GIT_REASON="non-IM session (local CLI, CC_SESSION_KEY unset)"
 fi
 
 if [[ "$should_git" -eq 1 ]]; then
