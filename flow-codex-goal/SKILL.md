@@ -72,22 +72,24 @@ Codex `/goal` 是 Codex CLI 0.128.0+ 的实验功能（feature flag `goals = tru
 - 高风险代码（auth/支付/加密）→ orchestrator agent 自写，不派 Codex
 - Codex CLI 未装或版本 < 0.128.0 → 退回 flow-dev-task
 
-## Run Modes（运行模式三分支）
+## Run Modes（运行模式四分支）
 
 orchestrator agent 调用本 skill 时所处的运行环境**决定能用哪种 Goal Codex 启动方式**。Step 0.0 必须先探测，后续步骤按模式选路径。
 
 | 模式 | 探测条件 | Goal Codex 启动 | watcher 形态 | 适用场景 |
 |---|---|---|---|---|
 | **CLI-YOLO** | 有 TTY（`tty -s` 成功）+ 当前 shell 是终端 + worktree 隔离 OK | `codex --dangerously-bypass-approvals-and-sandbox --cd "$WORKTREE"` 长跑 | nohup 后台 watcher.sh | 终端直接调用 / cron / IM bridge 后台 daemon |
-| **CLI-EXEC** | 无 TTY 但能 spawn 子进程 | `codex exec --cd "$WORKTREE" < goal-prompt-N.md` 单 Phase 跑完即止 | watcher 仍后台跑，但 mini-review 由 watcher 派单次 codex exec | Claude Code Bash 工具 / IDE 沙箱 |
-| **SUBAGENT** | 主进程能 spawn agent（如 Claude Code Agent 工具）但无 TTY 也无法持有 codex 长跑 | orchestrator 主动派 `Agent(codex-rescue, prompt="跑 Phase N")` 一次一 Phase | 无 watcher（orchestrator 兼任）；但**仍必须**有 review-audit + snapshot 机制 | Claude Code 主上下文 / Codex 调度子 codex |
+| **TMUX-YOLO** | 无 TTY + `CLAUDECODE` / `CLAUDE_CODE_ENTRYPOINT` / `CC_PROJECT` / `ANTHROPIC_AGENT_RUNTIME` 任一非空 + `tmux -V` 可用 + worktree 隔离 OK | `tmux new-session -d -s codex-job-$ID "codex --dangerously-bypass-approvals-and-sandbox --cd $WORKTREE"`；orchestrator 通过 `tmux capture-pane` / `send-keys` 旁观与投喂 | nohup 后台 watcher.sh，额外负责扫 buffer 找 `# PHASE-N-DONE` marker | **Claude→Codex 派任务场景的首选**：Claude Code Bash 工具 / IDE 沙箱里跑长任务 |
+| **CLI-EXEC** | 无 TTY 但能 spawn 子进程，tmux 不可用 | `codex exec --cd "$WORKTREE" < goal-prompt-N.md` 单 Phase 跑完即止 | watcher 仍后台跑，但 mini-review 由 watcher 派单次 codex exec | 没装 tmux 的 Claude Code Bash 工具 / 受限沙箱 |
+| **SUBAGENT** | 主进程能 spawn agent（如 Claude Code Agent 工具）但无 TTY、tmux 也不可用 | orchestrator 主动派 `Agent(codex-rescue, prompt="跑 Phase N")` 一次一 Phase | 无 watcher（orchestrator 兼任）；但**仍必须**有 review-audit + snapshot 机制 | Claude Code 主上下文 / Codex 调度子 codex（且容器里没 tmux） |
 
 **判定脚本**见 `references/run-mode.md`。Phase 0 输出必须含 `run_mode` 字段。
 
 **关键纪律**：
-- CLI-YOLO 是首选（最接近"无人值守"）
-- CLI-EXEC 是次选（仍用 watcher 但每轮启停 codex）
-- SUBAGENT 是兜底（orchestrator 必须自己做 watcher 的活，但 review 隔离 / snapshot / audit 一项不能少）
+- CLI-YOLO 是终端直跑的首选（最接近"无人值守"）
+- **TMUX-YOLO 是 Claude→Codex 派任务场景下的强烈建议**：tmux 一旦可用就应优先于 CLI-EXEC / SUBAGENT 选它，理由是保留 Codex 长跑的上下文连续性 + 仍由独立 watcher 守纪律。详细规则与降级条件见 `references/run-mode.md` 的「强烈建议规则」节。`run-mode.sh capabilities` 输出 `recommend: "TMUX-YOLO"` 时 Phase 0 必须把"是否采纳建议"写入 APPROVAL.md。
+- CLI-EXEC 是 tmux 不可用时的次选（仍用 watcher 但每轮启停 codex）
+- SUBAGENT 是双重兜底（连 tmux 也没有；orchestrator 必须自己做 watcher 的活，但 review 隔离 / snapshot / audit 一项不能少）
 
 ## Required Workflow（按 Phase 顺序执行）
 
@@ -116,7 +118,7 @@ git branch --show-current
 
 # 6. 运行模式探测
 RUN_MODE=$(bash references/run-mode.sh detect)
-# 输出: CLI-YOLO | CLI-EXEC | SUBAGENT
+# 输出: CLI-YOLO | TMUX-YOLO | CLI-EXEC | SUBAGENT
 echo "$RUN_MODE" > .agent/tasks/$TASK_ID/RUN_MODE
 ```
 
@@ -279,7 +281,20 @@ Reviewed: GOAL.md / EVAL.md / STOP-CONDITIONS.md / BASELINE.md / Reviewer Plan
 Notes: <optional>
 ```
 
-**或**通过 IM 回复关键词 `approve goal <TASK_ID>`，watcher 接收后帮人类写 APPROVAL.md（带回复者 ID + ts）。
+**当 `run_mode = TMUX-YOLO` 时必须额外包含**（5 项代价显式接受，缺一不允许进 Phase 1）：
+
+```bash
+# .agent/tasks/$TASK_ID/APPROVAL.md（TMUX-YOLO 增量段）
+## TMUX-YOLO Acceptance
+ACCEPTED 5 tmux-yolo costs by <human-id> @ <ISO-8601 ts>:
+- [x] orphan tmux session cleanup 责任在 orchestrator + watcher
+- [x] capture-pane buffer ANSI 转义由下游 strip
+- [x] phase 边界靠 `# PHASE-N-DONE` marker 协议
+- [x] orchestrator 主任务超时不会终止 tmux 内 Codex（双刃剑）
+- [x] tmux 不可用场景需自动 fallback 到 CLI-EXEC / SUBAGENT
+```
+
+**或**通过 IM 回复关键词 `approve goal <TASK_ID>`，watcher 接收后帮人类写 APPROVAL.md（带回复者 ID + ts）。`run_mode = TMUX-YOLO` 时关键词须升级为 `approve goal <TASK_ID> --accept-tmux-costs`，否则 watcher 拒绝代签并提示用户补确认。
 
 ##### IM 通道发送（会话来源是 IM 时**必做**）
 
@@ -321,6 +336,31 @@ echo $! > .agent/tasks/$TASK_ID/codex.pid
 #       after every milestone (write 'MILESTONE: <name>' line), verify per
 #       EVAL.md, stop when GOAL_DONE or stop conditions hit.
 ```
+
+##### TMUX-YOLO 模式（Claude→Codex 派任务场景首选）
+
+启动前必须先按 `references/tmux-yolo-runtime.md` §3.2 跑 stale scan，然后：
+
+```bash
+SESSION="codex-job-$TASK_ID"
+tmux new-session -d -s "$SESSION" \
+  "cd '$WORKTREE' && codex --dangerously-bypass-approvals-and-sandbox --cd '$WORKTREE'"
+# 完整日志兜底（见 references/tmux-yolo-runtime.md §2.3）
+tmux pipe-pane -o -t "$SESSION" "cat >> .agent/tasks/$TASK_ID/codex-full.log"
+echo "$SESSION" > .agent/tasks/$TASK_ID/tmux.session
+# 注：tmux session 在系统层持久存在，跨 Bash 工具调用不死
+
+# 投喂初始 /goal 指令：marker 协议条款见 references/tmux-yolo-runtime.md §1.1
+tmux send-keys -t "$SESSION" "/goal Read .agent/tasks/$TASK_ID/GOAL.md, follow PLAN.md, update STATUS.md after every milestone. Emit '# PHASE-<N>-DONE @ <ISO-UTC>' on its own line at the end of each phase (NOT inside code blocks); emit '# PHASE-<N>-ABORTED @ <ts> reason: <stop-id>' instead if a stop condition fires. Verify per EVAL.md, stop when GOAL_DONE or stop conditions hit." Enter
+
+# orchestrator / watcher 之后通过 capture-pane 抓 buffer 判断进度（完整协议见 references/tmux-yolo-runtime.md §1.2 / §2.2）：
+#   pane=$(tmux capture-pane -t "$SESSION" -J -p -S -2000 | strip_tmux_artifacts)
+#   echo "$pane" | grep -E '^# PHASE-[0-9]+-(DONE|ABORTED) @ '
+# 抓到 DONE marker 触发 snapshot + reviewer + review-audit；
+# 抓到 ABORTED 写 STATUS.md STOPPED 并退出 watcher。
+```
+
+完整 3 项协议（marker / ANSI strip / cleanup）落地见 **`references/tmux-yolo-runtime.md`**。
 
 ##### CLI-EXEC 模式（每个 Phase 单次启动）
 ```bash
@@ -866,7 +906,7 @@ SUBAGENT 模式下 orchestrator 无法持有后台 watcher 进程。此时 orche
 - ID:
 - Objective:
 - Worktree path:
-- Run Mode: CLI-YOLO | CLI-EXEC | SUBAGENT
+- Run Mode: CLI-YOLO | TMUX-YOLO | CLI-EXEC | SUBAGENT
 - Risk Class: low | medium | high
 - Goal-Attainment Mode: threshold | no-improvement-N | regression-prevention | hybrid
 - Custom Score Dimensions: <list>
@@ -943,7 +983,7 @@ SUBAGENT 模式下 orchestrator 无法持有后台 watcher 进程。此时 orche
 - **Reviewer 启动时未 `env -i`**（凭据泄漏到 reviewer）
 - Reviewer prompt 含实施者解释 / 历史评分 / 上一轮失败原因
 - Goal Codex 报"完成"但 STATUS.md 没写 `GOAL_DONE`
-- watcher 没启动就让 Goal 跑（CLI-YOLO/EXEC 模式）
+- watcher 没启动就让 Goal 跑（CLI-YOLO / TMUX-YOLO / CLI-EXEC 模式）
 - review verdict pass 但 risk_class=high 时 orchestrator 没自跑验证
 - 修改文件超 GOAL.md Budget 但继续推进
 - token 用量接近 budget 但不停

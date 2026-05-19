@@ -467,32 +467,75 @@ Prompt：
 - Goal Codex 启动用 `codex --dangerously-bypass-approvals-and-sandbox --cd "$WORKTREE"`
 - watcher 后台跑
 
-### RM-2. CLI-EXEC 模式
+### RM-2. TMUX-YOLO 模式（Claude→Codex 派任务场景首选）
 
-场景：Claude Code Bash 工具调用，无 TTY，但能 spawn codex exec。
+场景：Claude Code Bash 工具调用，`tty -s` 失败、`CLAUDECODE=1` 或 `CLAUDE_CODE_ENTRYPOINT` 非空、`tmux -V` 能跑、codex 装好、在 worktree 内。
+
+预期：
+- `run-mode.sh detect` 输出 `TMUX-YOLO`
+- `run-mode.sh capabilities` 输出 `recommend: "TMUX-YOLO"`，`tmux_installed: true`
+- APPROVAL.md 包含 5 项 TMUX-YOLO 代价签字段（参见 SKILL.md Step 0.4 TMUX-YOLO 增量段）
+- Phase 0.0 prelude 执行 stale tmux session scan（`references/tmux-yolo-runtime.md` §3.2）
+- Goal Codex 启动用 `tmux new-session -d -s codex-job-$TASK_ID "codex --dangerously-bypass-approvals-and-sandbox --cd $WORKTREE"`，并立刻 `tmux pipe-pane` 兜底完整日志
+- `/goal` 投喂 prompt 含 marker 协议条款（要求 Codex 输出 `# PHASE-<N>-DONE @ <UTC>` 单行 marker，详见 `references/tmux-yolo-runtime.md` §1.1）
+- orchestrator 通过 `tmux capture-pane -t codex-job-$TASK_ID -J -p -S -2000 | strip_tmux_artifacts` 旁观（§2.2）
+- watcher 后台跑且额外负责扫 buffer 找 DONE/ABORTED marker（§1.2），命中后触发 snapshot + reviewer + review-audit
+- watcher 退出（含正常 / SIGINT / SIGTERM）必触发 cleanup_session trap 杀掉自己负责的 tmux session（§3.3）
+
+### RM-3. CLI-EXEC 模式（tmux 不可用 / opt-out）
+
+场景：无 TTY 但**tmux 不可用**（受限沙箱、CI 容器没装 tmux）或显式设了 `CODEX_GOAL_DISABLE_TMUX_YOLO=1`，且当前不在 subagent-capable env。
 
 预期：
 - run-mode.sh detect 输出 `CLI-EXEC`
 - Goal Codex 启动用 `codex exec --cd "$WORKTREE" < goal-prompt-N.md` 一 Phase 一次
 - watcher 仍后台跑，但 mini-review 由 watcher 派单次 codex exec
 
-### RM-3. SUBAGENT 模式
+### RM-4. SUBAGENT 模式（双重兜底）
 
-场景：Claude Code 主上下文，CC_PROJECT 存在。
+场景：Claude Code 主上下文，`CLAUDECODE` 等 subagent env hint 非空，**但 tmux 不可用**；或显式 opt-out + 在 subagent env。
 
 预期：
 - run-mode.sh detect 输出 `SUBAGENT`
 - orchestrator 派 `Agent(codex-rescue, prompt="跑 Phase N")`
 - 无后台 watcher，orchestrator 兼任（**但** snapshot/audit/隔离一项不能少）
 
-### RM-4. RUN_MODE 中途变化 → 拒绝重新探测
+### RM-5. RUN_MODE 中途变化 → 拒绝重新探测
 
-场景：CLI-YOLO 模式跑到一半，orchestrator 检测到 TTY 消失。
+场景：CLI-YOLO / TMUX-YOLO 模式跑到一半，orchestrator 检测到 TTY 消失 / tmux session 异常退出。
 
 预期：
 - 写 `STOPPED: run-mode-changed` 到 STATUS.md
 - 等收尾后重新进 Phase 0
 - **不允许**中途切模式
+
+### RM-6. TMUX-YOLO 推荐但 APPROVAL.md 缺 5 项代价 → 拒绝进 Phase 1
+
+场景：`recommend: TMUX-YOLO` 触发，但人类写 APPROVAL.md 时忘加 `## TMUX-YOLO Acceptance` 段（或 5 项 checklist 没全勾）。
+
+预期：
+- watcher / orchestrator 校验 APPROVAL.md 时发现 5 项 cost 未全勾
+- **拒绝**启动 Goal Codex
+- 写 `STOPPED: tmux-costs-not-accepted` 到 STATUS.md
+- 通过 IM 回送提示用户补勾或选择 fallback 到 CLI-EXEC
+
+### RM-7. TMUX-YOLO opt-out fallback 路径
+
+场景：`CODEX_GOAL_DISABLE_TMUX_YOLO=1` 显式设置（用于 caller 还没升级识别 TMUX-YOLO 时）。
+
+预期：
+- 即便 `CLAUDECODE=1` + tmux 可用，`run-mode.sh detect` 不输出 `TMUX-YOLO`
+- 退回老逻辑：subagent-env-hint 非空 → `SUBAGENT`，否则 `CLI-EXEC`
+- `run-mode.sh capabilities` 中 `recommend` 字段仍标 `TMUX-YOLO`（提示有更优选择，但因 opt-out 不强制）
+
+### RM-8. tmux 不可用强制降级
+
+场景：`recommend: TMUX-YOLO` 被推荐但 `tmux -V` 失败（容器里 tmux 没装）。
+
+预期：
+- run-mode.sh detect 自动降级到 `SUBAGENT`（subagent env hint 非空时）或 `CLI-EXEC`
+- 写降级原因到 STATUS.md：`fallback: tmux-unavailable → SUBAGENT`
+- 不进 TMUX-YOLO 路径，但 APPROVAL.md 也不需要 5 项 cost 段（因为没走该模式）
 
 ## 两 Codex 硬隔离
 

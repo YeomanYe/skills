@@ -47,7 +47,7 @@
 ```yaml
 is_ui_task: false              # true 时激活 UI 截图协议 + 状态走查 + 同分硬规则裁决（详见 references/ui-review-checklist.md）
 risk_class: medium             # low | medium | high  → 决定 Step 3.1 orchestrator 自跑验证的力度
-run_mode: CLI-YOLO             # CLI-YOLO | CLI-EXEC | SUBAGENT  → Phase 0.0 探测得到，全程不变
+run_mode: CLI-YOLO             # CLI-YOLO | TMUX-YOLO | CLI-EXEC | SUBAGENT  → Phase 0.0 探测得到，全程不变
 ```
 
 ## Goal-Attainment Mode
