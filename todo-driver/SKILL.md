@@ -162,11 +162,13 @@ grep -oE '`[a-z0-9][a-z0-9-]*[a-z0-9]`' TODO.md | tr -d '`' | sort -u
 - [ ] `<slug>` <title> — <summary>
 ```
 
-如有 hints，用 `(<hints>)` 拼到行末：
+如有 hints，用 `(<hint 1>; <hint 2>; ...)` 拼到行末，**多条 hints 必须用英文分号 `;` 分隔**（详见"Shared Constraints → TODO.md 格式"节），单条 hints 内可自然使用任何标点：
 
 ```md
-- [ ] `theme-toggle` 主题切换 — 支持深色/浅色/跟随系统三态 (优先 uiStore)
+- [ ] `theme-toggle` 主题切换 — 支持深色/浅色/跟随系统三态 (复用 src/hooks/useDarkMode; 不引入新依赖; 必须支持 RTL)
 ```
+
+收集 hints 时**鼓励一次到位**，每条聚焦一个约束方向（实现倾向 / 范围限制 / 必达指标 / 走查要求 / 已知风险），stage1 起 spec 时会按语义路由到对应章节。
 
 如有 depends_on：**不**写入 TODO.md（depends_on 是 spec 字段，stage 1 起草 spec 时再写），仅在报告中提示。校验每个 depends_on 在 TODO.md 或 `docs/spec/_done/` 中是否存在，不存在的列出来警告但**不阻止**追加。
 
@@ -540,11 +542,24 @@ grep -rE "^  - \[.\] \`<slug>\`" TODO.md
 
 ### TODO.md 格式
 ```md
-- [ ] `<slug>` <title> — <summary> (optional hints)
+- [ ] `<slug>` <title> — <summary> (<hint 1>; <hint 2>; <hint 3>)
 ```
 
 - `- [ ]` = 未合并（pending / draft / approved / in-progress / ready）
 - `- [x]` = 已合并（由 review-merge mode 在 merge 后改）
+
+**hints 抽取规则**（stage1 / agent 都按此处理，不允许另行解释）：
+
+- 行末**一对**括号 `( ... )` 内是 hints；正则 `\(([^)]+)\)\s*$` 抽出整段
+- 整段内用**英文分号 `;`** 分隔成多条 hints；中文逗号 / 英文逗号 / 中文分号 **都不当分隔符**——这样允许单条 hints 内自然使用逗号
+- 每条 hints 是对本 spec 的硬性约束。语义自由（实现倾向 / 范围限制 / 必达指标 / 走查要求 / 已知风险都可以），由 stage1 路由到 spec 对应章节
+- 无 hints 时整对括号可省略
+
+示例：
+
+```md
+- [ ] `theme-toggle` 主题切换 — 三态切换 (复用 src/hooks/useDarkMode; 不引入新依赖; 必须支持 RTL)
+```
 
 ### 高风险动作护栏
 - merge / push main / 删 branch 都属高风险，**永远不 force**

@@ -31,7 +31,7 @@ PROJECTS=(
 每个工程根目录有 `TODO.md`，每项格式：
 
 ```md
-- [ ] `<slug>` <title> — <summary> (optional hints)
+- [ ] `<slug>` <title> — <summary> (<hint 1>; <hint 2>; ...)
 ```
 
 - `- [ ]` = 未完成（待起 spec / 开发中 / 待 merge 全都算）
@@ -39,6 +39,21 @@ PROJECTS=(
 - slug 用反引号包裹，正则 `` `([a-z0-9][a-z0-9-]{1,28}[a-z0-9])` ``
 - 项目可以没有 `TODO.md` → 跳过该工程
 - TODO 项解析不到 slug → 跳过该项继续找下一项
+
+**hints 抽取（结构化、严格按正则）**：
+
+```bash
+# 抽出行末整对括号里的内容
+hints_block=$(echo "$todo_line" | sed -nE 's/.*\(([^)]+)\)[[:space:]]*$/\1/p')
+# 用英文分号分多条；中文逗号/英文逗号/中文分号都不切（允许单条 hints 内自然用逗号）
+IFS=';' read -ra hints <<< "$hints_block"
+# 每条 trim 两端空白
+hints=("${hints[@]## }"); hints=("${hints[@]%% }")
+```
+
+- 抽不到括号 → 视为无 hints，正常起 spec
+- 抽到但 split 后某条为空（如 `(a;;b)`）→ 跳过空条，不报错
+- 每条 hints 都是用户的硬性约束，**必须在 Step 4 写进 spec**（详见 Step 4 开头的处理规则）
 
 ## 执行算法（严格按顺序）
 
@@ -126,6 +141,20 @@ test -f "docs/spec/${slug}.md" && { echo "spec already exists, abort"; exit 0; }
 - 若 `needs_visual_check: false`：不追加
 
 ### Step 4：产出 spec
+
+**先处理 hints（如果有）**：把 Step 0 抽出的 `hints[]` 数组里每一条按语义写进 spec 最合适的章节，保持原意不丢失。常见路由：实现倾向 → "推荐方案 + 理由"；范围限制（不动 X / 不引依赖 / 不改 API）→ "影响范围" + "风险"；必达指标（必须支持 X / 包体 < Y）→ "验收标准"（转成可测的 `- [ ]` checkbox）；走查特别要求 → "验收标准"里 Playwright 走查那条扩展；已知前提 / 已知坑 → "风险"。
+
+**每条由 hints 转出的 spec 条目必须紧跟一行反例**，格式 `❌ 反例：<具体偷懒路径>`。反例要具体到能客观对照——提某个文件、某个 API、某种做法，**不能写"实现得不好"这种废话**。反例的作用是把 stage2 可能耍小聪明的路径提前堵死。
+
+例（不照抄，按本次 hints 实际语义写）：
+
+- hints "不引入新依赖" → 影响范围里写"本 spec 不引入新依赖"，下一行 `❌ 反例：把目标依赖源码内联进 src/utils/、或换一个等价的新依赖名义上不算"新"`
+- hints "复用 useDarkMode" → 推荐方案里列为前置约束，下一行 `❌ 反例：复制 useDarkMode 源码到新文件后改两行；或包一层 wrapper hook 把原 hook 架空`
+- hints "必须支持 RTL" → 验收标准里写 `- [ ] 在 dir="rtl" 下所有交互元素位置/对齐正确`，下一行 `❌ 反例：只加了 CSS direction: rtl 但 padding/margin 仍用 left/right 不用 inline-start/end`
+
+某条 hints 实在想不出有意义的反例（如纯事实声明） → 跳过反例不强行编造，但在 Decisions log 注明"hint X 无有意义反例可举"。
+
+---
 
 frontmatter（**强制 `status: approved`，无人工审核环节**）：
 
