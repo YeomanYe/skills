@@ -94,29 +94,19 @@ default_branch=${default_branch:-main}
 
 ### Step 2：创建 worktree
 
-**先保证 `.gitignore` 含 `.worktrees/` 与 `.review-artifacts/`**（必须在 worktree 创建之前完成，否则下次循环 Step 0 会因 `.worktrees/` untracked 跳过整个工程；`.review-artifacts/` 是防御性 ignore，兜底用户手动调试在主仓库根目录留下的走查产物）：
+**先保证 `.gitignore` 含 `.worktrees/`**（必须在 worktree 创建之前完成，否则下次循环 Step 0 会因 `.worktrees/` untracked 跳过整个工程）：
 
 ```bash
 # 此时仍在主仓库根目录
-need_commit=0
-ensure_ignore() {
-  local pattern="$1"
-  if [ ! -f .gitignore ] || ! grep -qxE "$(echo "$pattern" | sed 's@/@/?@')" .gitignore; then
-    [ -f .gitignore ] || touch .gitignore
-    if ! grep -qxF "# todo-driver pipeline" .gitignore 2>/dev/null; then
-      echo "" >> .gitignore
-      echo "# todo-driver pipeline" >> .gitignore
-    fi
-    echo "$pattern" >> .gitignore
-    need_commit=1
+if [ ! -f .gitignore ] || ! grep -qxE '\.worktrees/?' .gitignore; then
+  [ -f .gitignore ] || touch .gitignore
+  if ! grep -qxF "# todo-driver pipeline" .gitignore 2>/dev/null; then
+    echo "" >> .gitignore
+    echo "# todo-driver pipeline" >> .gitignore
   fi
-}
-ensure_ignore ".worktrees/"
-ensure_ignore ".review-artifacts/"
-
-if [ "$need_commit" = "1" ]; then
+  echo ".worktrees/" >> .gitignore
   git add .gitignore
-  git commit -m "chore: ignore todo-driver pipeline dirs (.worktrees/, .review-artifacts/)"
+  git commit -m "chore: ignore .worktrees/ (todo-driver stage2)"
   git push origin "${default_branch}" 2>&1 || echo "WARN: push .gitignore failed, local only"
 fi
 ```

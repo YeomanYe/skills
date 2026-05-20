@@ -50,7 +50,7 @@ description: >
 
 | Mode | 触发场景 | 主要副作用 | 风险等级 |
 |---|---|---|---|
-| `init` | 用户要把一个项目接入 todo-driver 流水线 | 创建 `TODO.md` + `docs/spec/` + 改 `.gitignore` 加 `.worktrees/` + `.review-artifacts/`；幂等 | 低 |
+| `init` | 用户要把一个项目接入 todo-driver 流水线 | 创建 `TODO.md` + `docs/spec/` + 改 `.gitignore` 加 `.worktrees/`；幂等 | 低 |
 | `add` | 用户要新建带 slug 的 TODO | 在 `TODO.md` 对应段末追加一行 | 低 |
 | `review-merge` | 用户要审核并合并 ready spec | squash merge + 删 branch + 删 worktree + push 默认分支 | 高 |
 
@@ -128,7 +128,7 @@ test -z "$(git status --porcelain)" || { echo "ERROR: working tree dirty, commit
 test -f TODO.md && HAS_TODO=1 || HAS_TODO=0
 test -d docs/spec && HAS_SPEC_DIR=1 || HAS_SPEC_DIR=0
 test -d docs/spec/_done && HAS_DONE_DIR=1 || HAS_DONE_DIR=0
-{ test -f .gitignore && grep -qxE '\.worktrees/?' .gitignore && grep -qxE '\.review-artifacts/?' .gitignore; } && HAS_GITIGNORE=1 || HAS_GITIGNORE=0
+{ test -f .gitignore && grep -qxE '\.worktrees/?' .gitignore; } && HAS_GITIGNORE=1 || HAS_GITIGNORE=0
 ```
 
 任一硬错（非 git 仓库 / 不在根目录 / 不在默认分支 / 工作树脏）→ 报错 stop，不动任何文件。
@@ -174,7 +174,7 @@ fi
 
 #### Step 4: Patch .gitignore
 
-确保两条都在：`.worktrees/`（stage2 创建的开发隔离区）和 `.review-artifacts/`（走查产物根目录，防御性 ignore 主仓库根目录可能误产生的副本）。
+确保 `.worktrees/`（stage2 创建的开发隔离区）在 ignore 列表里。stage2 把走查产物 `.review-artifacts/` 存在 worktree 内部，已经被 `.worktrees/` 一并忽略，**不需要单独列**。
 
 ```bash
 add_if_missing() {
@@ -191,10 +191,7 @@ add_if_missing() {
 }
 
 add_if_missing ".worktrees/"
-add_if_missing ".review-artifacts/"
 ```
-
-**为什么也加 `.review-artifacts/`**：虽然 stage2 把走查产物存在 `.worktrees/${slug}/.review-artifacts/`（已被 `.worktrees/` 一并 ignore），但用户如果在主仓库根目录手动跑 Playwright 调试，产物会落在 `${project_root}/.review-artifacts/`——不在 worktree 内，**会被 git 追踪**。加上这一行作为防御性双保险。
 
 #### Step 5: Commit + Push
 
@@ -223,7 +220,7 @@ git commit -m "chore(todo-driver): init pipeline skeleton
 Initialize project for todo-driver pipeline:
 - TODO.md (or kept existing)
 - docs/spec/ + docs/spec/_done/ with .gitkeep
-- .gitignore += .worktrees/ + .review-artifacts/
+- .gitignore += .worktrees/
 
 Next: use 'todo-driver add' to append items; cron will pick up via stage1."
 
@@ -236,8 +233,7 @@ git push origin "${default_branch}" 2>&1 || echo "WARN: push failed, init commit
 ```bash
 # 验证最终状态
 test -f TODO.md && test -d docs/spec && test -d docs/spec/_done && \
-  grep -qxE '\.worktrees/?' .gitignore && grep -qxE '\.review-artifacts/?' .gitignore \
-  || { echo "ERROR: post-init verification failed"; exit 1; }
+  grep -qxE '\.worktrees/?' .gitignore || { echo "ERROR: post-init verification failed"; exit 1; }
 ```
 
 ### Output Contract（init）
