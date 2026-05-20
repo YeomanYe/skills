@@ -124,6 +124,7 @@ director-* 现状与扩展：
 | **角色型 agent（director-*）** | **director-design / director-frontend / director-promote / director-ops / director-architect** |
 | 共享工具 | clean-commit / delivery-gate / sync-skills |
 | **经验治理** | **experience-summary**（任务结束后分诊经验到 11 层架构正确出口） |
+| **个性切换** | **hat**（任务开始时戴帽:收/散/严/快/挑/教/问 7 种 persona，事后告知） |
 | 设计/视觉 | web-image（出图） / director-design（视觉判断 / mockup） |
 | 前端工程 | director-frontend（合并自原 flow-jsx-ui + jsx-ui-audit + ui-extract） |
 | 浏览器自动化 | cdp-browser-control |

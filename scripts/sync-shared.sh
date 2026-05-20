@@ -79,7 +79,7 @@ question_gate_target_skills=(
   director-architect
 )
 
-# constitution.md 给所有 director-* + flow-* + experience-summary (13 skill 顶层契约)
+# constitution.md 给所有 director-* + flow-* + experience-summary + hat (14 skill 顶层契约)
 constitution_target_skills=(
   director-design
   director-frontend
@@ -94,6 +94,7 @@ constitution_target_skills=(
   flow-skill-dev
   flow-skill-research
   experience-summary
+  hat
 )
 
 drift_count=0
