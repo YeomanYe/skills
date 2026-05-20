@@ -7,8 +7,15 @@
 
 ```bash
 cd "$WORKTREE"
-codex exec --skip-git-repo-check < references/baseline-prompt.md
+# 必须 --dangerously-bypass-approvals-and-sandbox：
+# 否则 codex 落 BASELINE.md 时被 read-only sandbox 拦截（写入 patch rejected），
+# 评分跑了但产物落不下来，orchestrator 被迫转写 stdout 到文件 → 灰色地带
+# 影响 reviewer_pid != orchestrator_pid 的硬隔离断言。
+codex exec --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox < references/baseline-prompt.md
 ```
+
+> 注：和 Phase 1 Goal Codex + Phase 2 final reviewer 启动方式一致——只要这些环节都
+> bypass sandbox，整套硬隔离才能闭环（reviewer 独立进程 + 独立 worktree + 真实可写）。
 
 ## 完整 Prompt
 

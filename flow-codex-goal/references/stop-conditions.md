@@ -7,7 +7,7 @@
 | 条件 | 阈值 | 检测方 | 记录字段 |
 |---|---|---|---|
 | 连续验证失败 | 3 次 | Goal Codex 自检 | `STOPPED: 3-fail-rule` |
-| Review 连续 fail | 2 轮 | orchestrator agent 编排逻辑 | `STOPPED: review-2-fail` |
+| Review 连续 fail | **3 轮** | watcher.sh + orchestrator | `STOPPED: review-3-fail` |
 | 测试新增失败（regression）| 1 个 | Goal Codex 自检 | `STOPPED: regression-introduced` |
 
 ## 2. 资源类停止

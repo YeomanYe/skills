@@ -855,6 +855,26 @@ review-prompt.md 已写禁读名单。**额外强化**：
 - 周期跑 mini-review（这是 watcher 的活）
 - 周期跑 git diff（这是 boundary-watch 的活）
 - idle 期间并发跑其他任务（必须能秒响应人类 ping）
+- **review verdict=fail 且 consecutive_fails < 3 时问用户"要不要 retry"**（必须自动 retry；只在达到 3 次上限时才上报）
+
+### Watcher Exit Code → Orchestrator 行为映射（修复 P0 #4 + P1 #8）
+
+watcher 主循环退出时按 verdict 给不同 exit code，orchestrator 必须按 exit code 自动决策，**不允许把"是否 retry"问用户**：
+
+| exit code | watcher 含义 | orchestrator 必做动作 |
+|---|---|---|
+| **0** | 最终 verdict=pass，task 完成且通过 review | 进 Phase 3（risk-tiered 验证 + 人类签字 commit/push） |
+| **2** | 最终 verdict=fail，**已达 review-3-fail 上限** | **必须上报人类**（abort/handoff/rescope 4 选 1），不再 auto-retry |
+| **3** | 最终 verdict=fail，**未达 3 次上限**（fails=1 或 2） | **自动 retry**：① 读 reviews/round-N/arbitration.md → ② 黑名单仲裁 Must Fix → ③ 把 accepted Must Fix 派给 Goal Codex 修 → ④ 重启 watcher 进 round-(N+1) → ⑤ **不问用户** |
+| **4** | verdict 解析失败（reviewer 全 missing 等） | 上报人类手动检查 `reviews/round-N/` |
+
+**判定 consecutive_fails**：watcher 把当前 fail 计数写到 `.agent/tasks/<id>/.review-fail-count`。pass 时清零；exit 3 时累加。orchestrator 不需要自己维护这个计数。
+
+**为什么不允许问用户**：
+- skill `Goal-Attainment Mode` 已经规定了 hybrid=threshold+no-improvement-N 的退出条件
+- 每次 fail 都问用户就是把 skill 的自动化承诺打折
+- 真要人类干预的场景已经明确（fail 满 3 次 + boundary 违规 + budget 耗尽 + 人类主动 ping），其他情况不许问
+- 例外：commit / push / 销毁 worktree 等 destructive ops **必须** user gate（constitution.md 第 6 条 High-Risk Action Gate）
 
 ### "watcher 不可用" 的兜底（SUBAGENT 模式）
 
@@ -888,7 +908,7 @@ SUBAGENT 模式下 orchestrator 无法持有后台 watcher 进程。此时 orche
 任一命中立即停 Goal Codex 并 notify 人类：
 
 - 连续 3 次 verification fail
-- Review 连续 2 次 fail
+- Review 连续 **3 轮** fail（统一为 3，旧版有处写 2 是文档矛盾——以本条为准；watcher.sh 实现也是 3 次）
 - 文件改动数 > GOAL.md `Budget` 上限
 - token 估算超 GOAL.md `Budget` 上限
 - 健康检查 stalled 状态连续 3 次
