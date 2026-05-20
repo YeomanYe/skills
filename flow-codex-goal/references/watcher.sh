@@ -41,6 +41,56 @@ mkdir -p "$TASK_DIR/snapshots" "$TASK_DIR/scores" "$TASK_DIR/reviews" "$TASK_DIR
 
 WORKTREE="${WORKTREE:-$(pwd)}"
 
+# === Orchestrator Wake-up Combo（修复 P0 #10 — 让 watcher 退出后真能唤醒 orchestrator）===
+#
+# 问题：watcher 退出后通过 cc-connect send 发的是 "bot → user" 消息，不会反弹回来
+# 唤醒 orchestrator 自己。orchestrator 端没有 inotify / 后台 poll，只能等用户 ping。
+# 结果：watcher 给的 exit code 3 (auto-retry signal) 写到磁盘但没人来读。
+#
+# 修法（combo A + B）：
+#   A 主路：orchestrator 端用 `Bash(run_in_background=true)` 启动 watcher，watcher 退出时
+#          tool-notification 会 wake orchestrator。需要 orchestrator 自己选用这种启动方式。
+#   B 兜底：watcher 内部启动时注册一个 30 min 周期的 cc-connect cron，每 30 min 把一条
+#          "check task" prompt 注入 orchestrator session，作为 A 失效时的安全网。
+#          任务终止时（pass / stop / boundary）自删除该 cron job 防止永久 ping。
+#
+# 间隔 30 min 是 token 成本 vs 响应延迟的折中（详见 SKILL.md "Orchestrator Wake-up Combo" 段）。
+
+WAKE_CRON_DESC="wake-orchestrator-${TASK_ID}"
+
+schedule_orchestrator_wake() {
+  command -v cc-connect >/dev/null 2>&1 || { log "cc-connect 不可用,跳过 wake cron"; return 0; }
+  [[ -n "${CC_PROJECT:-}" && -n "${CC_SESSION_KEY:-}" ]] || { log "非 IM 会话,跳过 wake cron"; return 0; }
+
+  # 已有同名 cron → 不重复注册（watcher 重启场景）
+  if cc-connect cron list 2>/dev/null | grep -q "$WAKE_CRON_DESC"; then
+    log "wake cron already exists: $WAKE_CRON_DESC"
+    return 0
+  fi
+
+  local wake_prompt="[watcher-wake-poll] Task $TASK_ID 安全网 ping。读 .agent/tasks/$TASK_ID/STATUS.md mtime 和最后 5 行。如果 35 分钟内有更新→回复 'normal' 一个词即可。否则读 .review-pending / .retry-needed / .stop-signal / .boundary-violation 决定下一步（按 flow-codex-goal SKILL.md 'Watcher Exit Code → Orchestrator 行为映射' 处理）。任务终结时记得 'cc-connect cron del' 该 job (desc: $WAKE_CRON_DESC)。"
+
+  cc-connect cron add \
+    --cron "*/30 * * * *" \
+    --prompt "$wake_prompt" \
+    --desc "$WAKE_CRON_DESC" >> "$LOG" 2>&1 \
+    && log "✅ scheduled 30-min wake cron: $WAKE_CRON_DESC" \
+    || log "WARN: failed to schedule wake cron (non-blocking)"
+}
+
+cleanup_orchestrator_wake() {
+  command -v cc-connect >/dev/null 2>&1 || return 0
+
+  # 按 desc 找 job id，然后删
+  local job_id
+  job_id=$(cc-connect cron list 2>/dev/null | grep "$WAKE_CRON_DESC" | awk '{print $1}' | head -1)
+  if [[ -n "$job_id" ]]; then
+    cc-connect cron del "$job_id" >> "$LOG" 2>&1 \
+      && log "✅ deleted wake cron: $job_id ($WAKE_CRON_DESC)" \
+      || log "WARN: failed to delete wake cron $job_id (manual cleanup may be needed)"
+  fi
+}
+
 # === Portable helpers ===
 # `timeout` is GNU coreutils; macOS doesn't ship it by default.
 # Prefer `timeout` → `gtimeout` → bash fallback (bg job + sleep+kill).
@@ -810,6 +860,7 @@ handle_done() {
   case "$final_verdict" in
     pass)
       cleanup_codex
+      cleanup_orchestrator_wake
       log "Watcher exiting: round-$current_round verdict=PASS (task complete + verified)"
       return 0
       ;;
@@ -822,6 +873,7 @@ handle_done() {
 
       if (( fails >= 3 )); then
         cleanup_codex
+        cleanup_orchestrator_wake
         log "STOP: review verdict=fail $fails consecutive times (S-2 triggered)"
         notify_human "Review failed 3 rounds in a row — STOP" "
 Review 连续 fail $fails 次，已达 stop-conditions.md 第 S-2 条上限。
@@ -864,6 +916,7 @@ Orchestrator 应该：
       ;;
     *)
       cleanup_codex
+      cleanup_orchestrator_wake
       log "WARN: verdict=$final_verdict (unparseable) — orchestrator manual review needed"
       notify_human "Review verdict unparseable" "
 arbitration.md 解析不出 verdict。可能原因：
@@ -881,6 +934,9 @@ arbitration.md 解析不出 verdict。可能原因：
 # === 主循环 ===
 log "Watcher started for task $TASK_ID (health=${INTERVAL}s, boundary=${BOUNDARY_INTERVAL}s, inbox=${INBOX_INTERVAL}s)"
 
+# 注册 30-min cron 安全网（B 方案，详见 SKILL.md "Orchestrator Wake-up Combo"）
+schedule_orchestrator_wake
+
 LAST_BOUNDARY=0
 LAST_INBOX=0
 LAST_MARKER_POLL=0
@@ -893,6 +949,7 @@ while true; do
   if (( NOW - LAST_BOUNDARY >= BOUNDARY_INTERVAL )); then
     LAST_BOUNDARY=$NOW
     if ! check_boundary; then
+      cleanup_orchestrator_wake
       log "Watcher exiting (boundary violation)"
       exit 1
     fi
@@ -943,12 +1000,14 @@ while true; do
     failed)
       handle_failed
       cleanup_codex
+      cleanup_orchestrator_wake
       log "Watcher exiting (task failed)"
       exit 1
       ;;
     stopped)
       handle_stopped
       cleanup_codex
+      cleanup_orchestrator_wake
       log "Watcher exiting (task stopped)"
       exit 0
       ;;
@@ -956,6 +1015,7 @@ while true; do
       log "health-check.sh error — retrying next interval"
       ;;
     task-dir-missing)
+      cleanup_orchestrator_wake
       log "Task dir gone — exiting"
       exit 2
       ;;
