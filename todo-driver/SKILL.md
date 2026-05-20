@@ -499,6 +499,25 @@ grep -rE "^  - \[.\] \`<slug>\`" TODO.md
 
 ---
 
+## Templates / Reference Files
+
+要在新项目上启用 TODO Driver 流水线，下列模板存在本 skill 的 `references/` 下，可以直接复制到项目或喂给 cron agent：
+
+| 文件 | 用途 | 何时取出 |
+|---|---|---|
+| `references/state-model.md` | 完整系统说明：状态机 / TODO.md 格式 / spec.md frontmatter / Worktree 命名 / 调用拓扑 | 用户问"todo-driver 是什么 / 怎么用"时；首次给项目初始化流水线时 |
+| `references/stage1-prompt.md` | Stage 1 cron 喂给 agent 的 prompt：扫 TODO → 出 spec → 自审决策 → 输出 JSON | 用户要把 stage 1 接到 cron / 想手动跑一次起草 spec 时 |
+| `references/stage2-prompt.md` | Stage 2 cron 喂给 agent 的 prompt：找 approved spec → 开 worktree → 实现 + 验证 → 推 branch | 用户要把 stage 2 接到 cron / 想手动跑一次 dev 时 |
+
+**怎么给用户**：
+- 用户问"用法"/"怎么部署" → Read `references/state-model.md` 节选关键部分回答
+- 用户要"试跑 stage 1 / 我想看看 prompt 长啥样" → 用 Read 工具读 `references/stage1-prompt.md` 整篇，或 cp 到用户指定路径
+- 用户要"接 cron" → 给出读取这两个 prompt 文件的具体命令（cron 程序按需 `cat` / 加载）
+
+**这些 reference 是状态机的契约定义**。改它们等于改 stage 1/2 prompt 端的行为，必须同步审视 `init` / `review-merge` 两个 mode 的 SKILL.md 是否还对齐。普通迭代只动 SKILL.md 不动 references/。
+
+---
+
 ## Shared Constraints
 
 两个 mode 都必须遵守，**不可妥协**：
