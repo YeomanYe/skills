@@ -221,13 +221,13 @@ grep -n "^\- \[ \] \`<slug>\`" TODO.md
 4. 跑 hard gates
 5. 对照 spec 验收
 6. 工程规范校验
-7. 事后审 self_approved
+7. 事后审改动规模 / 高风险信号
 8. 产出 review report → 通过 / 不通过判定
 9. **通过路径**：squash merge + 清理
 10. **不通过路径**：findings 回写 spec
 11. （若 merged）检查 epic 父项是否可关闭
 
-不要跳过 Step 4-7 任一个直接进 merge。**即使 self_approved=true 也要走完**——事后审是本 mode 的核心价值。
+不要跳过 Step 4-7 任一个直接进 merge。**stage1 一律 approved 不代表免审**——事后审 diff 是否符合 spec 估算才是本 mode 的核心价值。
 
 #### Step 1: List Candidates
 
@@ -297,28 +297,29 @@ pnpm build 2>&1 | tail -10
 
 硬规则违反 → REJECT。建议性违反 → subjective。
 
-#### Step 7: 事后审 self_approved
+#### Step 7: 事后审改动规模（取代旧 self_approved 审计）
 
-读 spec frontmatter，`self_approved: false` → 跳过本步。
+> 历史背景：旧版 stage1 prompt 用 `self_approved: true/false` 决定要不要进 stage2，这里事后审。新版 stage1 取消了人工审核环节——所有 spec 一律 `status: approved` 直接进 stage2。**事后审依然必要**，但审的对象从"声明是否成立"变成"实际 diff 是否符合 spec 估算"。
 
-`self_approved: true` → 对照实际 diff：
+读 spec frontmatter 与正文，提取：
+
+- spec 在"影响范围"区段的**估算文件数 / 行数**
+- spec 在"风险"区段是否标了**高风险信号**（⚠️ 标记）
+
+对照实际 diff：
 
 ```bash
-git diff --shortstat main...todo/<slug>
-git diff --name-only main...todo/<slug>
+git diff --shortstat ${default_branch}...todo/<slug>
+git diff --name-only ${default_branch}...todo/<slug>
 ```
 
-核对 self-approval 6 条硬条件：
+判定规则：
 
-1. 改动 ≤ 5 文件 且 ≤ 200 行
-2. 不触及 auth / payments / 加密 / 数据迁移 / 跨模块重构
-3. 方案选项无业务判断二选一
-4. 不引入新依赖
-5. 不修改公开 API / 类型签名
-6. 非 epic
+- 实际改动文件数 / 行数**显著超过** spec 估算（如估 5 文件实际 20 文件 / 估 200 行实际 800 行）→ PASS 但 report 高亮 `change_size_drift: true`，让 review 关注是否 scope creep
+- 实际改动**触及高风险类别**（auth / payments / 加密 / 数据迁移 / 跨模块重构 / 新增依赖 / 公开 API 变更）但 spec 风险区段**未标注** → PASS 但 report 高亮 `unflagged_risk: <类别>`
+- 实际改动文件**严重超出** spec 影响范围列表（命中规模漂移**且**高风险未声明，二者并存）→ REJECT，理由 "actual diff diverges from spec significantly"
 
-- 违反 1 条 → PASS 但 report 高亮 `self_approval_abused: true`
-- 违反 ≥ 2 条 → REJECT，理由 "self-approval claim doesn't match actual changes"
+单一信号触发只标注、不 REJECT；多信号叠加才 REJECT。
 
 #### Step 8: Output Review Report
 
@@ -341,10 +342,12 @@ git diff --name-only main...todo/<slug>
 ### Engineering Rules (source: AGENTS.md | CLAUDE.md | generic)
 - ✅ / ❌ each rule
 
-### Self-Approval Audit (仅 self_approved=true)
+### Diff Audit (取代旧 Self-Approval Audit)
 - 改动: <n> files / <m> lines
-- 违反条款: [3, 5]
-- 结论: self_approval_abused: true | false
+- spec 估算: <n> files / <m> lines
+- change_size_drift: true | false
+- unflagged_risk: <none | auth/payments/migration/...>
+- 结论: diff_diverges_from_spec: true | false
 
 ### Verdict
 PASS | REJECT
@@ -354,7 +357,7 @@ PASS | REJECT
 ```
 
 判定规则：
-- 任一 hard gate fail / acceptance fail / 工程规范硬规则违反 / self-approval 违反 ≥ 2 条 → REJECT
+- 任一 hard gate fail / acceptance fail / 工程规范硬规则违反 / diff audit 多信号叠加（change_size_drift + unflagged_risk 同时命中）→ REJECT
 - 否则 → PASS
 
 #### Step 9: Pass Path (Squash Merge + Cleanup)
@@ -485,7 +488,7 @@ grep -rE "^  - \[.\] \`<slug>\`" TODO.md
 
 **2. Subjective acceptance 自动判通过**：spec 写"UX 友好"agent 自己判 pass。处理：subjective 必须让用户确认。
 
-**3. self-approval 违反不阻止**：违反 ≥ 2 条硬条件 → 必 REJECT。仅违反 1 条 → 仍 merge 但 report 高亮。
+**3. diff audit 信号被忽略**：实际改动远超 spec 估算或触及未声明的高风险类别，仍照常合并。处理：单信号高亮、双信号叠加必 REJECT。
 
 **4. Pass path 中途失败留半成品**：squash commit 成功，spec 归档 commit 失败。处理：报错 stop，给用户手动收尾命令，**不**尝试 reset 已合并 commit。
 
@@ -506,8 +509,8 @@ grep -rE "^  - \[.\] \`<slug>\`" TODO.md
 | 文件 | 用途 | 何时取出 |
 |---|---|---|
 | `references/state-model.md` | 完整系统说明：状态机 / TODO.md 格式 / spec.md frontmatter / Worktree 命名 / 调用拓扑 | 用户问"todo-driver 是什么 / 怎么用"时；首次给项目初始化流水线时 |
-| `references/stage1-prompt.md` | Stage 1 cron 喂给 agent 的 prompt：扫 TODO → 出 spec → 自审决策 → 输出 JSON | 用户要把 stage 1 接到 cron / 想手动跑一次起草 spec 时 |
-| `references/stage2-prompt.md` | Stage 2 cron 喂给 agent 的 prompt：找 approved spec → 开 worktree → 实现 + 验证 → 推 branch | 用户要把 stage 2 接到 cron / 想手动跑一次 dev 时 |
+| `references/stage1-prompt.md` | Stage 1 cron 喂给 agent 的 prompt：**完全无入参 self-driving**，遍历硬编码工程清单 → 找首个未起 spec 的 TODO → 出 spec（一律 `status: approved`）→ commit + push 到默认分支 | 用户要把 stage 1 接到 cron / 想手动跑一次起草 spec 时 |
+| `references/stage2-prompt.md` | Stage 2 cron 喂给 agent 的 prompt：**完全无入参 self-driving**，遍历工程清单 → 找首个无残留 worktree/branch 的 approved spec → 开 worktree → 实现 + 验证 + 可选 Playwright 走查 → push branch；遇到残留按 `needs_cleanup` / `awaiting_review` 分类报告 | 用户要把 stage 2 接到 cron / 想手动跑一次 dev 时 |
 
 **怎么给用户**：
 - 用户问"用法"/"怎么部署" → Read `references/state-model.md` 节选关键部分回答
@@ -526,7 +529,9 @@ grep -rE "^  - \[.\] \`<slug>\`" TODO.md
 正则 `^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$`，kebab-case，3-30 字符。
 
 ### Spec frontmatter 字段名（严格对齐 stage 1/2 prompt + cases.md）
-`id` / `title` / `status` / `kind` / `epic` / `depends_on` / `attempts` / `self_approved` / `self_approved_reasons` / `created` / `updated`
+`id` / `title` / `status` / `kind` / `epic` / `depends_on` / `attempts` / `project_root` / `needs_visual_check` / `created` / `updated`
+
+> ⚠️ 旧字段 `self_approved` / `self_approved_reasons` 在 v2 stage1 prompt 中已删除（所有 spec 一律 `status: approved`，无人工审核环节）。如读到老 spec 仍带这两个字段，忽略即可。
 
 ### 工程规范源头（三级回退）
 1. `<project-root>/AGENTS.md`
@@ -555,7 +560,7 @@ grep -rE "^  - \[.\] \`<slug>\`" TODO.md
 本 skill 是 TODO Driver 流水线**人手触发端**的统一入口。
 
 - 一次调用 = 一个 mode = 一个具体动作（追加 TODO **或** 合并 ready spec）
-- 共享约束严格执行，**绝不**为了"流畅"绕过 hard gates、subjective 判定、self-approval 审计
+- 共享约束严格执行，**绝不**为了"流畅"绕过 hard gates、subjective 判定、diff audit
 - "merge 了一半"比"完全没 merge"更糟；任何清理步骤失败 → 报错 stop
 - mode 边界清晰：init **不**碰 git 状态；review-merge **不**新增 TODO 条目
 
