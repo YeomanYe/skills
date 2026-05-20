@@ -711,10 +711,37 @@ grep -rE "^  - \[.\] \`<slug>\`" TODO.md
 
 ## Shared Constraints
 
-两个 mode 都必须遵守，**不可妥协**：
+三个 mode 都必须遵守，**不可妥协**：
 
 ### Slug 格式
-正则 `^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$`，kebab-case，3-30 字符。
+正则 `^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$`，kebab-case，3-30 字符。slug 是流水线内部标识，**不论项目本身用什么语言，slug 永远是 kebab-case 英文**。
+
+### 写入内容的语言：中文
+
+**TODO.md 与 spec 文件里所有用户可读的文本内容一律用中文**——这是中文项目的硬约定。
+
+具体覆盖范围：
+
+| 位置 | 必须中文 | 例外（保持英文/原文） |
+|---|---|---|
+| `TODO.md` 行的 title | ✅ "主题切换" | — |
+| `TODO.md` 行的 summary（破折号后描述） | ✅ "支持深色/浅色/跟随系统三态" | — |
+| `TODO.md` 行末 hints（括号内每条） | ✅ "复用 src/hooks/useDarkMode" | 文件路径 / API 名 / 命令 / 第三方库名 / 代码片段保持原文 |
+| spec frontmatter `title` | ✅ | — |
+| spec 七章正文（目标/现状/方案选项/推荐方案+理由/影响范围/验收标准/风险） | ✅ | 同上：file:line 引用、API 名、命令、库名、代码 |
+| spec 验收标准 `- [ ]` checkbox 描述 | ✅ "在 dir=\"rtl\" 下所有交互元素位置正确" | — |
+| spec Decisions log 条目正文 | ✅ | — |
+| spec ❌ 反例文字 | ✅ | — |
+
+**永远是英文 / 保持原状**（与本规则无冲突）：
+
+- `slug` 本身（kebab-case 英文，前面有规定）
+- frontmatter 字段名 `id` / `title` / `status` / ...（字段名是结构契约，不翻）
+- frontmatter 枚举值 `approved` / `ready-for-review` / `true` / `false` / `1440x900` 等
+- commit message subject 用 conventional commits 英文前缀（`feat:` / `docs:` / `chore:`），body 可中文
+- 代码 / 文件路径 / API / 库名 / 命令永远原样
+
+判定原则：**结构性字段（字段名 / 枚举 / 标识符）保持英文；叙述性内容（人读的句子）一律中文**。
 
 ### Spec frontmatter 字段名（严格对齐 stage 1/2 prompt + cases.md）
 `id` / `title` / `status` / `kind` / `epic` / `depends_on` / `attempts` / `project_root` / `needs_visual_check` / `needs_video_check` / `created` / `updated`
