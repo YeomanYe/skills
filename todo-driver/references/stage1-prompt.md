@@ -37,48 +37,18 @@ spec 已存在 → **不覆盖**，stop。
 
 不要读整个 src/。只针对 `summary` / `hints` 提到的具体模块做**最小**的 Grep + Read。每次 Read 不超过 100 行。**总文件读取数 ≤ 15**，超了就停下用已有信息出 spec。
 
-### Step 3：估算改动规模 + 判定是否 epic
+### Step 3：估算改动规模
 
-按下列启发规则估算改动**文件数**和**总行数**：
+按下列启发规则估算改动**文件数**和**总行数**，写进 Step 4 的"影响范围"区段：
 
 | 信号 | 估算 |
 |---|---|
 | summary 含 "新增功能 / 加一个 ... 按钮 / 加一个设置" | 通常 ≤ 5 文件 |
 | 含 "重构 / 抽象 / 命名空间化 / 跨模块" | ≥ 10 文件 |
-| 含 "支持 ... 切换 / 多种 ..." | 经常是 epic |
-| 含 "迁移 / 升级 / 重写" | 几乎一定是 epic |
+| 含 "迁移 / 升级 / 重写" | 大改 |
 | 涉及全局样式（如 globals.css）的命名规则改动 | ≥ 8 文件 |
 
-**Epic 判定**：估算 > 10 文件 **或** > 500 行 **或** 涉及 "store + UI + 全局样式" 三层中两层及以上。
-
-### Step 4a：Epic 路径 —— 产出 decomposition spec
-
-frontmatter：
-
-```yaml
----
-id: <slug>
-title: <title>
-status: draft
-kind: decomposition
-epic: true
-attempts: 0
-self_approved: false
-created: <today>
-updated: <today>
----
-```
-
-正文：
-
-- **目标**：epic 整体目标
-- **拆分理由**：为什么单次 spec 装不下
-- **子任务清单**：3-7 个，每个一句话 + 建议子 slug（命名规则 `<epic-slug>-<short-suffix>`）
-- **建议执行顺序**：依赖关系或顺序说明
-
-**Decomposition spec 永远不自审**（`self_approved: false`），必须人审。
-
-### Step 4b：Implementation 路径 —— 产出实施 spec
+### Step 4：产出 spec
 
 frontmatter：
 
@@ -87,9 +57,6 @@ frontmatter：
 id: <slug>
 title: <title>
 status: <draft 或 approved，由 Step 5 决定>
-kind: implementation
-epic: false
-attempts: 0
 self_approved: <Step 5 决定>
 self_approved_reasons: []   # 仅 self_approved=true 时填
 created: <today>
@@ -120,7 +87,6 @@ updated: <today>
 3. 方案选项里所有选项**显著优劣分明**（无业务判断二选一）
 4. 不引入新依赖
 5. 不修改公开 API / 类型签名
-6. 非 epic
 
 判定时把每条评估结果写进 `self_approved_reasons` 列表：
 
@@ -132,7 +98,6 @@ self_approved_reasons:
   - "方案选项只有 A 一个明确选择，无业务二选一"
   - "无新依赖（仅用 zustand 已有 API）"
   - "无公开 API 变更"
-  - "非 epic（implementation kind）"
 ```
 
 **任一不满足** → `self_approved: false`，`status: draft`，不写 `self_approved_reasons`，但在 "Decisions log" 区段写一句"自审未过，原因：xxx"。
@@ -150,7 +115,6 @@ self_approved_reasons:
 输出简短摘要（不超 8 行），包含：
 
 - 处理的 slug
-- 路径（implementation / decomposition）
 - self_approved 是否通过
 - spec 文件路径
 - 用户下一步要做什么（"改 status: approved" 或 "审核后改 status: approved"）
