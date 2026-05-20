@@ -123,7 +123,9 @@ test -f "docs/spec/${slug}.md" && { echo "spec already exists, abort"; exit 0; }
 
 如估算出**高风险信号**（auth / payments / 加密 / 数据迁移 / 跨模块重构 / 新增依赖 / 公开 API 变更），在 spec 的"风险"区段**显著标注**，方便人类事后回看，但仍 approved。
 
-### Step 3.5：判定 `needs_visual_check`
+### Step 3.5：判定 `needs_visual_check` / `needs_video_check`
+
+#### `needs_visual_check`（截图走查）
 
 任一为 true → `needs_visual_check: true`：
 
@@ -135,10 +137,24 @@ test -f "docs/spec/${slug}.md" && { echo "spec already exists, abort"; exit 0; }
 
 全部为 false → `needs_visual_check: false`（纯逻辑 / 工具脚本 / 文档 / 配置变更）。
 
-判定后**在 spec 的 "验收标准" 末尾**追加一条对应 checkbox（让 stage2 知道并跟踪）：
+#### `needs_video_check`（录屏走查，借鉴 delivery-gate）
 
-- 若 `needs_visual_check: true`：`- [ ] Playwright 走查通过：关键页面截图无 console.error，验收标准对应交互均有截图`
-- 若 `needs_visual_check: false`：不追加
+`needs_visual_check: false` → `needs_video_check` 自动 false（录屏必有截图，不会单独需要录屏）。
+
+`needs_visual_check: true` 时再判 `needs_video_check`。任一为 true → `needs_video_check: true`：
+
+- "目标" / "影响范围" 出现"**新页面**" / "**新增 modal**" / "**新增 drawer**" / "**新增独立模块**"
+- 验收标准描述了**多步骤主交互**（如"用户点 X → 触发 Y → 看到 Z → 可以撤销"这类两步以上的交互链）
+- 影响范围含 **CRUD 主链路**变化（create / read / update / delete 完整流的页面级行为变动）
+- spec 验收标准出现"交互" / "流程" / "导航" / "撤销/重做" / "拖拽" / "动画过渡"
+
+全部为 false → `needs_video_check: false`（小样式 / 单页改动 / 仅状态切换无流程感）。
+
+#### 在 spec "验收标准" 末尾追加 checkbox
+
+- `needs_visual_check: true` → 追加 `- [ ] Playwright 截图走查通过：关键页面整屏截图（含主页面 / 新弹窗打开态 / 二次确认态）无 console.error 且覆盖验收标准对应状态`
+- `needs_video_check: true` → 再追加 `- [ ] Playwright 录屏走查通过：主交互链路录屏覆盖（从入口操作到结果可见的端到端流程）`
+- 都为 false → 不追加
 
 ### Step 4：产出 spec
 
@@ -166,7 +182,8 @@ status: approved
 created: ${today}
 updated: ${today}
 project_root: ${project_root}     # 给 stage2 用
-needs_visual_check: <Step 3.5 决定的布尔值>   # 给 stage2 用
+needs_visual_check: <Step 3.5 决定>   # 截图走查
+needs_video_check: <Step 3.5 决定>    # 录屏走查（仅 visual=true 时可能 true）
 ---
 ```
 

@@ -94,6 +94,23 @@ default_branch=${default_branch:-main}
 
 ### Step 2：创建 worktree
 
+**先保证 `.gitignore` 含 `.worktrees/`**（必须在 worktree 创建之前完成，否则下次循环 Step 0 会因 `.worktrees/` untracked 跳过整个工程）：
+
+```bash
+# 此时仍在主仓库根目录
+if [ ! -f .gitignore ] || ! grep -qxE '\.worktrees/?' .gitignore; then
+  echo "" >> .gitignore
+  echo ".worktrees/" >> .gitignore
+  git add .gitignore
+  git commit -m "chore: ignore .worktrees/ (todo-driver stage2)"
+  git push origin "${default_branch}" 2>&1 || echo "WARN: push .gitignore failed, local only"
+fi
+```
+
+这是**幂等单点修补**——首次发现缺失时追加并提交，后续 cron 调用无 op。commit message 明确写来源。
+
+然后创建 worktree：
+
 ```bash
 mkdir -p .worktrees
 worktree_dir=".worktrees/${slug}"
@@ -168,28 +185,50 @@ fi
 
 > 注：新 worktree 没有 `node_modules` / `target/` / 虚拟环境，首次 install 可能耗时（几分钟到十几分钟），不要误判为卡死。
 
-### Step 5.5：Playwright 走查（仅当 `needs_visual_check: true`）
+### Step 5.5：Playwright 走查（截图 + 可选录屏）
 
 读 spec frontmatter `needs_visual_check`。`false` 或缺失 → **跳过本步**，直接进 Step 6。
 
-#### Step 5.5.1：准备产物目录
+**全步骤遵守的视觉证据约束**（借鉴 [[delivery-gate]]）：
+
+- 视觉证据**只用 Playwright** 生成，禁用 chrome_devtools 或其它可见浏览器调试工具
+- 默认 **`headless: true`**，spec 没明确要求"可见窗口演示"则不要切有界面模式
+- 截图必须是**预设视口的整屏**——**禁止**只截局部组件替代整屏
+- **必须记录视口尺寸**写进 Visual review 报告
+- dev server **不占用工程默认开发端口**（避免与用户本机开着的 dev 冲突），用随机高位端口
+
+#### Step 5.5.0：产物存储约定（重要）
 
 ```bash
+# 产物只存 worktree 内，跟 worktree 同生同灭
 artifacts_dir=".review-artifacts/${slug}"
 mkdir -p "$artifacts_dir"
 ```
 
-#### Step 5.5.2：启动 dev server
+**严格规则**：
+- 产物**永不 commit**，永远不 `git add` 这个目录
+- 主仓库 `.gitignore` 必须包含 `.worktrees/`（worktree 在主仓库根目录可见，必须忽略）；自愈逻辑已在 Step 2 完成
+- review-merge 或人工 review 时，agent / 用户**直接读本机 `${project_root}/.worktrees/${slug}/.review-artifacts/`**
+- 失败路径同样不 commit artifacts；报告里吐绝对路径
+
+#### Step 5.5.1：启动 dev server（随机端口，避开默认）
+
+> `.gitignore` 自愈已在 Step 2 完成，这里直接起 dev server。
+
+```bash
+PORT=$(shuf -i 30000-50000 -n 1)
+export PORT
+```
 
 按命中的栈选启动命令：
 
-| 栈 | 启动命令 | 默认端口 |
+| 栈 | 启动命令 | 端口传递 |
 |---|---|---|
-| Plasmo 扩展 (有 `plasmo` deps) | `pnpm dev:web`（web preview 模式，**不要**用 `pnpm dev` 因为它要装真扩展） | 4173 |
-| Vite | `pnpm dev` | 5173 |
-| Next.js | `pnpm dev` | 3000 |
-| Astro | `pnpm dev` | 4321 |
-| 其它 | 读 `package.json` `scripts.dev` 推断；找不到 → 跳过走查并在 Decisions log 写"无法启动 dev server" |
+| Plasmo 扩展（有 `plasmo` deps） | `pnpm dev:web` | env `PORT=${PORT}`（vite 会读） |
+| Vite | `pnpm dev` | `pnpm dev --port ${PORT}` |
+| Next.js | `pnpm dev` | `pnpm dev --port ${PORT}` |
+| Astro | `pnpm dev` | `pnpm dev --port ${PORT}` |
+| 其它 | 读 `package.json` `scripts.dev` 推断 | 找不到 → 跳过走查并在 Decisions log 写"无法启动 dev server" |
 
 **后台启动**（不阻塞 agent）：
 
@@ -205,23 +244,53 @@ done
 
 dev server 60s 内没起来 → kill 进程、把 log tail 写进 spec Decisions log，跳过本步（不算失败，因为本意是辅助 review，不是 hard gate）。
 
-#### Step 5.5.3：用 Playwright MCP 走查
+#### Step 5.5.2：设置视口 + 走查截图
+
+视口尺寸默认 `1440x900`（PC 主流验收尺寸）；spec 明确要求移动端则用 `390x844`（iPhone 14）。**记录最终使用的视口尺寸**，要写进 5.5.5 的报告。
 
 按以下顺序操作（用 `mcp__playwright__*` 工具）：
 
-1. `playwright_navigate` → `http://localhost:${PORT}`
-2. `playwright_screenshot` → 存到 `${artifacts_dir}/01-landing.png`（参数：`fullPage: true`）
-3. 遍历 spec **"验收标准"** 里每一条非"测试通过/lint clean"的条目：
-   - 如条目描述了可点击元素（按钮 / 链接 / 设置项 / tab），尽力定位并 `playwright_click`
+1. `playwright_navigate` → `http://localhost:${PORT}`（首次调用时显式设 `headless: true` + `viewport: { width, height }`）
+2. **默认截图清单**（兜底，不依赖 spec 完整性）：
+   - `${artifacts_dir}/01-landing.png` — 主页面整屏（`fullPage: true`）
+   - 若 spec 提到新弹窗 / modal / drawer / 二次确认态 → 触发到该状态后截 `${artifacts_dir}/02-<state-slug>.png`、`03-...`
+3. **验收标准遍历**：spec "验收标准" 里每一条非"测试通过/lint clean"的条目：
+   - 描述了可点击元素（按钮 / 链接 / 设置项 / tab）→ 尽力定位并 `playwright_click`
    - 每次有意义的状态变化后 → 截图存 `${artifacts_dir}/<序号>-<criterion-slug>.png`
    - 用 `playwright_console_logs` 抓 console，append 到 `${artifacts_dir}/console.log`
-4. 走查完毕 → `playwright_close`，`kill $DEV_PID`（带 `wait` 兜底僵尸进程）
 
-#### Step 5.5.4：判定走查结果
+**禁止局部截图**：不允许只截一个组件来代替整屏视口截图。每张图必须是 `fullPage: true` 的整屏。
+
+#### Step 5.5.3：录屏走查（仅当 `needs_video_check: true`）
+
+读 spec frontmatter `needs_video_check`。`false` 或缺失 → **跳过本节**，直接进 5.5.4。
+
+录屏覆盖主交互链路——从入口操作到结果可见的端到端流程，不录孤立的按钮点击。
+
+Playwright 录屏（用 `recordVideo` 启动 context；具体参数视 MCP 工具能力而定）：
+
+- 输出到 `${artifacts_dir}/walkthrough.webm`（webm 是 Playwright 默认格式，体积小）
+- 视口尺寸跟 5.5.2 保持一致
+- 录制 spec 在"验收标准"里描述的主交互链路（一次连续操作，不要分段）
+- 录屏结束后 `playwright_close` 触发文件 flush
+
+录屏文件 > 50MB → 记进 Decisions log 提示用户"录屏体积偏大，建议人工查看后清理"，但不算失败。
+
+#### Step 5.5.4：收尾
+
+```bash
+# 关 Playwright + kill dev server
+# (mcp__playwright__playwright_close)
+kill $DEV_PID 2>/dev/null
+wait $DEV_PID 2>/dev/null || true
+```
+
+#### Step 5.5.5：判定走查结果
 
 收集：
 - `${artifacts_dir}/console.log` 中 `error` / `Error` / `Uncaught` 行数 → `console_errors`
 - 截图总数 → `screenshots`
+- 录屏文件大小（如有）→ `video_size_mb`
 
 判定规则：
 
@@ -230,19 +299,23 @@ dev server 60s 内没起来 → kill 进程、把 log tail 写进 spec Decisions
 | `console_errors > 0` 且来源是 spec 改动文件 | **Step 7 失败路径**，错误日志写进 Attempt failure |
 | `console_errors > 0` 但来源是无关第三方 / 已知噪音 | 在 Decisions log 注明 + 留待 review 时人工判断，**不算失败** |
 | `screenshots == 0`（一张都没成功） | Decisions log 标"走查未执行成功"，**不算失败**（不卡 hard gate） |
-| 都通过 | 把 `${artifacts_dir}` 整个 commit 进 worktree branch |
+| 都通过 | 进 5.5.6 写报告。**不要 commit artifacts**——它们只在 worktree 本地 |
 
-把 `.review-artifacts/` 加进 `.gitignore` 的工程例外（如有 `.gitignore` 排除了 dotfile 目录），或在 commit 时用 `git add -f .review-artifacts/${slug}/`。
-
-#### Step 5.5.5：在 spec 末尾追加走查报告
+#### Step 5.5.6：在 spec 末尾追加走查报告
 
 ```md
 ## Visual review (${today})
-- Screenshots: <n>（见 .review-artifacts/${slug}/）
+- Viewport: 1440x900   # 或实际使用值
+- Headless: true
+- Dev port: 30137      # 实际随机端口
+- Screenshots: <n>（见 ${project_root}/.worktrees/${slug}/.review-artifacts/${slug}/）
+- Video: walkthrough.webm（<size> MB）/ N/A
 - Console errors: <n>（详见 console.log）
 - 验收标准覆盖: <已截图条目 / 总条目>
 - 备注: <一句>
 ```
+
+**注意**：报告里写**绝对路径**，让 review-merge / 人工 review 时能直接打开本机文件。artifacts **不进 git 历史**。
 
 ### Step 6：成功路径
 
@@ -252,10 +325,10 @@ dev server 60s 内没起来 → kill 进程、把 log tail 写进 spec Decisions
    - `status: ready-for-review`
    - `updated: ${today}`
 2. 在 `## Decisions log` 追加：`- **${today}**: 实现完成，<一句重要决定>`
-3. commit 顺序：
+3. commit 顺序（**只 commit 代码 + spec，绝不 commit `.review-artifacts/`**）：
    - 先 commit 代码实现（subject 用 `feat:` / `fix:` / 按 spec 性质）
-   - 再 commit spec 更新 + `.review-artifacts/${slug}/`（subject `chore(todo): mark ${slug} ready-for-review with review artifacts`）
-   - `.review-artifacts/` 用 `git add -f` 强制加入，规避全局 `.gitignore`
+   - 再 commit spec 更新（subject `chore(todo): mark ${slug} ready-for-review`）
+   - `.review-artifacts/${slug}/` 留在 worktree 本地，不进 git 历史；review-merge 时 agent 从本地读
 4. push branch：
 
    ```bash
@@ -279,8 +352,8 @@ dev server 60s 内没起来 → kill 进程、把 log tail 写进 spec Decisions
    ```
 
 2. 更新 frontmatter `updated: ${today}`，**不改 `status`**（保持 approved；调用方判断后续）
-3. commit 到 worktree branch：spec + 任何已生成的 `.review-artifacts/${slug}/`（用 `git add -f`），帮 review 时排查
-4. **仍然 push branch**（让调用方能看到半成品 diff 诊断）
+3. commit 到 worktree branch：**只** spec（artifacts 留在本地 worktree 不进 commit）；report 里吐 artifacts 绝对路径帮诊断
+4. **仍然 push branch**（让调用方能看到半成品 diff 诊断 + 本地 worktree 还在能看截图）
 5. 报告失败
 
 ### Step 8：清洁
@@ -312,8 +385,8 @@ write code → run hard gates → fail → diagnose → fix → run again
 - Worktree: ${project_root}/.worktrees/${slug}
 - Files changed: <n>
 - Tests: <n> passed
-- Visual review: <skipped | n screenshots / m console-errors>（仅 needs_visual_check=true）
-- Artifacts: ${project_root}/.worktrees/${slug}/.review-artifacts/${slug}/（仅 needs_visual_check=true）
+- Visual review: <skipped | n screenshots / m console-errors / video <size>>（仅 needs_visual_check=true）
+- Artifacts (local, NOT in git): ${project_root}/.worktrees/${slug}/.review-artifacts/${slug}/
 - Spec: docs/spec/${slug}.md (status now ready-for-review)
 - Awaiting review: <list of slugs that are ready-for-review with branch/worktree>
 - Needs cleanup: <list of slugs with approved+残留 worktree/branch — 用户要手动清理>
