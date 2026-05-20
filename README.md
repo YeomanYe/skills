@@ -123,6 +123,7 @@ director-* 现状与扩展：
 | 编排器（flow-*）| flow-codex-goal / flow-dev-task / flow-ext-publish / flow-project-bootstrap / flow-project-finish / flow-skill-dev / flow-skill-research |
 | **角色型 agent（director-*）** | **director-design / director-frontend / director-promote / director-ops / director-architect** |
 | 共享工具 | clean-commit / delivery-gate / sync-skills |
+| **经验治理** | **experience-summary**（任务结束后分诊经验到 11 层架构正确出口） |
 | 设计/视觉 | web-image（出图） / director-design（视觉判断 / mockup） |
 | 前端工程 | director-frontend（合并自原 flow-jsx-ui + jsx-ui-audit + ui-extract） |
 | 浏览器自动化 | cdp-browser-control |

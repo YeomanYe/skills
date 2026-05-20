@@ -30,7 +30,7 @@
 |---|---|---|
 | `is_ui_task` | flow-codex-goal / director-frontend | bool；true 时激活 UI 截图协议 + 状态走查 |
 | `attainment_mode_hint` | flow-codex-goal | 已推断的 mode (`threshold` / `no-improvement-N` / `regression-prevention` / `hybrid`) |
-| `run_mode` | flow-codex-goal | `CLI-YOLO` / `TMUX-YOLO` / `CLI-EXEC` / `SUBAGENT` |
+| `run_mode` | flow-codex-goal | `CLI-YOLO` / `CLI-EXEC` / `SUBAGENT` |
 | `tech_stack` | flow-project-bootstrap / director-architect | 项目主要技术栈（用于规则集选择）|
 | `platform` | flow-ext-publish | `chrome` / `firefox` / `edge`（决定提交渠道）|
 
