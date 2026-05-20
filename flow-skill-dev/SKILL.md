@@ -69,13 +69,14 @@ description: >
 必须严格按以下顺序执行：
 
 1. 先判定本次工作类型
-2. 调用 `skill-creator` 理清范围与契约
-3. 调用 `writing-skills` 编写或修订 skill
-4. 运行 `skill-behavior-test`
-5. 判定是否需要 `skill-integration-test`
-6. 若需要，则运行 `skill-integration-test`
-7. 判定是否需要调用 `sync-skills`
-8. 输出最终报告
+2. 定位权威副本（在中心仓库则切到中心仓库）
+3. 调用 `skill-creator` 理清范围与契约
+4. 调用 `writing-skills` 编写或修订 skill
+5. 运行 `skill-behavior-test`
+6. 判定是否需要 `skill-integration-test`
+7. 若需要，则运行 `skill-integration-test`
+8. 判定是否需要调用 `sync-skills`
+9. 输出最终报告
 
 在最终报告完成前，不得宣称该 skill 已准备就绪。
 除非命中暂停条件，否则不要在中途停下来等待用户二次确认。
@@ -97,9 +98,52 @@ description: >
 - handoff 契约
 - 上下游路由行为
 
-如果只是 `minor-update`，通常不必使用这个 orchestrator。
+如果只是 `minor-update`，通常不必使用这个 orchestrator。**但 Step 2 的"在中心仓库 → 在中心仓库改"规则对所有 update 都适用**——即便绕过 orchestrator 直接用 Edit 改单行，也得先确认 cwd 在中心仓库副本，否则同样会被下次 skillshare sync 覆盖丢失。
 
-## Step 2: Scope With `skill-creator`
+## Step 2: Locate Authoritative Copy
+
+在执行任何编辑动作之前，**必须**确定本次修改要作用在哪个物理副本上。规则按以下优先级判定：
+
+1. **中心仓库**：`~/Documents/projects/skills/<skill-name>/`
+2. **AI 工具同步目标**（plugin 安装位置）：
+   - `~/.claude/skills/_<plugin>__<skill-name>/`
+   - `~/.claude/skills/_<plugin>__skills__<skill-name>/`
+   - `~/.agents/skills/...`
+   - `~/.codex/skills/...`
+   - `~/.config/skillshare/skills/<skill-name>/`
+3. **项目内 skill**：`<project-root>/.skillshare/skills/<skill-name>/` 或类似
+
+**判定与切换规则**：
+
+```bash
+center="$HOME/Documents/projects/skills/<skill-name>"
+if [[ -d "$center" && -f "$center/SKILL.md" ]]; then
+  # 中心仓库已有该 skill → 强制在中心仓库改
+  authoritative_dir="$center"
+else
+  # 中心仓库没有 → 用用户当前所在或指定的位置
+  authoritative_dir="<current-location>"
+fi
+cd "$authoritative_dir"
+```
+
+**为什么强制在中心仓库改**：
+
+- `~/Documents/projects/skills/` 是 [[sync-skills]] 推到 GitHub 的**单一事实源**（`YeomanYe/skills` repo）
+- 其它位置（`~/.claude/skills/` 等）是 **下游副本**：由 skillshare 工具用 `git pull` / `skillshare sync` 从 GitHub 拉取
+- 改下游副本 → 下次 `skillshare sync --force` 会被 GitHub 上游的旧版本覆盖，**改动丢失**
+- 改下游副本然后 `sync-skills` 反向推 → 中心仓库会得到 plugin 前缀剥离过的目录，但工作流上**绕过了正常的 git 历史**
+
+**报告里必须显式声明**：
+
+```
+authoritative_dir: ~/Documents/projects/skills/<name>/   # 或其它位置
+chose_center: true | false（false 时说明原因，如 "中心仓库无此 skill，本次是 new-skill"）
+```
+
+**例外**：用户明确表示"只想本地试一下、不打算回流到中心" → 可以在下游副本改，但**必须在最终报告里 flag 警告"该改动不会进入 GitHub source，下次同步会被覆盖"**。
+
+## Step 3: Scope With `skill-creator`
 
 在编写或修订 skill 之前，必须先用 `skill-creator` 理清：
 
@@ -119,7 +163,7 @@ description: >
 
 如果这些信息已经能从当前请求和上下文中可靠推断，应直接整理并继续，不要为已知信息重复追问用户。
 
-## Step 3: Author With `writing-skills`
+## Step 4: Author With `writing-skills`
 
 使用 `writing-skills` 编写或修订 skill 正文。
 
@@ -142,7 +186,7 @@ description: >
 - 目标 skill 的 `SKILL.md`
 - 必要时的 `tests/cases.md` 或等价测试用例文件
 
-## Step 4: Run Behavior Testing
+## Step 5: Run Behavior Testing
 
 在宣称 skill 已可用之前，必须运行 `skill-behavior-test`。
 
@@ -156,7 +200,7 @@ description: >
 如果 skill 目录下已经有可复用的 `tests/`，必须优先复用。
 不要只生成测试提示词而不执行测试。
 
-## Step 5: Decide Whether Integration Testing Is Required
+## Step 6: Decide Whether Integration Testing Is Required
 
 集成测试是“条件必跑”，不是一律必跑。
 
@@ -176,7 +220,7 @@ description: >
 
 若跳过集成测试，必须在最终报告中说明原因。
 
-## Step 6: Run Integration Testing When Required
+## Step 7: Run Integration Testing When Required
 
 当集成测试是必需项时，使用 `skill-integration-test` 验证：
 
@@ -188,7 +232,16 @@ description: >
 
 不要把“理论上应该能衔接”当作集成测试通过；至少要完成一次基于真实 skill 文件和测试资产的链路检查。
 
-## Step 7: Sync To Center When Needed
+## Step 8: Sync To Center When Needed
+
+**前置说明**：如果 Step 2 已经把工作锁定在中心仓库（`chose_center: true`），那么 `sync-skills` 的"复制"动作就不必要了——文件已经在中心仓库就位。此时本步骤简化为：
+
+- 在中心仓库目录下 `git add <skill-name> && git commit && git push`（如果是 IM 会话且配置了 remote）
+- 跳过 `sync-skills` 调用，但在报告里说明"已在中心仓库直接修改 + 已 git 提交，无需调用 sync-skills"
+
+只有 Step 2 选择了**非中心位置**（如新建 skill 直接写在项目内、或用户明确要本地试改）才需要走下面的 sync-skills 决策树。
+
+---
 
 `sync-skills` 不是一律必跑，而是条件必跑。
 
@@ -268,7 +321,7 @@ repo 的另一个 working copy），由 skillshare 用 `git pull` / `skillshare 
 
 这种情况不得标记为“完整通过的集成测试”，只能标记为“手工链路检查已完成”。
 
-## Step 8: Write the Final Report
+## Step 9: Write the Final Report
 
 始终以书面报告收尾，使用以下结构：
 
@@ -280,6 +333,9 @@ repo 的另一个 working copy），由 skillshare 用 `git pull` / `skillshare 
 - 路径:
 - 范围:
 - 类型: new | update
+- authoritative_dir:                 # Step 2 决定的修改作用位置
+- chose_center: true | false         # 是否在中心仓库 `~/Documents/projects/skills/` 改；false 时下方写原因
+- chose_center_reason:                # 仅 chose_center=false 时填
 
 ### 设计摘要
 - 触发条件:
