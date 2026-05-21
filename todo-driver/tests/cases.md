@@ -164,6 +164,27 @@
   - 拒绝改位置
   - 提示如需影响实现，应直接编辑 `docs/spec/theme-toggle.md`
 
+### Case A5: 每次成功 adjust 后必须 commit + push
+
+- 前置：`TODO.md` 干净，`theme-toggle` 尚无 spec，remote 可 push
+- 输入：用户说"把 theme-toggle 移到第 2 个"
+- 预期：
+  - 改动只涉及 `TODO.md`
+  - 执行 `git add TODO.md`
+  - 创建 commit，message 形如 `chore(todo): adjust theme-toggle`
+  - 尝试 `git push origin <default_branch>`
+  - 输出含 `adjust_commit` 和 `push_status: pushed`
+
+### Case A6: push 失败时不能静默成功
+
+- 前置：`TODO.md` 调整成功，commit 成功，但 remote push 被拒
+- 输入：用户说"3,6 交换"
+- 预期：
+  - 输出含 `adjust_commit`
+  - 输出 `push_status: local-only`
+  - 明确说明 push 失败原因
+  - 不回滚本地 commit，不 force push
+
 ---
 
 ## Mode `review-merge`

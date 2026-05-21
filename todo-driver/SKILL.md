@@ -392,6 +392,8 @@ grep -n "^\- \[ \] \`<slug>\`" TODO.md
 
 > 设计原则：**一旦 stage1 给该 slug 起过 spec（`docs/spec/${slug}.md` 存在），spec 就成了事实源，本 mode 不再改 TODO 行的实质内容**——那时调整位置已无意义，补的 hints 也不会进入已落地的 spec。要改 spec 直接 Edit `docs/spec/${slug}.md`。
 
+> 硬规则：`adjust` 每次成功修改 `TODO.md` 后都必须创建一次 git commit，并且必须尝试 `git push origin ${default_branch}`。未 commit 的本地修改不能报告为成功；push 失败时只允许报告 `local-only`，不得静默吞掉。
+
 ### Required Workflow（adjust）
 
 按以下顺序：
@@ -514,6 +516,8 @@ fi
 
 #### Step 4: Verify Single-File Change + Commit + Push
 
+这是 `adjust` 的硬门，不是可选收尾。只要 Step 3 对 `TODO.md` 产生了实际改动，就必须执行本步。
+
 ```bash
 # staged 必须只有 TODO.md
 git add TODO.md
@@ -530,7 +534,12 @@ git commit -m "chore(todo): adjust ${adjust_summary_slug}
 
 $(adjust_summary)"   # body 内容见下方
 adjust_sha=$(git rev-parse HEAD)
-git push origin "${default_branch}" 2>&1 || echo "WARN: push failed, adjust committed locally only (sha=${adjust_sha})"
+if git push origin "${default_branch}"; then
+  push_status="pushed"
+else
+  push_status="local-only"
+  echo "WARN: push failed, adjust committed locally only (sha=${adjust_sha})"
+fi
 ```
 
 `adjust_summary` 由本次实际做了哪些动作生成，例：
@@ -549,7 +558,8 @@ Move before `theme-toggle`; +2 hints (复用 src/hooks/useDarkMode; 必须支持
 - `spec_state`: `none` / `pending-spec` / `done`（来自 Step 1 判定矩阵）
 - `todo_order_before`: Step 1.5 输出的编号清单
 - `todo_order_after`: 若顺序变化，输出调整后的编号清单；若只追加 hints，可省略或写 `unchanged`
-- `adjust_commit`: SHA（`pushed | local-only`）
+- `adjust_commit`: SHA
+- `push_status`: `pushed` / `local-only`
 - `next_step`:
   - 顺序变了：`下次 stage1 cron 会按新顺序挑选`
   - 加了 hints 且 spec 不存在：`stage1 起 spec 时会读到新 hints 并写进 spec`
@@ -568,6 +578,8 @@ Move before `theme-toggle`; +2 hints (复用 src/hooks/useDarkMode; 必须支持
 **5. 跨段移动破坏组织**：用户期望从 `## Backlog` 移到 `## Features` 顶。处理：本 mode 不跨段；用户先 Edit 改段名再 adjust。
 
 **6. 编号动作未先列清单**：用户说“3、8 交换”，agent 直接按自己脑中顺序改。处理：Step 1.5 必须先输出当前 TODO 编号清单，再把编号解析成 slug；编号越界必须 stop。
+
+**7. 调整完未提交或未推送**：agent 改了 `TODO.md` 就直接回复“已调整”。处理：Step 4 是硬门；必须 commit，并且必须尝试 push。commit 失败 → 不允许成功；push 失败 → 报告 `push_status: local-only` 和失败原因。
 
 ---
 
