@@ -142,7 +142,13 @@ authoritative_dir: ~/Documents/projects/skills/<name>/   # 或其它位置
 chose_center: true | false（false 时说明原因，如 "中心仓库无此 skill，本次是 new-skill"）
 ```
 
-**例外**：用户明确表示"只想本地试一下、不打算回流到中心" → 可以在下游副本改，但**必须在最终报告里 flag 警告"该改动不会进入 GitHub source，下次同步会被覆盖"**。
+**唯一例外**：用户在**当前会话里显式提出**要在下游副本改（典型措辞："只想本地试一下、不打算回流到中心" / "就改 ~/.claude 下面的那份" / "别动中心仓库" / "I just want to patch the installed copy"）→ 才可以在下游副本改。
+
+**❌ 严禁 agent 主动走例外路径**：
+- 不允许 agent 自己建议"要不要在下游改?"
+- 不允许 agent 询问"我可以改这里吗?"——默认行为永远是**自动切回中心仓库**，不需要用户确认
+- 不允许从历史会话 / memory 推断"用户上次说过" → 例外必须是**当前会话**的显式陈述
+- 走例外时**必须在最终报告里 flag 警告**"该改动不会进入 GitHub source，下次 skillshare sync 会被覆盖"
 
 ## Step 2.5: Pre-flight — 检查远端冲突意图
 
@@ -180,9 +186,9 @@ git status --short <skill-name>/
 
 ### 分支 B: skillshare clone `~/.config/skillshare/skills/_YeomanYe-skills/`
 
-**警告并阻断**:该路径是 skillshare 的 source clone,**不该直接改**。改动会被下次 `git pull` 覆盖,且无法回流 GitHub。
+**硬阻断**:该路径是 skillshare 的 source clone,**禁止直接修改**(改动会被下次 `git pull` 覆盖,且无法回流 GitHub)。
 
-正确做法:返回 Step 2 改 `authoritative_dir = ~/Documents/projects/skills/<name>/`,在中心改完后通过 sync-skills 分发到 skillshare clone。
+**默认动作(不询问用户)**:**自动**返回 Step 2,把 `authoritative_dir` 改为 `~/Documents/projects/skills/<name>/`,在中心改完后通过 sync-skills 分发到 skillshare clone。**不要问用户"要不要在下游改"** —— 唯一允许走例外的触发是 Step 2 例外条款里规定的"用户在当前会话里显式提出"。
 
 ### 分支 C: 项目级 `.claude/skills/` 或 `.skillshare/skills/`
 
@@ -190,7 +196,9 @@ git status --short <skill-name>/
 
 ### 分支 D: 用户级 `~/.claude/skills/`(skillshare 同步 target)
 
-**警告并阻断**:该路径是 skillshare 的 sync target(symlink 或 copy),不是源。改这里不会进任何 git。返回 Step 2 改 `authoritative_dir`。
+**硬阻断**:该路径是 skillshare 的 sync target(symlink 或 copy),不是源,**禁止直接修改**(改这里不会进任何 git,下次 `skillshare sync --force` 会覆盖)。
+
+**默认动作(不询问用户)**:**自动**返回 Step 2 切到中心仓库,不询问用户是否要破例。例外触发同分支 B —— 必须用户在当前会话里显式提出。
 
 ---
 
@@ -199,6 +207,8 @@ git status --short <skill-name>/
 - ❌ 跳过 Step 2.5 直接进 Step 3 — 即使你"觉得"远端不会冲突,也必须实跑命令
 - ❌ 看到冲突就自动 `git reset --hard origin/main` 或 `git merge` — 必须让用户决定取舍
 - ❌ 在分支 B/D 警告下硬改 — 改了等于白改
+- ❌ **agent 主动建议用户"要不要在下游改"** — 唯一例外路径必须由用户**自己**提出,agent 不得引导
+- ❌ **agent 询问"我可以直接改 ~/.claude/skills/ 这份吗?"** — 默认动作就是自动切回中心仓库,不需要确认轮次
 
 **例外**:
 - minor-update 不走本 orchestrator → 不适用 Step 2.5
