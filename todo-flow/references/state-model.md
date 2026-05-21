@@ -20,7 +20,9 @@ spec-approved    status: approved
 dev-in-progress  branch todo/<slug> 存在 + status 仍是 approved
                        │ stage 2 跑完
                        ▼
-dev-done         status: ready-for-review
+dev-done         status: ready-for-review        ← stage 2 输出
+verify-pass      status: verified                 ← stage 3 输出
+verify-fail      status: verify-failed            ← stage 3 输出
                        │ todo-flow done: review pass + squash merge
                        ▼
 done             spec 被移到 docs/spec/_done/，branch 删除，TODO 标 [x]
@@ -63,7 +65,7 @@ done             spec 被移到 docs/spec/_done/，branch 删除，TODO 标 [x]
 ---
 id: theme-toggle
 title: 主题切换支持深色/浅色/跟随系统
-status: draft | approved | ready-for-review | blocked
+status: draft | approved | ready-for-review | verified | verify-failed | blocked
 kind: implementation | decomposition
 epic: false                  # 仅 decomposition kind 时可能 true
 depends_on: []               # [<slug>, ...] 必须全部 done 后才能进 dev

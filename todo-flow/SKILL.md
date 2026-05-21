@@ -12,7 +12,7 @@ description: >
   触发 done：「done 这个 todo」「完成 ready spec」「标记完成」「review 这个 todo」；兼容旧说法「review-merge」「合并 ready 的 spec」「审 todo 并 merge」。
   统称：「todo-flow」「todo-flow <mode>」。兼容旧名：「todo-driver」「todo-driver <mode>」。
   Do NOT use for: 改/删 slug（删原 + add 新）/ 不带 slug 的备忘（直接 Edit TODO.md）/
-  通用 PR review（→ requesting-code-review）/ stage 1/2 cron prompt 本身（在 references/）。
+  通用 PR review（→ requesting-code-review）/ stage 1/2/3 cron prompt 本身（详见 stage prompt 文件）。
 ---
 
 # todo-flow
@@ -24,9 +24,11 @@ description: >
 - **`init`**：把一个普通工程**初始化**为支持 todo-flow 流水线的工程——创建 `TODO.md` + `docs/spec/` + 改 `.gitignore`。一次性动作，幂等。
 - **`add`**：向项目 `TODO.md` 追加一条带 slug 的待办，让 stage 1 cron 起草 spec。
 - **`adjust`**：进入 TODO panel 模式，用编号表格连续调整**还没起 spec** 的 TODO：改顺序、修改条目内容、追加 hints；直到用户说退出才一次性 commit + push。
-- **`done`**：审核 `status: ready-for-review` 的 spec，pass 则 squash merge 到默认分支 + 归档 spec 到 `_done` + 原子清理 branch/worktree/TODO。
+- **`done`**：审核 `status: ready-for-review` **或 `verified`**(stage3 通过)的 spec，pass 则 squash merge 到默认分支 + 归档 spec 到 `_done` + 原子清理 branch/worktree/TODO。`verified` 表示已过 stage3 自动验证,人工 review 时可信度更高。
 
-中间的 stage 1（起草 spec）和 stage 2（开发 + 走查 + push branch）由 cron 喂的 prompt 接管（`references/stage{1,2}-prompt.md`），不在本 skill 范围。
+中间的 stage 1（起草 spec）/ stage 2（开发 + push branch）/ **stage 3（验证 + 飞书回传）**由 cron 喂的 prompt 接管（详见 references 下的 stage1-prompt、stage2-prompt、stage3-verify-prompt 三个文件），不在本 skill 范围。
+
+**stage 3**（`stage3-verify-prompt.md`）独立 cron 跑：选 `status: ready-for-review` 的 spec → 跑 hard gates + Playwright 走查 → 通过 `lark-cli`（headless env-var 模式）发飞书报告（截图 + 错误日志）→ 改 status 为 `verified` 或 `verify-failed`。**跟 stage1/2 完全隔离无感知**，通过 spec status 状态机自然接力。飞书凭证（`${LARK_APP_ID}` / `${LARK_APP_SECRET}` / `${LARK_CHAT_ID}`）和工程清单（`${PROJECTS_ARRAY}`）都是占位符，调用方字符串预处理后再喂给 agent。
 
 核心原则：
 - **一次调用只处理一个 mode**，不混做
@@ -638,10 +640,10 @@ Append hint to `keyboard-shortcuts`: 使用 chrome.commands API
 ls docs/spec/*.md 2>/dev/null
 ```
 
-对每个 spec 读 frontmatter 提取 `id`、`status`、`updated`、`epic`。筛 `status: ready-for-review` 的：
+对每个 spec 读 frontmatter 提取 `id`、`status`、`updated`、`epic`。筛 **`status: ready-for-review` 或 `status: verified`** 的(后者表示已过 stage3 自动验证):
 
-- 0 个 → 输出 idle JSON + 提示"stage 2 还没跑完"
-- ≥ 1 个 → 进入 Step 2
+- 0 个 → 输出 idle JSON + 提示"stage 2/3 还没跑完"
+- ≥ 1 个 → 进入 Step 2;同时存在两种状态时 `verified` 优先(自动验证过的更可信)
 
 #### Step 2: Pick Target
 
