@@ -122,63 +122,100 @@
 
 ## Mode `adjust`
 
-### Case A1: adjust 前强制列出编号清单
+### Case A1: adjust 打开 panel 表格
 
 - 前置：`TODO.md` 有 5 条 `- [ ]` TODO，目标 slug 尚无 `docs/spec/<slug>.md`
-- 输入：用户说"todo-driver adjust，把 theme-toggle 移到第 2 个"
+- 输入：用户说"todo-driver adjust"
 - 预期：
   - mode 解析为 `adjust`
-  - 在解析动作前输出 `当前 TODO 顺序:` 编号清单
-  - 清单从 1 开始编号，包含 slug、title、summary
-  - 把 `theme-toggle` 移到编号 2 对应的位置
-  - Output Contract 含 `todo_order_before` 和 `todo_order_after`
+  - 进入 `panel: open`
+  - 输出 Markdown 表格，表头包含 `# | slug | title | summary | hints | spec_state`
+  - 编号从 1 开始，每行包含完整 summary，不用 `...` 截断
+  - 不修改 `TODO.md`，不 commit，不 push
+  - 提示可继续输入移动 / 交换 / 修改 TODO / 添加 hint / 退出模式
 
-### Case A2: 用户用编号交换两项
+### Case A2: panel 内用编号交换两项
 
 - 前置：`TODO.md` 当前清单中第 3 项是 `keyboard-shortcuts`，第 6 项是 `theme-toggle`
 - 输入：用户说"3,6 交换"
 - 预期：
-  - 先输出当前编号清单
+  - 使用最近一次 panel 表格解析编号
   - 解析 3 → `keyboard-shortcuts`，6 → `theme-toggle`
   - 交换两行位置
   - `actions_taken` 含 `swapped keyboard-shortcuts and theme-toggle`
-  - `todo_order_after` 展示交换后的编号清单
+  - 修改后立即重新输出完整 panel 表格
+  - 不 commit，不 push，等待用户继续或退出
 
 ### Case A3: 编号越界 → 护栏
 
 - 前置：`TODO.md` 当前段只有 4 条未完成 TODO
 - 输入：用户说"8 移到 2"
 - 预期：
-  - 先输出当前编号清单
+  - 使用最近一次 panel 表格解析编号
   - 检测编号 8 越界
-  - stop，不修改 `TODO.md`
+  - 不修改 `TODO.md`
   - 报告"编号 8 不存在"
+  - 重新输出完整 panel 表格，继续停留在 panel
 
-### Case A4: 已起 spec 的 TODO 拒绝移动
+### Case A4: panel 内修改 TODO 内容要输出原始行
 
-- 前置：`docs/spec/theme-toggle.md` 已存在，`TODO.md` 中有 `theme-toggle`
-- 输入：用户说"把 theme-toggle 移到第 1 个"
+- 前置：第 4 项是 `ai-group-suggestions`，`spec_state=none`
+- 输入：用户说"改 4 summary 为 在分组编辑面板中用大模型推荐扩展"
 - 预期：
-  - 输出当前编号清单
+  - 修改第 4 行 summary，slug 不变
+  - 输出 `updated_line:`
+  - `updated_line` 后面一行必须与 `TODO.md` 中该行完全一致
+  - 随后输出完整 panel 表格
+  - 不 commit，不 push，等待用户继续或退出
+
+### Case A5: panel 内添加 hint
+
+- 前置：第 4 项是 `ai-group-suggestions`，已有 hints `设置中支持本地模型和远程模型`
+- 输入：用户说"给 4 加 hint 复用 ai-bookmark 的模型配置结构"
+- 预期：
+  - 追加 hint 到行末括号内，用英文分号分隔
+  - 单条 hint 内若包含 `;` 则拒绝
+  - 输出 `updated_line` 完整原文
+  - 输出完整 panel 表格
+  - 不 commit，不 push
+
+### Case A6: 已起 spec 的 TODO 拒绝 panel 修改
+
+- 前置：`docs/spec/theme-toggle.md` 已存在，panel 表格中 `theme-toggle` 为 `pending-spec`
+- 输入：用户说"把 theme-toggle 移到第 1 个" 或 "改 theme-toggle summary 为 ..."
+- 预期：
   - 检测 `spec_state=pending-spec`
-  - 拒绝改位置
+  - 拒绝移动、交换、修改 TODO、添加 hint
   - 提示如需影响实现，应直接编辑 `docs/spec/theme-toggle.md`
+  - 重新输出完整 panel 表格
 
-### Case A5: 每次成功 adjust 后必须 commit + push
+### Case A7: 退出 panel 后一次性 commit + push
 
-- 前置：`TODO.md` 干净，`theme-toggle` 尚无 spec，remote 可 push
-- 输入：用户说"把 theme-toggle 移到第 2 个"
+- 前置：panel 内已经完成 2 次修改，remote 可 push
+- 输入：用户说"退出模式"
 - 预期：
   - 改动只涉及 `TODO.md`
   - 执行 `git add TODO.md`
-  - 创建 commit，message 形如 `chore(todo): adjust theme-toggle`
+  - 只创建 1 个 commit，message 形如 `chore(todo): adjust TODO panel`
   - 尝试 `git push origin <default_branch>`
+  - 输出 `panel: closed`
+  - 输出完整 `final_table`
   - 输出含 `adjust_commit` 和 `push_status: pushed`
 
-### Case A6: push 失败时不能静默成功
+### Case A8: panel 未退出不能提交
 
-- 前置：`TODO.md` 调整成功，commit 成功，但 remote push 被拒
-- 输入：用户说"3,6 交换"
+- 前置：panel 内刚成功移动一项
+- 输入：用户还没说退出，只继续问"现在顺序呢"
+- 预期：
+  - 输出完整 panel 表格
+  - 不执行 `git add`
+  - 不 commit
+  - 不 push
+
+### Case A9: push 失败时不能静默成功
+
+- 前置：用户说"退出模式"，commit 成功，但 remote push 被拒
+- 输入：用户说"退出模式"
 - 预期：
   - 输出含 `adjust_commit`
   - 输出 `push_status: local-only`

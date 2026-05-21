@@ -3,12 +3,12 @@ name: todo-driver
 description: >
   Use when interacting with the human-facing endpoints of the TODO Driver pipeline
   (TODO → spec → dev → merge): `init` (onboard project), `add` (append slug-tagged
-  TODO), `adjust` (reorder TODO or append hints before stage1 picks it up),
+  TODO), `adjust` (open a numbered table panel to reorder/edit TODOs and add hints before stage1 picks them up),
   `review-merge` (audit + squash merge ready spec).
   TODO Driver 流水线（TODO → spec → dev → merge）的人手触发端点。
   触发 init：「初始化 todo-driver」「让这个工程支持 todo 流水线」「setup todo-driver」。
   触发 add：「新建 TODO」「加一个待办」「记个带 slug 的 todo」「add todo with slug」。
-  触发 adjust：「调整 todo 顺序」「把 X 插到 Y 前」「补 hints」「reorder todo」。
+  触发 adjust：「调整 todo 顺序」「把 X 插到 Y 前」「补 hints」「修改 todo」「panel 模式」「reorder todo」。
   触发 review-merge：「review 这个 todo」「合并 ready 的 spec」「审 todo 并 merge」。
   统称：「todo-driver」「todo-driver <mode>」。
   Do NOT use for: 改/删 slug（删原 + add 新）/ 不带 slug 的备忘（直接 Edit TODO.md）/
@@ -23,7 +23,7 @@ description: >
 
 - **`init`**：把一个普通工程**初始化**为支持 todo-driver 流水线的工程——创建 `TODO.md` + `docs/spec/` + 改 `.gitignore`。一次性动作，幂等。
 - **`add`**：向项目 `TODO.md` 追加一条带 slug 的待办，让 stage 1 cron 起草 spec。
-- **`adjust`**：调整**还没起 spec** 的 TODO 的位置（影响 stage1 下次挑哪条），或往其行末追加 hints（关键交互路径 / 核心思路 / 新约束）。
+- **`adjust`**：进入 TODO panel 模式，用编号表格连续调整**还没起 spec** 的 TODO：改顺序、修改条目内容、追加 hints；直到用户说退出才一次性 commit + push。
 - **`review-merge`**：审核 `status: ready-for-review` 的 spec，pass 则 squash merge 到默认分支 + 原子清理 branch/worktree/spec/TODO。
 
 中间的 stage 1（起草 spec）和 stage 2（开发 + 走查 + push branch）由 cron 喂的 prompt 接管（`references/stage{1,2}-prompt.md`），不在本 skill 范围。
@@ -40,7 +40,7 @@ description: >
 |---|---|---|---|
 | `init` | 用户要把一个项目接入 todo-driver 流水线 | 创建 `TODO.md` + `docs/spec/` + 改 `.gitignore` 加 `.worktrees/`；幂等 | 低 |
 | `add` | 用户要新建带 slug 的 TODO | 在 `TODO.md` 对应段末追加一行 | 低 |
-| `adjust` | 用户要给**还没起 spec** 的 TODO 改顺序 / 补思路 | 改 `TODO.md` 一个文件：移动行位置或追加 hints；commit + push | 低 |
+| `adjust` | 用户要给**还没起 spec** 的 TODO 改顺序 / 修改内容 / 补思路 | 进入 panel 模式，连续改 `TODO.md`；退出后 commit + push | 低 |
 | `review-merge` | 用户要审核并合并 ready spec | squash merge + 删 branch + 删 worktree + push 默认分支 | 高 |
 
 ## Resolving Mode
@@ -51,7 +51,7 @@ description: >
 2. **触发短语推断**：
    - 含"初始化"/"接入"/"setup"/"onboard" + "todo-driver"/"todo 流水线" → `init`
    - 含"新建"/"加"/"记"/"create"/"add" + "TODO"/"待办" → `add`
-   - 含"调整"/"排序"/"插到前/后"/"挪"/"补思路"/"补充 hints"/"reorder"/"move X before/after"/"add hints" + "todo"/具体 slug → `adjust`
+   - 含"调整"/"排序"/"插到前/后"/"挪"/"补思路"/"补充 hints"/"修改 todo"/"panel 模式"/"reorder"/"move X before/after"/"add hints" + "todo"/具体 slug → `adjust`
    - 含"review"/"审"/"合并"/"merge" + "todo"/"spec" → `review-merge`
 3. **状态推断**（兜底）：
    - 项目根**没有** `TODO.md` 也**没有** `docs/spec/` → 倾向 `init`（流水线还没接入）
@@ -68,13 +68,13 @@ description: >
 满足任一即可触发：
 - 用户想把一个项目接入 todo-driver 流水线（无 `TODO.md` / `docs/spec/` 的工程）
 - 用户描述了一个想加进 `TODO.md` 的新需求/功能/重构
-- 用户想给一个**还没起 spec** 的 TODO 改顺序 / 补 hints（关键交互路径 / 核心思路 / 新约束）
+- 用户想给一个**还没起 spec** 的 TODO 改顺序 / 修改内容 / 补 hints（关键交互路径 / 核心思路 / 新约束）
 - 项目有 `docs/spec/*.md` 文件且其中至少一个 `status: ready-for-review`，用户希望推进 merge
 - 用户在 todo-driver 流水线相关的上下文里提及 init / add / adjust / review / merge 这类动作
 
 ## When NOT to Use
 
-- 用户在改已有 TODO 条目（直接 Edit）
+- 用户在做不需要编号面板、也不需要 commit/push 的随手 TODO 文案小改（直接 Edit）
 - 用户只想随手记一行不需要被流水线处理（直接 Edit TODO.md）
 - 用户在做通用 PR 审查（用 `requesting-code-review`）
 - 用户要 merge 一个不在 todo-driver 流水线里的分支（直接 `git merge`）
@@ -388,97 +388,85 @@ grep -n "^\- \[ \] \`<slug>\`" TODO.md
 
 ## Mode `adjust`
 
-调整一个**还没起 spec** 的 TODO 条目：改位置（影响 stage1 下次挑哪条）或往行末追加 hints（关键交互路径 / 核心思路 / 新约束）。两类动作可以在同一次调用里组合。
+进入 **TODO panel 模式**，用编号表格连续调整 TODO：改位置（影响 stage1 下次挑哪条）、修改条目内容、追加 hints。面板不会在每次小改后立刻 commit；只有用户明确说"退出模式" / "退出" / "exit" / "done" 时，才统一校验、commit，并尝试 push。
 
-> 设计原则：**一旦 stage1 给该 slug 起过 spec（`docs/spec/${slug}.md` 存在），spec 就成了事实源，本 mode 不再改 TODO 行的实质内容**——那时调整位置已无意义，补的 hints 也不会进入已落地的 spec。要改 spec 直接 Edit `docs/spec/${slug}.md`。
+> 设计原则：**一旦 stage1 给该 slug 起过 spec（`docs/spec/${slug}.md` 存在），spec 就成了事实源，本 mode 不再改 TODO 行的位置或实质内容**。要影响实现，直接 Edit `docs/spec/${slug}.md`。已 merge 的 `_done/${slug}.md` 一律不可改。
 
-> 硬规则：`adjust` 每次成功修改 `TODO.md` 后都必须创建一次 git commit，并且必须尝试 `git push origin ${default_branch}`。未 commit 的本地修改不能报告为成功；push 失败时只允许报告 `local-only`，不得静默吞掉。
+> 硬规则：`adjust` panel 退出时，只要 `TODO.md` 有实际改动，就必须创建一次 git commit，并且必须尝试 `git push origin ${default_branch}`。未 commit 的本地修改不能报告为完成；push 失败时只允许报告 `local-only`，不得静默吞掉。
 
 ### Required Workflow（adjust）
 
 按以下顺序：
 
 1. 探测环境
-2. 列出当前 TODO 编号清单，方便用户审查顺序
-3. 解析调整动作，并把编号解析成 slug
-4. 改 `TODO.md`
-5. 校验单文件改动 + commit + push
-6. 输出报告
+2. 进入 panel，输出完整 TODO 表格
+3. 循环接收用户指令：移动 / 交换 / 修改 TODO / 添加 hint / 退出
+4. 每次成功修改后立即输出完整表格
+5. 单个 TODO 内容被改时，额外原封不动输出该 TODO 行
+6. 用户退出后校验单文件改动 + commit + push
+7. 输出报告
 
 #### Step 1: Probe Environment
 
 ```bash
-# 必须 git 仓库根 + 默认分支 + 工作树干净（与 init / add 一致）
+# 必须 git 仓库根 + 默认分支 + 工作树干净（panel 期间会产生 TODO.md 脏改动）
 git rev-parse --is-inside-work-tree > /dev/null 2>&1 || { echo "ERROR: not a git repo"; exit 1; }
 test "$(git rev-parse --show-toplevel)" = "$(pwd -P)" || { echo "ERROR: must run at repo root"; exit 1; }
 
 default_branch=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')
 default_branch=${default_branch:-main}
 [ "$(git rev-parse --abbrev-ref HEAD)" = "$default_branch" ] || { echo "ERROR: must run on ${default_branch}"; exit 1; }
-test -z "$(git status --porcelain)" || { echo "ERROR: working tree dirty"; exit 1; }
+test -z "$(git status --porcelain)" || { echo "ERROR: working tree dirty before panel"; exit 1; }
 
 test -f TODO.md || { echo "ERROR: no TODO.md, run 'todo-driver init' first"; exit 1; }
 ```
 
-**注意**：这一步不要求用户已经提供 slug。`adjust` 必须支持用户用编号表达动作（如“3,6 交换”“8 移到 2”），因此目标 TODO 校验要等 Step 1.5 列出编号清单、Step 2 解析出 slug 后再做。
+任一硬错 → stop，不进入 panel，不改文件。`.zread/`、临时文件、其它未跟踪文件都算脏工作树，避免退出时把用户改动卷入 commit。
+
+#### Step 2: Render Panel Table（强制）
+
+进入 panel 后，必须把 `TODO.md` 中所有未完成 TODO 以 Markdown 表格输出；每一行前面必须有从 1 开始的编号。每次成功修改后都重新输出完整表格，方便用户继续用编号调整。
+
+表格字段固定：
+
+```md
+| # | slug | title | summary | hints | spec_state |
+|---:|---|---|---|---|---|
+| 1 | `theme-toggle` | 主题切换 | 支持深色 / 浅色 / 跟随系统三态 | 用 uiStore 管理 | none |
+```
+
+解析规则：
+- 默认列出所有 `- [ ]` TODO 行；如果未来支持多段且用户指定段名，再只列该段。
+- `spec_state`：
+  - `none`：`docs/spec/${slug}.md` 和 `docs/spec/_done/${slug}.md` 都不存在
+  - `pending-spec`：`docs/spec/${slug}.md` 存在
+  - `done`：`docs/spec/_done/${slug}.md` 存在
+- `hints` 取 TODO 行末最后一对括号内容；没有则填 `-`。
+- 表格外不要省略长行。必要时保留完整内容，不能用 `...` 截断。
+
+#### Step 3: Panel Commands
+
+panel 持续到用户说"退出模式" / "退出" / "exit" / "done"。用户每次输入只解析为以下命令之一；不清楚时重新输出表格并用一句话提示支持的命令，不要猜。
+
+| 命令 | 例子 | 行为 |
+|---|---|---|
+| 移动 | `9 放到 3 后面` / `move 9 after 3` / `8 移到 2` | 用当前表格编号解析目标和锚点，移动整行 |
+| 交换 | `3,6 交换` / `swap 3 6` | 交换两条 TODO 行 |
+| 修改 TODO | `改 4 title 为 大模型分组` / `改 4 summary 为 ...` / `改 4 为 <完整 TODO 行>` | 修改单行 title / summary / hints，或用一整条合法 TODO 行替换该行 |
+| 添加 hint | `给 4 加 hint 设置里支持本地模型和远程模型` | 把一条 hint 追加到目标行末括号内 |
+| 退出 | `退出模式` / `退出` / `exit` / `done` | 结束 panel，进入提交与 push |
+
+编号必须来自当前表格。每次修改后编号可能变化；下一条用户指令必须基于最新表格重新解析。
 
 判定矩阵：
 
 | 状态 | 允许的动作 |
 |---|---|
-| 都不存在（spec 还没起） | **改位置 + 追加 hints 都允许** |
-| `docs/spec/${slug}.md` 存在（已起 spec，未 merge） | **拒绝改位置**（位置已无意义）；**警告**追加 hints"不会影响已存在的 spec，需要直接改 `docs/spec/${slug}.md`"，用户坚持则只改 TODO 行不动 spec |
+| `none`（spec 还没起） | **移动 / 交换 / 修改 TODO / 添加 hint 都允许** |
+| `pending-spec`（已起 spec，未 merge） | **拒绝移动、交换、修改 TODO、添加 hint**；提示直接编辑 `docs/spec/${slug}.md` |
 | `docs/spec/_done/${slug}.md` 存在（已 merge） | **全部拒绝**——该项应该已经是 `- [x]`，TODO 行不该被动 |
 
-#### Step 1.5: 列出当前 TODO 编号清单（强制）
-
-在进入动作解析或追问前，必须把当前 `TODO.md` 中所有未完成 TODO 按当前顺序列出，并从 1 开始编号，方便用户用“3 和 8 交换”“把 6 移到 2”这类自然语言审查和调整。
-
-编号规则：
-
-- 默认列出 `TODO.md` 中所有 `- [ ]` TODO 行；如果未来支持多段且用户指定了段名，再只列该段。
-- 编号从 1 开始，按文件出现顺序递增。
-- 每行至少包含：编号、slug、title、summary。
-- 如用户的输入已经用编号表达动作（如“3,6 交换”“8 移到 2”），必须先用这份编号清单解析成 slug，再执行移动。
-- 如果编号越界或对应行不是未完成 TODO，报错并重新输出编号清单，不能猜。
-
-输出格式：
-
-```md
-当前 TODO 顺序:
-1. `<slug-a>` <title-a> — <summary-a>
-2. `<slug-b>` <title-b> — <summary-b>
-...
-```
-
-#### Step 2: Collect Inputs（最小化追问）
-
-调用方应在 prompt 里指定。如果只指定了 slug 没指定动作，或只说“adjust”没给动作 → 用 AskUserQuestion 一次问完：
-
-| 字段 | 必答? | 说明 |
-|---|---|---|
-| `slug` / 编号 | 条件必答 | 目标 TODO 的 slug，或 Step 1.5 编号清单中的编号；交换动作需要两个编号或两个 slug |
-| 位置动作（任选一） | 否 | `--before <other-slug>` / `--after <other-slug>` / `--top` / `--bottom`（不动位置就不传） |
-| `--add-hint "<text>"` | 否 | 追加一条 hints；可多次传（每次一条，**不要**在单个 `--add-hint` 里塞 `;` 分多条） |
-
-**至少要有一个动作**（位置 or hints）。两个都没 → 报错"nothing to adjust"。
-
-**解析出 slug 后必须校验**：
-
-```bash
-# 每个被调整的目标 slug 都必须存在且为 - [ ]（未完成）
-target_line=$(grep -nE "^- \[ \] \`${slug}\` " TODO.md | head -1)
-[ -n "$target_line" ] || { echo "ERROR: slug '${slug}' not found as pending TODO"; exit 1; }
-
-# spec 状态判定：决定允许的动作
-SPEC_EXISTS=0; SPEC_DONE=0
-test -f "docs/spec/${slug}.md" && SPEC_EXISTS=1
-test -f "docs/spec/_done/${slug}.md" && SPEC_DONE=1
-```
-
-编号交换涉及两个目标 slug，必须分别做上述校验；任一目标已起 spec 或已 done 时，按判定矩阵阻断对应动作。
-
-#### Step 3: Apply Changes to TODO.md
+#### Step 4: Apply One Panel Command
 
 **追加 hints**（如有）：
 
@@ -497,7 +485,15 @@ fi
 # 3. 用 sed 替换该行末尾——优先保留行内已有的部分，仅在末尾改/加括号
 ```
 
-**校验**：单条 hints 内**禁止**含 `;`（会破坏分隔）；含则报错让用户改写。
+**校验**：
+- 单条 hints 内**禁止**含 `;`（会破坏分隔）；含则报错让用户改写。
+- 修改 TODO 时必须保持合法格式：`- [ ] \`<slug>\` <title> — <summary> (...)`。默认不允许改 slug；用户明确要求改 slug 时，拒绝并说明应删旧项 + add 新项。
+- 单个 TODO 内容改动后，必须额外输出该行完整 Markdown 原文，格式为：
+
+```md
+updated_line:
+- [ ] `slug` 标题 — 摘要 (hint)
+```
 
 **移动行**（如有）：
 
@@ -514,9 +510,15 @@ fi
 
 **不跨段移动**：目标 TODO 在哪个 `##` 段下就只能在该段内移动。需要跨段先用 Edit 改段名。
 
-#### Step 4: Verify Single-File Change + Commit + Push
+每次成功应用命令后必须：
+1. 重新解析 `TODO.md`
+2. 校验所有被调整 slug 仍唯一存在
+3. 输出完整 panel 表格
+4. 若是单行内容改动，再输出 `updated_line`
 
-这是 `adjust` 的硬门，不是可选收尾。只要 Step 3 对 `TODO.md` 产生了实际改动，就必须执行本步。
+#### Step 5: Exit Panel + Commit + Push
+
+这是 `adjust` 的硬门，不是可选收尾。用户退出 panel 后，只要 `TODO.md` 相比进入 panel 时有实际改动，就必须执行本步。若没有实际改动，输出 `adjust_commit: no-op`，不 commit、不 push。
 
 ```bash
 # staged 必须只有 TODO.md
@@ -524,13 +526,13 @@ git add TODO.md
 staged=$(git diff --cached --name-only)
 [ "$staged" = "TODO.md" ] || { echo "ERROR: unexpected staged files: $staged"; git reset HEAD; exit 1; }
 
-# 校验每个被调整的目标行仍唯一存在
+# 校验每个被调整的目标 slug 仍唯一存在
 for adjusted_slug in "${adjusted_slugs[@]}"; do
   hits=$(grep -cE "^- \[ \] \`${adjusted_slug}\` " TODO.md)
   [ "$hits" = "1" ] || { echo "ERROR: target line not unique after adjust: ${adjusted_slug} (${hits} hits)"; exit 1; }
 done
 
-git commit -m "chore(todo): adjust ${adjust_summary_slug}
+git commit -m "chore(todo): adjust TODO panel
 
 $(adjust_summary)"   # body 内容见下方
 adjust_sha=$(git rev-parse HEAD)
@@ -545,25 +547,42 @@ fi
 `adjust_summary` 由本次实际做了哪些动作生成，例：
 
 ```
-Move before `theme-toggle`; +2 hints (复用 src/hooks/useDarkMode; 必须支持 RTL)
+Move `ai-group-suggestions` after `theme-toggle`
+Edit `theme-toggle` summary
+Append hint to `keyboard-shortcuts`: 使用 chrome.commands API
 ```
 
 ### Output Contract（adjust）
 
-报告必须包含：
+进入 panel 时必须输出：
 
 - `mode: adjust`
-- `slug`: 目标 slug；编号交换时写两个 slug，如 `["keyboard-shortcuts", "theme-toggle"]`
-- `actions_taken`: 数组，列实际做了哪些动作，如 `["moved before theme-toggle", "appended 2 hints"]`
-- `spec_state`: `none` / `pending-spec` / `done`（来自 Step 1 判定矩阵）
-- `todo_order_before`: Step 1.5 输出的编号清单
-- `todo_order_after`: 若顺序变化，输出调整后的编号清单；若只追加 hints，可省略或写 `unchanged`
+- `panel: open`
+- 完整 TODO 表格
+- `commands`: 一行提示支持 `移动 / 交换 / 修改 TODO / 添加 hint / 退出模式`
+
+每次成功修改后必须输出：
+
+- `mode: adjust`
+- `panel: open`
+- `actions_taken`: 本轮动作数组，如 `["moved ai-group-suggestions after theme-toggle"]`
+- `updated_line`: 仅当单个 TODO 内容被改时输出，且必须是该行完整 Markdown 原文
+- 完整 TODO 表格
+- `next_step`: `继续输入调整指令，或说"退出模式"提交并 push`
+
+退出 panel 后必须输出：
+
+- `mode: adjust`
+- `panel: closed`
+- `actions_taken`: panel 内累计动作数组
+- `changed_slugs`: panel 内动过的 slug 数组
+- `final_table`: 完整 TODO 表格
 - `adjust_commit`: SHA
 - `push_status`: `pushed` / `local-only`
 - `next_step`:
   - 顺序变了：`下次 stage1 cron 会按新顺序挑选`
   - 加了 hints 且 spec 不存在：`stage1 起 spec 时会读到新 hints 并写进 spec`
-  - 加了 hints 但 spec 已存在：`⚠️ spec 已经起过，hints 不会自动回写——如要影响实现，请直接编辑 docs/spec/${slug}.md`
+  - 没有实际改动：`panel closed with no changes`
 
 ### Common Failure Modes（adjust）
 
@@ -577,9 +596,13 @@ Move before `theme-toggle`; +2 hints (复用 src/hooks/useDarkMode; 必须支持
 
 **5. 跨段移动破坏组织**：用户期望从 `## Backlog` 移到 `## Features` 顶。处理：本 mode 不跨段；用户先 Edit 改段名再 adjust。
 
-**6. 编号动作未先列清单**：用户说“3、8 交换”，agent 直接按自己脑中顺序改。处理：Step 1.5 必须先输出当前 TODO 编号清单，再把编号解析成 slug；编号越界必须 stop。
+**6. 编号动作未先列表格**：用户说“3、8 交换”，agent 直接按自己脑中顺序改。处理：panel 打开和每次改后都必须输出当前 TODO 表格，再把编号解析成 slug；编号越界必须 stop 并重印表格。
 
-**7. 调整完未提交或未推送**：agent 改了 `TODO.md` 就直接回复“已调整”。处理：Step 4 是硬门；必须 commit，并且必须尝试 push。commit 失败 → 不允许成功；push 失败 → 报告 `push_status: local-only` 和失败原因。
+**7. 每次小改后就 commit**：panel 还没退出就创建多次 commit。处理：面板期间只改 `TODO.md` 和展示表格；只有用户说退出模式后才 commit + push。
+
+**8. 单行内容改了但没输出原文**：用户无法审查最终 TODO 行。处理：凡是 title / summary / hints / 整行替换这类单行内容改动，都必须输出 `updated_line`，内容必须与 `TODO.md` 中该行完全一致。
+
+**9. 退出后未提交或未推送**：agent 改了 `TODO.md` 就直接回复“已调整”。处理：Step 5 是硬门；必须 commit，并且必须尝试 push。commit 失败 → 不允许成功；push 失败 → 报告 `push_status: local-only` 和失败原因。
 
 ---
 
@@ -975,9 +998,9 @@ grep -rE "^  - \[.\] \`<slug>\`" TODO.md
 
 本 skill 是 TODO Driver 流水线**人手触发端**的统一入口。
 
-- 一次调用 = 一个 mode = 一个具体动作（追加 TODO **或** 合并 ready spec）
+- 一次调用 = 一个 mode；`adjust` 是唯一允许在同一 mode 内持续交互的 panel，会在退出时一次性收口
 - 共享约束严格执行，**绝不**为了"流畅"绕过 hard gates、subjective 判定、diff audit
 - "merge 了一半"比"完全没 merge"更糟；任何清理步骤失败 → 报错 stop
-- mode 边界清晰：init **不**碰 git 状态；review-merge **不**新增 TODO 条目
+- mode 边界清晰：add **不**碰 git 状态；review-merge **不**新增 TODO 条目；adjust **不**在退出前 commit
 
 若做不到"原子干净"，就不要假装能安全完成。
