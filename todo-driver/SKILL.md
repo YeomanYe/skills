@@ -396,11 +396,12 @@ grep -n "^\- \[ \] \`<slug>\`" TODO.md
 
 按以下顺序：
 
-1. 探测环境 + 校验目标 slug
-2. 解析调整动作
-3. 改 `TODO.md`
-4. 校验单文件改动 + commit + push
-5. 输出报告
+1. 探测环境
+2. 列出当前 TODO 编号清单，方便用户审查顺序
+3. 解析调整动作，并把编号解析成 slug
+4. 改 `TODO.md`
+5. 校验单文件改动 + commit + push
+6. 输出报告
 
 #### Step 1: Probe Environment
 
@@ -417,18 +418,7 @@ test -z "$(git status --porcelain)" || { echo "ERROR: working tree dirty"; exit 
 test -f TODO.md || { echo "ERROR: no TODO.md, run 'todo-driver init' first"; exit 1; }
 ```
 
-**目标 slug 校验**（用户必须指定 `slug`）：
-
-```bash
-# 目标 TODO 行必须存在且为 - [ ]（未完成）
-target_line=$(grep -nE "^- \[ \] \`${slug}\` " TODO.md | head -1)
-[ -n "$target_line" ] || { echo "ERROR: slug '${slug}' not found as pending TODO"; exit 1; }
-
-# spec 状态判定：决定允许做什么
-SPEC_EXISTS=0; SPEC_DONE=0
-test -f "docs/spec/${slug}.md" && SPEC_EXISTS=1
-test -f "docs/spec/_done/${slug}.md" && SPEC_DONE=1
-```
+**注意**：这一步不要求用户已经提供 slug。`adjust` 必须支持用户用编号表达动作（如“3,6 交换”“8 移到 2”），因此目标 TODO 校验要等 Step 1.5 列出编号清单、Step 2 解析出 slug 后再做。
 
 判定矩阵：
 
@@ -438,17 +428,53 @@ test -f "docs/spec/_done/${slug}.md" && SPEC_DONE=1
 | `docs/spec/${slug}.md` 存在（已起 spec，未 merge） | **拒绝改位置**（位置已无意义）；**警告**追加 hints"不会影响已存在的 spec，需要直接改 `docs/spec/${slug}.md`"，用户坚持则只改 TODO 行不动 spec |
 | `docs/spec/_done/${slug}.md` 存在（已 merge） | **全部拒绝**——该项应该已经是 `- [x]`，TODO 行不该被动 |
 
+#### Step 1.5: 列出当前 TODO 编号清单（强制）
+
+在进入动作解析或追问前，必须把当前 `TODO.md` 中所有未完成 TODO 按当前顺序列出，并从 1 开始编号，方便用户用“3 和 8 交换”“把 6 移到 2”这类自然语言审查和调整。
+
+编号规则：
+
+- 默认列出 `TODO.md` 中所有 `- [ ]` TODO 行；如果未来支持多段且用户指定了段名，再只列该段。
+- 编号从 1 开始，按文件出现顺序递增。
+- 每行至少包含：编号、slug、title、summary。
+- 如用户的输入已经用编号表达动作（如“3,6 交换”“8 移到 2”），必须先用这份编号清单解析成 slug，再执行移动。
+- 如果编号越界或对应行不是未完成 TODO，报错并重新输出编号清单，不能猜。
+
+输出格式：
+
+```md
+当前 TODO 顺序:
+1. `<slug-a>` <title-a> — <summary-a>
+2. `<slug-b>` <title-b> — <summary-b>
+...
+```
+
 #### Step 2: Collect Inputs（最小化追问）
 
-调用方应在 prompt 里指定。如果只指定了 slug 没指定动作 → 用 AskUserQuestion 一次问完：
+调用方应在 prompt 里指定。如果只指定了 slug 没指定动作，或只说“adjust”没给动作 → 用 AskUserQuestion 一次问完：
 
 | 字段 | 必答? | 说明 |
 |---|---|---|
-| `slug` | 是 | 目标 TODO 的 slug |
+| `slug` / 编号 | 条件必答 | 目标 TODO 的 slug，或 Step 1.5 编号清单中的编号；交换动作需要两个编号或两个 slug |
 | 位置动作（任选一） | 否 | `--before <other-slug>` / `--after <other-slug>` / `--top` / `--bottom`（不动位置就不传） |
 | `--add-hint "<text>"` | 否 | 追加一条 hints；可多次传（每次一条，**不要**在单个 `--add-hint` 里塞 `;` 分多条） |
 
 **至少要有一个动作**（位置 or hints）。两个都没 → 报错"nothing to adjust"。
+
+**解析出 slug 后必须校验**：
+
+```bash
+# 每个被调整的目标 slug 都必须存在且为 - [ ]（未完成）
+target_line=$(grep -nE "^- \[ \] \`${slug}\` " TODO.md | head -1)
+[ -n "$target_line" ] || { echo "ERROR: slug '${slug}' not found as pending TODO"; exit 1; }
+
+# spec 状态判定：决定允许的动作
+SPEC_EXISTS=0; SPEC_DONE=0
+test -f "docs/spec/${slug}.md" && SPEC_EXISTS=1
+test -f "docs/spec/_done/${slug}.md" && SPEC_DONE=1
+```
+
+编号交换涉及两个目标 slug，必须分别做上述校验；任一目标已起 spec 或已 done 时，按判定矩阵阻断对应动作。
 
 #### Step 3: Apply Changes to TODO.md
 
@@ -479,6 +505,8 @@ fi
 | `--after <S>` | 同上，插到**之后** |
 | `--top` | 移到目标行所在段（`## Features` / `## TODO` / `## Backlog`）的**段首**（标题下第一条） |
 | `--bottom` | 移到所在段**段末** |
+| 编号交换（如 `3,6 交换`） | 用 Step 1.5 编号清单解析两个编号对应的 slug，交换两行位置 |
+| 编号移动（如 `8 移到 2`） | 用 Step 1.5 编号清单解析目标编号和目标位置，把目标行移动到该序号所在位置 |
 
 锚点 slug（`<S>`）必须也存在且未完成；否则报错。
 
@@ -492,11 +520,13 @@ git add TODO.md
 staged=$(git diff --cached --name-only)
 [ "$staged" = "TODO.md" ] || { echo "ERROR: unexpected staged files: $staged"; git reset HEAD; exit 1; }
 
-# 校验目标行仍唯一存在
-hits=$(grep -cE "^- \[ \] \`${slug}\` " TODO.md)
-[ "$hits" = "1" ] || { echo "ERROR: target line not unique after adjust ($hits hits)"; exit 1; }
+# 校验每个被调整的目标行仍唯一存在
+for adjusted_slug in "${adjusted_slugs[@]}"; do
+  hits=$(grep -cE "^- \[ \] \`${adjusted_slug}\` " TODO.md)
+  [ "$hits" = "1" ] || { echo "ERROR: target line not unique after adjust: ${adjusted_slug} (${hits} hits)"; exit 1; }
+done
 
-git commit -m "chore(todo): adjust ${slug}
+git commit -m "chore(todo): adjust ${adjust_summary_slug}
 
 $(adjust_summary)"   # body 内容见下方
 adjust_sha=$(git rev-parse HEAD)
@@ -514,9 +544,11 @@ Move before `theme-toggle`; +2 hints (复用 src/hooks/useDarkMode; 必须支持
 报告必须包含：
 
 - `mode: adjust`
-- `slug`: 目标 slug
+- `slug`: 目标 slug；编号交换时写两个 slug，如 `["keyboard-shortcuts", "theme-toggle"]`
 - `actions_taken`: 数组，列实际做了哪些动作，如 `["moved before theme-toggle", "appended 2 hints"]`
 - `spec_state`: `none` / `pending-spec` / `done`（来自 Step 1 判定矩阵）
+- `todo_order_before`: Step 1.5 输出的编号清单
+- `todo_order_after`: 若顺序变化，输出调整后的编号清单；若只追加 hints，可省略或写 `unchanged`
 - `adjust_commit`: SHA（`pushed | local-only`）
 - `next_step`:
   - 顺序变了：`下次 stage1 cron 会按新顺序挑选`
@@ -534,6 +566,8 @@ Move before `theme-toggle`; +2 hints (复用 src/hooks/useDarkMode; 必须支持
 **4. 移动行时锚点 slug 不存在**：`--before nonexistent` 静默无操作。处理：Step 3 校验锚点 slug 存在且未完成，否则报错。
 
 **5. 跨段移动破坏组织**：用户期望从 `## Backlog` 移到 `## Features` 顶。处理：本 mode 不跨段；用户先 Edit 改段名再 adjust。
+
+**6. 编号动作未先列清单**：用户说“3、8 交换”，agent 直接按自己脑中顺序改。处理：Step 1.5 必须先输出当前 TODO 编号清单，再把编号解析成 slug；编号越界必须 stop。
 
 ---
 

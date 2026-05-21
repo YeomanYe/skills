@@ -120,6 +120,52 @@
 
 ---
 
+## Mode `adjust`
+
+### Case A1: adjust 前强制列出编号清单
+
+- 前置：`TODO.md` 有 5 条 `- [ ]` TODO，目标 slug 尚无 `docs/spec/<slug>.md`
+- 输入：用户说"todo-driver adjust，把 theme-toggle 移到第 2 个"
+- 预期：
+  - mode 解析为 `adjust`
+  - 在解析动作前输出 `当前 TODO 顺序:` 编号清单
+  - 清单从 1 开始编号，包含 slug、title、summary
+  - 把 `theme-toggle` 移到编号 2 对应的位置
+  - Output Contract 含 `todo_order_before` 和 `todo_order_after`
+
+### Case A2: 用户用编号交换两项
+
+- 前置：`TODO.md` 当前清单中第 3 项是 `keyboard-shortcuts`，第 6 项是 `theme-toggle`
+- 输入：用户说"3,6 交换"
+- 预期：
+  - 先输出当前编号清单
+  - 解析 3 → `keyboard-shortcuts`，6 → `theme-toggle`
+  - 交换两行位置
+  - `actions_taken` 含 `swapped keyboard-shortcuts and theme-toggle`
+  - `todo_order_after` 展示交换后的编号清单
+
+### Case A3: 编号越界 → 护栏
+
+- 前置：`TODO.md` 当前段只有 4 条未完成 TODO
+- 输入：用户说"8 移到 2"
+- 预期：
+  - 先输出当前编号清单
+  - 检测编号 8 越界
+  - stop，不修改 `TODO.md`
+  - 报告"编号 8 不存在"
+
+### Case A4: 已起 spec 的 TODO 拒绝移动
+
+- 前置：`docs/spec/theme-toggle.md` 已存在，`TODO.md` 中有 `theme-toggle`
+- 输入：用户说"把 theme-toggle 移到第 1 个"
+- 预期：
+  - 输出当前编号清单
+  - 检测 `spec_state=pending-spec`
+  - 拒绝改位置
+  - 提示如需影响实现，应直接编辑 `docs/spec/theme-toggle.md`
+
+---
+
 ## Mode `review-merge`
 
 ### Case 14: 0 ready spec → idle
