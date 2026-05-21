@@ -17,6 +17,7 @@
 | "挑刺" / "戴上挑" / "/hat critic" / "review 模式" / "critic mode" | `挑` |
 | "教我" / "戴上教" / "/hat teach" / "解释下" / "teach mode" | `教` |
 | "帮我想想" / "戴上问" / "/hat ask" / "我卡壳了" / "ask mode" | `问` |
+| "查一下" / "调研" / "戴上钻" / "/hat deep" / "fact-check" / "真的吗" / "deep mode" / "research mode" | `钻` |
 
 ---
 
