@@ -3,26 +3,33 @@ name: todo-driver
 description: >
   Use when interacting with the human-facing endpoints of the TODO Driver pipeline
   (TODO → spec → dev → merge): initializing a project to support the pipeline,
-  appending a new slug-tagged TODO entry, or reviewing-and-merging a ready spec
-  back into main. Three modes: `init` to onboard a project (create TODO.md +
-  docs/spec/ + .gitignore entries), `add` to append a new TODO entry,
+  appending a new slug-tagged TODO entry, adjusting an existing TODO entry's
+  position or appending hints to it, or reviewing-and-merging a ready spec
+  back into main. Four modes: `init` to onboard a project (create TODO.md +
+  docs/spec/ + .gitignore entries), `add` to append a new TODO entry, `adjust`
+  to reorder an existing TODO or append hints to it (before stage1 picks it up),
   `review-merge` for the audit + squash merge + cleanup flow.
-  用于 TODO Driver 流水线（TODO → spec → dev → merge）的三个人手触发端点：
-  初始化项目接入流水线（mode=init，创建 TODO.md + docs/spec/ + 改 .gitignore）、
-  追加带 slug 的 TODO 条目（mode=add）、审核并合并 status=ready-for-review
-  的 spec（mode=review-merge）。三个 mode 共享 slug 规范、frontmatter 字段约定、
-  工程规范三级回退（AGENTS.md → CLAUDE.md → 通用规则）。
+  用于 TODO Driver 流水线（TODO → spec → dev → merge）的四个人手触发端点：
+  初始化项目接入流水线（mode=init）、追加带 slug 的 TODO 条目（mode=add）、
+  调整已有 TODO 的位置或追加 hints（mode=adjust，仅限 stage1 还没起过 spec 的项）、
+  审核并合并 status=ready-for-review 的 spec（mode=review-merge）。四个 mode 共享
+  slug 规范、frontmatter 字段约定、工程规范三级回退（AGENTS.md → CLAUDE.md → 通用规则）、
+  写入语言中文。
   触发短语（init 路径，**初始化项目**）：「初始化 todo-driver」「把这个项目接入 todo-driver」
   「setup todo-driver」「onboard todo-driver」「todo-driver init」「让这个工程支持 todo 流水线」。
   触发短语（add 路径，**加一条 todo**）：「新建 TODO」「加一个待办」「记个新需求带 slug」
   「ext-helper 记个 TODO」「create a TODO」「add todo with slug」「new todo」
   「todo-driver add」。
+  触发短语（adjust 路径，**改顺序 / 补思路**）：「调整 todo 顺序」「把 X 放前面」「把 X 插到 Y 前」
+  「给 todo X 补思路」「补充 hints」「记一下关键路径到 todo」「reorder todo」「move X before Y」
+  「add hints to <slug>」「todo-driver adjust」。
   触发短语（review-merge 路径）：「review 这个 todo」「合并 todo 分支」
   「审 todo 并 merge」「todo-review-merge」「结清 ready 的 todo」「merge ready spec」
   「合并 ready 的 todo」。
   统一触发：「todo-driver」「跑一下 todo-driver」「todo-driver init」「todo-driver add」
-  「todo-driver review-merge」。
-  Do NOT use for: 修改已有 TODO（直接用 Edit）/ 不带 slug 的快速备忘（直接 Edit TODO.md）/
+  「todo-driver adjust」「todo-driver review-merge」。
+  Do NOT use for: 改 slug 本身（删原 + add 新）/ 删 TODO 条目（直接 Edit）/ 修改已起 spec 的
+  TODO 行内容（spec 已是事实源）/ 不带 slug 的快速备忘（直接 Edit TODO.md）/
   通用 PR review（→ requesting-code-review）/ 不走 todo-driver 流水线的项目 /
   把 draft spec 改成 approved（那是人手动改 frontmatter）/ stage 1/2 cron prompt
   本身的功能（在 references/stage{1,2}-prompt.md，不归本 skill 管）。
@@ -32,10 +39,11 @@ description: >
 
 ## Overview
 
-本 skill 是 TODO Driver 流水线**人手触发**的三个端点：
+本 skill 是 TODO Driver 流水线**人手触发**的四个端点：
 
 - **`init`**：把一个普通工程**初始化**为支持 todo-driver 流水线的工程——创建 `TODO.md` + `docs/spec/` + 改 `.gitignore`。一次性动作，幂等。
 - **`add`**：向项目 `TODO.md` 追加一条带 slug 的待办，让 stage 1 cron 起草 spec。
+- **`adjust`**：调整**还没起 spec** 的 TODO 的位置（影响 stage1 下次挑哪条），或往其行末追加 hints（关键交互路径 / 核心思路 / 新约束）。
 - **`review-merge`**：审核 `status: ready-for-review` 的 spec，pass 则 squash merge 到默认分支 + 原子清理 branch/worktree/spec/TODO。
 
 中间的 stage 1（起草 spec）和 stage 2（开发 + 走查 + push branch）由 cron 喂的 prompt 接管（`references/stage{1,2}-prompt.md`），不在本 skill 范围。
@@ -52,22 +60,24 @@ description: >
 |---|---|---|---|
 | `init` | 用户要把一个项目接入 todo-driver 流水线 | 创建 `TODO.md` + `docs/spec/` + 改 `.gitignore` 加 `.worktrees/`；幂等 | 低 |
 | `add` | 用户要新建带 slug 的 TODO | 在 `TODO.md` 对应段末追加一行 | 低 |
+| `adjust` | 用户要给**还没起 spec** 的 TODO 改顺序 / 补思路 | 改 `TODO.md` 一个文件：移动行位置或追加 hints；commit + push | 低 |
 | `review-merge` | 用户要审核并合并 ready spec | squash merge + 删 branch + 删 worktree + push 默认分支 | 高 |
 
 ## Resolving Mode
 
 按以下顺序判定：
 
-1. **用户显式指定**（如 `todo-driver init` / `todo-driver add` / `todo-driver review-merge`）→ 用指定的
+1. **用户显式指定**（如 `todo-driver init` / `todo-driver add` / `todo-driver adjust` / `todo-driver review-merge`）→ 用指定的
 2. **触发短语推断**：
    - 含"初始化"/"接入"/"setup"/"onboard" + "todo-driver"/"todo 流水线" → `init`
    - 含"新建"/"加"/"记"/"create"/"add" + "TODO"/"待办" → `add`
+   - 含"调整"/"排序"/"插到前/后"/"挪"/"补思路"/"补充 hints"/"reorder"/"move X before/after"/"add hints" + "todo"/具体 slug → `adjust`
    - 含"review"/"审"/"合并"/"merge" + "todo"/"spec" → `review-merge`
 3. **状态推断**（兜底）：
    - 项目根**没有** `TODO.md` 也**没有** `docs/spec/` → 倾向 `init`（流水线还没接入）
    - 项目根有 `docs/spec/*.md` 且至少 1 个 `status: ready-for-review` → 倾向 `review-merge`
-   - 否则 → 倾向 `add`
-4. **仍模糊** → 用 AskUserQuestion 二选一（或三选一）
+   - 否则 → 倾向 `add`（注：`adjust` 不进兜底——它需要明确的目标 slug，不应被状态推断自动选中）
+4. **仍模糊** → 用 AskUserQuestion 二选一（或四选一）
 
 判定后**立即声明**当前 mode（一句话），再开始执行。用户在调用上下文里明确给了 mode 就不要二次确认。
 
@@ -78,8 +88,9 @@ description: >
 满足任一即可触发：
 - 用户想把一个项目接入 todo-driver 流水线（无 `TODO.md` / `docs/spec/` 的工程）
 - 用户描述了一个想加进 `TODO.md` 的新需求/功能/重构
+- 用户想给一个**还没起 spec** 的 TODO 改顺序 / 补 hints（关键交互路径 / 核心思路 / 新约束）
 - 项目有 `docs/spec/*.md` 文件且其中至少一个 `status: ready-for-review`，用户希望推进 merge
-- 用户在 todo-driver 流水线相关的上下文里提及 init / add / review / merge 这类动作
+- 用户在 todo-driver 流水线相关的上下文里提及 init / add / adjust / review / merge 这类动作
 
 ## When NOT to Use
 
@@ -389,9 +400,160 @@ grep -n "^\- \[ \] \`<slug>\`" TODO.md
 
 **3. 把 hints 当依赖写**：hints 是自由文本写到行末括号；depends_on 必须是合法 slug 引用。
 
-**4. 修改已有 TODO 条目**：本 mode **只追加**，不改已有。即使重复也作为新条目。
+**4. 修改已有 TODO 条目**：本 mode **只追加**，不改已有。即使重复也作为新条目。**改顺序 / 补 hints 应该走 `adjust` mode**。
 
 **5. 在非项目根调用**：只看 cwd 一级，不向上找。
+
+---
+
+## Mode `adjust`
+
+调整一个**还没起 spec** 的 TODO 条目：改位置（影响 stage1 下次挑哪条）或往行末追加 hints（关键交互路径 / 核心思路 / 新约束）。两类动作可以在同一次调用里组合。
+
+> 设计原则：**一旦 stage1 给该 slug 起过 spec（`docs/spec/${slug}.md` 存在），spec 就成了事实源，本 mode 不再改 TODO 行的实质内容**——那时调整位置已无意义，补的 hints 也不会进入已落地的 spec。要改 spec 直接 Edit `docs/spec/${slug}.md`。
+
+### Required Workflow（adjust）
+
+按以下顺序：
+
+1. 探测环境 + 校验目标 slug
+2. 解析调整动作
+3. 改 `TODO.md`
+4. 校验单文件改动 + commit + push
+5. 输出报告
+
+#### Step 1: Probe Environment
+
+```bash
+# 必须 git 仓库根 + 默认分支 + 工作树干净（与 init / add 一致）
+git rev-parse --is-inside-work-tree > /dev/null 2>&1 || { echo "ERROR: not a git repo"; exit 1; }
+test "$(git rev-parse --show-toplevel)" = "$(pwd -P)" || { echo "ERROR: must run at repo root"; exit 1; }
+
+default_branch=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')
+default_branch=${default_branch:-main}
+[ "$(git rev-parse --abbrev-ref HEAD)" = "$default_branch" ] || { echo "ERROR: must run on ${default_branch}"; exit 1; }
+test -z "$(git status --porcelain)" || { echo "ERROR: working tree dirty"; exit 1; }
+
+test -f TODO.md || { echo "ERROR: no TODO.md, run 'todo-driver init' first"; exit 1; }
+```
+
+**目标 slug 校验**（用户必须指定 `slug`）：
+
+```bash
+# 目标 TODO 行必须存在且为 - [ ]（未完成）
+target_line=$(grep -nE "^- \[ \] \`${slug}\` " TODO.md | head -1)
+[ -n "$target_line" ] || { echo "ERROR: slug '${slug}' not found as pending TODO"; exit 1; }
+
+# spec 状态判定：决定允许做什么
+SPEC_EXISTS=0; SPEC_DONE=0
+test -f "docs/spec/${slug}.md" && SPEC_EXISTS=1
+test -f "docs/spec/_done/${slug}.md" && SPEC_DONE=1
+```
+
+判定矩阵：
+
+| 状态 | 允许的动作 |
+|---|---|
+| 都不存在（spec 还没起） | **改位置 + 追加 hints 都允许** |
+| `docs/spec/${slug}.md` 存在（已起 spec，未 merge） | **拒绝改位置**（位置已无意义）；**警告**追加 hints"不会影响已存在的 spec，需要直接改 `docs/spec/${slug}.md`"，用户坚持则只改 TODO 行不动 spec |
+| `docs/spec/_done/${slug}.md` 存在（已 merge） | **全部拒绝**——该项应该已经是 `- [x]`，TODO 行不该被动 |
+
+#### Step 2: Collect Inputs（最小化追问）
+
+调用方应在 prompt 里指定。如果只指定了 slug 没指定动作 → 用 AskUserQuestion 一次问完：
+
+| 字段 | 必答? | 说明 |
+|---|---|---|
+| `slug` | 是 | 目标 TODO 的 slug |
+| 位置动作（任选一） | 否 | `--before <other-slug>` / `--after <other-slug>` / `--top` / `--bottom`（不动位置就不传） |
+| `--add-hint "<text>"` | 否 | 追加一条 hints；可多次传（每次一条，**不要**在单个 `--add-hint` 里塞 `;` 分多条） |
+
+**至少要有一个动作**（位置 or hints）。两个都没 → 报错"nothing to adjust"。
+
+#### Step 3: Apply Changes to TODO.md
+
+**追加 hints**（如有）：
+
+```bash
+# 把 hints 数组追加到目标行末
+# 1. 抽出现有 hints
+existing_hints=$(echo "$target_line" | sed -nE 's/.*\(([^)]+)\)[[:space:]]*$/\1/p')
+
+# 2. 拼接新旧 hints（用英文分号；分隔，与 Shared Constraints 对齐）
+if [ -n "$existing_hints" ]; then
+  new_hints_block="$existing_hints; $(IFS='; '; echo "${new_hints[*]}")"
+else
+  new_hints_block=$(IFS='; '; echo "${new_hints[*]}")
+fi
+
+# 3. 用 sed 替换该行末尾——优先保留行内已有的部分，仅在末尾改/加括号
+```
+
+**校验**：单条 hints 内**禁止**含 `;`（会破坏分隔）；含则报错让用户改写。
+
+**移动行**（如有）：
+
+| 动作 | 行为 |
+|---|---|
+| `--before <S>` | 把目标行剪切，插到 `\`<S>\`` 所在行**之前** |
+| `--after <S>` | 同上，插到**之后** |
+| `--top` | 移到目标行所在段（`## Features` / `## TODO` / `## Backlog`）的**段首**（标题下第一条） |
+| `--bottom` | 移到所在段**段末** |
+
+锚点 slug（`<S>`）必须也存在且未完成；否则报错。
+
+**不跨段移动**：目标 TODO 在哪个 `##` 段下就只能在该段内移动。需要跨段先用 Edit 改段名。
+
+#### Step 4: Verify Single-File Change + Commit + Push
+
+```bash
+# staged 必须只有 TODO.md
+git add TODO.md
+staged=$(git diff --cached --name-only)
+[ "$staged" = "TODO.md" ] || { echo "ERROR: unexpected staged files: $staged"; git reset HEAD; exit 1; }
+
+# 校验目标行仍唯一存在
+hits=$(grep -cE "^- \[ \] \`${slug}\` " TODO.md)
+[ "$hits" = "1" ] || { echo "ERROR: target line not unique after adjust ($hits hits)"; exit 1; }
+
+git commit -m "chore(todo): adjust ${slug}
+
+$(adjust_summary)"   # body 内容见下方
+adjust_sha=$(git rev-parse HEAD)
+git push origin "${default_branch}" 2>&1 || echo "WARN: push failed, adjust committed locally only (sha=${adjust_sha})"
+```
+
+`adjust_summary` 由本次实际做了哪些动作生成，例：
+
+```
+Move before `theme-toggle`; +2 hints (复用 src/hooks/useDarkMode; 必须支持 RTL)
+```
+
+### Output Contract（adjust）
+
+报告必须包含：
+
+- `mode: adjust`
+- `slug`: 目标 slug
+- `actions_taken`: 数组，列实际做了哪些动作，如 `["moved before theme-toggle", "appended 2 hints"]`
+- `spec_state`: `none` / `pending-spec` / `done`（来自 Step 1 判定矩阵）
+- `adjust_commit`: SHA（`pushed | local-only`）
+- `next_step`:
+  - 顺序变了：`下次 stage1 cron 会按新顺序挑选`
+  - 加了 hints 且 spec 不存在：`stage1 起 spec 时会读到新 hints 并写进 spec`
+  - 加了 hints 但 spec 已存在：`⚠️ spec 已经起过，hints 不会自动回写——如要影响实现，请直接编辑 docs/spec/${slug}.md`
+
+### Common Failure Modes（adjust）
+
+**1. 改已经起过 spec 的 TODO 位置**：位置变了但 stage1 不会重选该项（spec 已存在），徒劳。处理：Step 1 判定矩阵直接拒绝改位置。
+
+**2. 改已 merge 项**：`- [x]` 应该是不可变历史。处理：Step 1 检测到 `_done/${slug}.md` 直接拒绝所有动作。
+
+**3. hints 含 `;` 把分隔符破坏**：用户写 `--add-hint "支持 A; 支持 B"` 期望一次加两条，结果被当成一条。处理：Step 3 校验单条 hints 内不含 `;`，让用户改成两次 `--add-hint`。
+
+**4. 移动行时锚点 slug 不存在**：`--before nonexistent` 静默无操作。处理：Step 3 校验锚点 slug 存在且未完成，否则报错。
+
+**5. 跨段移动破坏组织**：用户期望从 `## Backlog` 移到 `## Features` 顶。处理：本 mode 不跨段；用户先 Edit 改段名再 adjust。
 
 ---
 
@@ -711,7 +873,7 @@ grep -rE "^  - \[.\] \`<slug>\`" TODO.md
 
 ## Shared Constraints
 
-三个 mode 都必须遵守，**不可妥协**：
+四个 mode 都必须遵守，**不可妥协**：
 
 ### Slug 格式
 正则 `^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$`，kebab-case，3-30 字符。slug 是流水线内部标识，**不论项目本身用什么语言，slug 永远是 kebab-case 英文**。
