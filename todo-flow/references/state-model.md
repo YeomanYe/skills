@@ -1,4 +1,4 @@
-# TODO Driver — 系统说明
+# TODO Flow — 系统说明
 
 把项目 TODO 串成 "draft spec → review → dev → review → merge" 流水线。  
 **Stage 0/3 走 skill（人触发），Stage 1/2 走 cron + 这里的 prompt**。
@@ -170,10 +170,10 @@ attempts 字段 +1。`attempts >= 3` 后自动 `status: blocked`。
 ```
 你的 cron 程序
    │
-   ├─ 6h 一次 → 用 todo-driver-stage1-spec.md 拉起 agent
+   ├─ 6h 一次 → 用 todo-flow-stage1-spec.md 拉起 agent
    │             agent 扫 TODO.md → 出 spec → IM 通知你审
    │
-   └─ 30min 一次 → 用 todo-driver-stage2-dev.md 拉起 agent
+   └─ 30min 一次 → 用 todo-flow-stage2-dev.md 拉起 agent
                   agent 扫 spec/*.md → 找 approved → 开 worktree → 实现 → 推 branch → IM 通知
 
 你（手动）

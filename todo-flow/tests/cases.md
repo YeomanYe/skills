@@ -1,4 +1,4 @@
-# todo-driver Test Cases
+# todo-flow Test Cases
 
 按 mode 分两组。每组覆盖：正例触发 / 反例触发 / 主成功 / 护栏。
 
@@ -6,7 +6,7 @@
 
 ## Mode `init`
 
-### Case 1: 标准追加（TODO.md 存在 + 走 todo-driver）
+### Case 1: 标准追加（TODO.md 存在 + 走 todo-flow）
 
 - 前置：`TODO.md` 存在，`docs/spec/` 存在，已有 1-2 个带 slug 的条目
 - 输入：用户说"加个 TODO 支持快捷键设置"
@@ -109,23 +109,33 @@
   - mode 解析为 `init` 但 Step 1 探测到 slug 冲突 → 进入 Case 3 分支
   - 或外层 agent 直接用 Edit，**不**触发本 skill
 
-### Case 13: 反例触发 — 不走 todo-driver 项目
+### Case 13: 反例触发 — 不走 todo-flow 项目
 
 - 前置：项目没有 docs/spec/，TODO.md 里所有条目都没 slug
 - 输入：用户说"加个 TODO 修复 #42"
 - 预期：
   - mode 解析为 `init`，Step 1 识别 "DRIVER_INACTIVE"
-  - 提示"该项目未启用 todo-driver，仍可追加但不会被流水线自动处理"
+  - 提示"该项目未启用 todo-flow，仍可追加但不会被流水线自动处理"
   - 用户确认后追加
 
 ---
 
 ## Mode `adjust`
 
+### Case A0: 旧名 todo-driver 兼容触发
+
+- 前置：`TODO.md` 存在且工作树干净
+- 输入：用户说"todo-driver adjust"
+- 预期：
+  - mode 解析为 `adjust`
+  - 按 `todo-flow adjust` 执行
+  - 报告里提示一次 `todo-driver` 是旧名兼容
+  - 进入 `panel: open`
+
 ### Case A1: adjust 打开 panel 表格
 
 - 前置：`TODO.md` 有 5 条 `- [ ]` TODO，目标 slug 尚无 `docs/spec/<slug>.md`
-- 输入：用户说"todo-driver adjust"
+- 输入：用户说"todo-flow adjust"
 - 预期：
   - mode 解析为 `adjust`
   - 进入 `panel: open`
@@ -350,7 +360,7 @@
 - 输入：用户说"帮我 review 一下这个 PR"，并贴 PR 链接
 - 预期：
   - mode 解析可能落到 `review-merge`，但 Step 1 找不到对应 ready spec
-  - 报告"该 branch 不在 todo-driver 流水线，请用 requesting-code-review"
+  - 报告"该 branch 不在 todo-flow 流水线，请用 requesting-code-review"
   - 拒绝触发
 
 ### Case 27: 反例触发 — docs/spec/ 不存在
@@ -359,7 +369,7 @@
 - 输入：调用 review-merge
 - 预期：
   - Step 1 列不出任何 spec
-  - 报告"docs/spec/ 不存在，本项目未启用 todo-driver"
+  - 报告"docs/spec/ 不存在，本项目未启用 todo-flow"
   - 不触发实际流程
 
 ---
@@ -368,7 +378,7 @@
 
 ### Case 28: 显式指定 mode
 
-- 输入：用户说"todo-driver init，加个 TODO 主题切换"
+- 输入：用户说"todo-flow init，加个 TODO 主题切换"
 - 预期：
   - mode 解析直接走 `init`，不做触发短语推断
   - 进入 init Step 1+
@@ -389,7 +399,7 @@
 
 ### Case 31: 短语模糊 + 状态明显 → 用状态兜底
 
-- 输入：用户说"跑一下 todo-driver"
+- 输入：用户说"跑一下 todo-flow"
 - 前置：项目有 1 个 ready-for-review spec
 - 预期：
   - 短语无明确指向
@@ -398,7 +408,7 @@
 
 ### Case 32: 短语模糊 + 状态也模糊 → AskUserQuestion
 
-- 输入：用户说"todo-driver"
+- 输入：用户说"todo-flow"
 - 前置：既没 ready spec，TODO.md 也没新增意图
 - 预期：
   - AskUserQuestion 让用户二选一：init / review-merge

@@ -100,13 +100,13 @@ default_branch=${default_branch:-main}
 # 此时仍在主仓库根目录
 if [ ! -f .gitignore ] || ! grep -qxE '\.worktrees/?' .gitignore; then
   [ -f .gitignore ] || touch .gitignore
-  if ! grep -qxF "# todo-driver pipeline" .gitignore 2>/dev/null; then
+  if ! grep -qxF "# todo-flow pipeline" .gitignore 2>/dev/null; then
     echo "" >> .gitignore
-    echo "# todo-driver pipeline" >> .gitignore
+    echo "# todo-flow pipeline" >> .gitignore
   fi
   echo ".worktrees/" >> .gitignore
   git add .gitignore
-  git commit -m "chore: ignore .worktrees/ (todo-driver stage2)"
+  git commit -m "chore: ignore .worktrees/ (todo-flow stage2)"
   git push origin "${default_branch}" 2>&1 || echo "WARN: push .gitignore failed, local only"
 fi
 ```
@@ -395,7 +395,7 @@ write code → run hard gates → fail → diagnose → fix → run again
 - Awaiting review: <list of slugs that are ready-for-review with branch/worktree>
 - Needs cleanup: <list of slugs with approved+残留 worktree/branch — 用户要手动清理>
 - Skipped projects: <dirty / 不是 git 仓库 等>
-- Next: 等 todo-driver review-merge / 下次 cron 接下一条
+- Next: 等 todo-flow review-merge / 下次 cron 接下一条
 ```
 
 失败：

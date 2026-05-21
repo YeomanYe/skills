@@ -26,7 +26,7 @@ PROJECTS=(
 )
 ```
 
-## 工程内 TODO 约定（与 todo-driver skill 对齐）
+## 工程内 TODO 约定（与 todo-flow skill 对齐）
 
 每个工程根目录有 `TODO.md`，每项格式：
 

@@ -1,27 +1,27 @@
 ---
-name: todo-driver
+name: todo-flow
 description: >
-  Use when interacting with the human-facing endpoints of the TODO Driver pipeline
+  Use when interacting with the human-facing endpoints of the TODO Flow pipeline
   (TODO → spec → dev → merge): `init` (onboard project), `add` (append slug-tagged
   TODO), `adjust` (open a numbered table panel to reorder/edit TODOs and add hints before stage1 picks them up),
   `review-merge` (audit + squash merge ready spec).
-  TODO Driver 流水线（TODO → spec → dev → merge）的人手触发端点。
-  触发 init：「初始化 todo-driver」「让这个工程支持 todo 流水线」「setup todo-driver」。
+  TODO Flow 流水线（TODO → spec → dev → merge）的人手触发端点。
+  触发 init：「初始化 todo-flow」「初始化 todo-driver」「让这个工程支持 todo 流水线」「setup todo-flow」。
   触发 add：「新建 TODO」「加一个待办」「记个带 slug 的 todo」「add todo with slug」。
   触发 adjust：「调整 todo 顺序」「把 X 插到 Y 前」「补 hints」「修改 todo」「panel 模式」「reorder todo」。
   触发 review-merge：「review 这个 todo」「合并 ready 的 spec」「审 todo 并 merge」。
-  统称：「todo-driver」「todo-driver <mode>」。
+  统称：「todo-flow」「todo-flow <mode>」。兼容旧名：「todo-driver」「todo-driver <mode>」。
   Do NOT use for: 改/删 slug（删原 + add 新）/ 不带 slug 的备忘（直接 Edit TODO.md）/
   通用 PR review（→ requesting-code-review）/ stage 1/2 cron prompt 本身（在 references/）。
 ---
 
-# todo-driver
+# todo-flow
 
 ## Overview
 
-本 skill 是 TODO Driver 流水线**人手触发**的四个端点：
+本 skill 是 TODO Flow 流水线**人手触发**的四个端点：
 
-- **`init`**：把一个普通工程**初始化**为支持 todo-driver 流水线的工程——创建 `TODO.md` + `docs/spec/` + 改 `.gitignore`。一次性动作，幂等。
+- **`init`**：把一个普通工程**初始化**为支持 todo-flow 流水线的工程——创建 `TODO.md` + `docs/spec/` + 改 `.gitignore`。一次性动作，幂等。
 - **`add`**：向项目 `TODO.md` 追加一条带 slug 的待办，让 stage 1 cron 起草 spec。
 - **`adjust`**：进入 TODO panel 模式，用编号表格连续调整**还没起 spec** 的 TODO：改顺序、修改条目内容、追加 hints；直到用户说退出才一次性 commit + push。
 - **`review-merge`**：审核 `status: ready-for-review` 的 spec，pass 则 squash merge 到默认分支 + 原子清理 branch/worktree/spec/TODO。
@@ -38,7 +38,7 @@ description: >
 
 | Mode | 触发场景 | 主要副作用 | 风险等级 |
 |---|---|---|---|
-| `init` | 用户要把一个项目接入 todo-driver 流水线 | 创建 `TODO.md` + `docs/spec/` + 改 `.gitignore` 加 `.worktrees/`；幂等 | 低 |
+| `init` | 用户要把一个项目接入 todo-flow 流水线 | 创建 `TODO.md` + `docs/spec/` + 改 `.gitignore` 加 `.worktrees/`；幂等 | 低 |
 | `add` | 用户要新建带 slug 的 TODO | 在 `TODO.md` 对应段末追加一行 | 低 |
 | `adjust` | 用户要给**还没起 spec** 的 TODO 改顺序 / 修改内容 / 补思路 | 进入 panel 模式，连续改 `TODO.md`；退出后 commit + push | 低 |
 | `review-merge` | 用户要审核并合并 ready spec | squash merge + 删 branch + 删 worktree + push 默认分支 | 高 |
@@ -47,9 +47,9 @@ description: >
 
 按以下顺序判定：
 
-1. **用户显式指定**（如 `todo-driver init` / `todo-driver add` / `todo-driver adjust` / `todo-driver review-merge`）→ 用指定的
+1. **用户显式指定**（如 `todo-flow init` / `todo-flow add` / `todo-flow adjust` / `todo-flow review-merge`；旧名 `todo-driver <mode>` 同样兼容）→ 用指定的
 2. **触发短语推断**：
-   - 含"初始化"/"接入"/"setup"/"onboard" + "todo-driver"/"todo 流水线" → `init`
+   - 含"初始化"/"接入"/"setup"/"onboard" + "todo-flow"/"todo-driver"/"todo 流水线" → `init`
    - 含"新建"/"加"/"记"/"create"/"add" + "TODO"/"待办" → `add`
    - 含"调整"/"排序"/"插到前/后"/"挪"/"补思路"/"补充 hints"/"修改 todo"/"panel 模式"/"reorder"/"move X before/after"/"add hints" + "todo"/具体 slug → `adjust`
    - 含"review"/"审"/"合并"/"merge" + "todo"/"spec" → `review-merge`
@@ -61,32 +61,34 @@ description: >
 
 判定后**立即声明**当前 mode（一句话），再开始执行。用户在调用上下文里明确给了 mode 就不要二次确认。
 
-> ⚠️ **历史改名**：v1 的 `init` 是"追加 TODO"，v2 重命名为 `add`，`init` 这个词回归"初始化"本意。看到旧调用 `todo-driver init` 而上下文是"加 todo"语义时，自动按 `add` 处理并提示一次新名字。
+> ⚠️ **历史改名**：v1 的 `init` 是"追加 TODO"，v2 重命名为 `add`，`init` 这个词回归"初始化"本意。看到旧调用 `todo-flow init` 而上下文是"加 todo"语义时，自动按 `add` 处理并提示一次新名字。
+
+> ⚠️ **skill 改名**：本 skill 旧名是 `todo-driver`，现名 `todo-flow`。看到 `todo-driver <mode>` 时按 `todo-flow <mode>` 处理，并在报告里提示一次旧名兼容；不要因为旧名存在就拒绝执行。
 
 ## When to Use
 
 满足任一即可触发：
-- 用户想把一个项目接入 todo-driver 流水线（无 `TODO.md` / `docs/spec/` 的工程）
+- 用户想把一个项目接入 todo-flow 流水线（无 `TODO.md` / `docs/spec/` 的工程）
 - 用户描述了一个想加进 `TODO.md` 的新需求/功能/重构
 - 用户想给一个**还没起 spec** 的 TODO 改顺序 / 修改内容 / 补 hints（关键交互路径 / 核心思路 / 新约束）
 - 项目有 `docs/spec/*.md` 文件且其中至少一个 `status: ready-for-review`，用户希望推进 merge
-- 用户在 todo-driver 流水线相关的上下文里提及 init / add / adjust / review / merge 这类动作
+- 用户在 todo-flow 流水线相关的上下文里提及 init / add / adjust / review / merge 这类动作
 
 ## When NOT to Use
 
 - 用户在做不需要编号面板、也不需要 commit/push 的随手 TODO 文案小改（直接 Edit）
 - 用户只想随手记一行不需要被流水线处理（直接 Edit TODO.md）
 - 用户在做通用 PR 审查（用 `requesting-code-review`）
-- 用户要 merge 一个不在 todo-driver 流水线里的分支（直接 `git merge`）
-- 用户在问"如何用 todo-driver"等元问题（解释，不真的执行）
+- 用户要 merge 一个不在 todo-flow 流水线里的分支（直接 `git merge`）
+- 用户在问"如何用 todo-flow"等元问题（解释，不真的执行）
 
-> 注：之前列的"项目不走 todo-driver" 已不再是 NOT to use 条件——因为 `init` mode 正是用来把这种项目接入的。
+> 注：之前列的"项目不走 todo-flow" 已不再是 NOT to use 条件——因为 `init` mode 正是用来把这种项目接入的。
 
 ---
 
 ## Mode `init`
 
-把一个普通工程**初始化**为支持 todo-driver 流水线的工程。一次性、幂等——已经初始化过再跑只会补缺失项，不破坏现有内容。
+把一个普通工程**初始化**为支持 todo-flow 流水线的工程。一次性、幂等——已经初始化过再跑只会补缺失项，不破坏现有内容。
 
 ### Required Workflow（init）
 
@@ -172,10 +174,10 @@ add_if_missing() {
   local pattern="$1"
   if [ ! -f .gitignore ] || ! grep -qxE "$(echo "$pattern" | sed 's@/@/?@')" .gitignore; then
     [ -f .gitignore ] || touch .gitignore
-    # 第一次追加 todo-driver 区块时打个 header
-    if ! grep -qxF "# todo-driver pipeline" .gitignore; then
+    # 第一次追加 todo-flow 区块时打个 header
+    if ! grep -qxF "# todo-flow pipeline" .gitignore; then
       echo "" >> .gitignore
-      echo "# todo-driver pipeline" >> .gitignore
+      echo "# todo-flow pipeline" >> .gitignore
     fi
     echo "$pattern" >> .gitignore
   fi
@@ -206,14 +208,14 @@ if [ -z "$staged" ]; then
   exit 0
 fi
 
-git commit -m "chore(todo-driver): init pipeline skeleton
+git commit -m "chore(todo-flow): init pipeline skeleton
 
-Initialize project for todo-driver pipeline:
+Initialize project for todo-flow pipeline:
 - TODO.md (or kept existing)
 - docs/spec/ + docs/spec/_done/ with .gitkeep
 - .gitignore += .worktrees/
 
-Next: use 'todo-driver add' to append items; cron will pick up via stage1."
+Next: use 'todo-flow add' to append items; cron will pick up via stage1."
 
 init_sha=$(git rev-parse HEAD)
 git push origin "${default_branch}" 2>&1 || echo "WARN: push failed, init committed locally only (sha=${init_sha})"
@@ -237,7 +239,7 @@ test -f TODO.md && test -d docs/spec && test -d docs/spec/_done && \
 - `actions_taken`: 数组，列出本次实际做了哪些动作（如 `["created TODO.md", "created docs/spec/", "patched .gitignore"]`）；幂等空跑时为 `[]`
 - `init_commit`: commit SHA（`pushed | local-only | no-op`）
 - `next_step`:
-  - 全新初始化：`项目已就位。下一步：跑 'todo-driver add' 添加第一条 TODO；或者直接编辑 TODO.md`
+  - 全新初始化：`项目已就位。下一步：跑 'todo-flow add' 添加第一条 TODO；或者直接编辑 TODO.md`
   - 幂等空跑：`项目已经初始化过，无需操作`
 
 ### Common Failure Modes（init）
@@ -281,8 +283,8 @@ test -d docs/spec && echo "DRIVER_ACTIVE" || echo "DRIVER_INACTIVE"
 
 判定：
 
-- `TODO.md` 不存在 → **报告用户先跑 `todo-driver init` 初始化项目**，stop。本 mode 不替用户创建（这是 init mode 的职责）
-- `TODO.md` 存在但 `docs/spec/` 不存在 → 同样提示用户跑 `todo-driver init` 把流水线补齐，**但允许继续追加**（TODO 可以照样写）
+- `TODO.md` 不存在 → **报告用户先跑 `todo-flow init` 初始化项目**，stop。本 mode 不替用户创建（这是 init mode 的职责）
+- `TODO.md` 存在但 `docs/spec/` 不存在 → 同样提示用户跑 `todo-flow init` 把流水线补齐，**但允许继续追加**（TODO 可以照样写）
 - 两者都在 → 标准流程
 
 同时收集 TODO.md 中所有已存在的 slug：
@@ -369,12 +371,12 @@ grep -n "^\- \[ \] \`<slug>\`" TODO.md
 - `depends_on`: 数组（若提供）
 - `depends_warn`: 未找到的依赖 slug 列表（若有）
 - `next_step`:
-  - 走 todo-driver：`等 stage 1 cron 起草 spec，到时审 docs/spec/<slug>.md`
-  - 未启用 todo-driver：`已记录到 TODO.md。你可以手动起草 spec`
+  - 走 todo-flow：`等 stage 1 cron 起草 spec，到时审 docs/spec/<slug>.md`
+  - 未启用 todo-flow：`已记录到 TODO.md。你可以手动起草 spec`
 
 ### Common Failure Modes（add）
 
-**1. 替用户创建 TODO.md**：可能在不该有 TODO 的目录留下空文件。处理：报告"不存在"，提示跑 `todo-driver init`，stop。本 mode 永远不替用户做初始化。
+**1. 替用户创建 TODO.md**：可能在不该有 TODO 的目录留下空文件。处理：报告"不存在"，提示跑 `todo-flow init`，stop。本 mode 永远不替用户做初始化。
 
 **2. slug 冲突时数字递增**：`theme-toggle` 已存在 → 自动用 `theme-toggle-2`。处理：用语义后缀，或问用户。
 
@@ -418,7 +420,7 @@ default_branch=${default_branch:-main}
 [ "$(git rev-parse --abbrev-ref HEAD)" = "$default_branch" ] || { echo "ERROR: must run on ${default_branch}"; exit 1; }
 test -z "$(git status --porcelain)" || { echo "ERROR: working tree dirty before panel"; exit 1; }
 
-test -f TODO.md || { echo "ERROR: no TODO.md, run 'todo-driver init' first"; exit 1; }
+test -f TODO.md || { echo "ERROR: no TODO.md, run 'todo-flow init' first"; exit 1; }
 ```
 
 任一硬错 → stop，不进入 panel，不改文件。`.zread/`、临时文件、其它未跟踪文件都算脏工作树，避免退出时把用户改动卷入 commit。
@@ -774,7 +776,7 @@ git merge --squash todo/<slug>
 SQUASH_MSG="<spec.title>
 
 Source: docs/spec/<slug>.md
-Spec was reviewed and merged via todo-driver review-merge."
+Spec was reviewed and merged via todo-flow review-merge."
 git commit -m "$SQUASH_MSG"
 
 # 3. mv spec 到 _done/
@@ -903,11 +905,11 @@ grep -rE "^  - \[.\] \`<slug>\`" TODO.md
 
 ## Templates / Reference Files
 
-要在新项目上启用 TODO Driver 流水线，下列模板存在本 skill 的 `references/` 下，可以直接复制到项目或喂给 cron agent：
+要在新项目上启用 TODO Flow 流水线，下列模板存在本 skill 的 `references/` 下，可以直接复制到项目或喂给 cron agent：
 
 | 文件 | 用途 | 何时取出 |
 |---|---|---|
-| `references/state-model.md` | 完整系统说明：状态机 / TODO.md 格式 / spec.md frontmatter / Worktree 命名 / 调用拓扑 | 用户问"todo-driver 是什么 / 怎么用"时；首次给项目初始化流水线时 |
+| `references/state-model.md` | 完整系统说明：状态机 / TODO.md 格式 / spec.md frontmatter / Worktree 命名 / 调用拓扑 | 用户问"todo-flow 是什么 / 怎么用"时；首次给项目初始化流水线时 |
 | `references/stage1-prompt.md` | Stage 1 cron 喂给 agent 的 prompt：**完全无入参 self-driving**，遍历硬编码工程清单 → 找首个未起 spec 的 TODO → 出 spec（一律 `status: approved`）→ commit + push 到默认分支 | 用户要把 stage 1 接到 cron / 想手动跑一次起草 spec 时 |
 | `references/stage2-prompt.md` | Stage 2 cron 喂给 agent 的 prompt：**完全无入参 self-driving**，遍历工程清单 → 找首个无残留 worktree/branch 的 approved spec → 开 worktree → 实现 + 验证 + 可选 Playwright 走查 → push branch；遇到残留按 `needs_cleanup` / `awaiting_review` 分类报告 | 用户要把 stage 2 接到 cron / 想手动跑一次 dev 时 |
 
@@ -996,7 +998,7 @@ grep -rE "^  - \[.\] \`<slug>\`" TODO.md
 
 ## Minimal Operating Principle
 
-本 skill 是 TODO Driver 流水线**人手触发端**的统一入口。
+本 skill 是 TODO Flow 流水线**人手触发端**的统一入口。
 
 - 一次调用 = 一个 mode；`adjust` 是唯一允许在同一 mode 内持续交互的 panel，会在退出时一次性收口
 - 共享约束严格执行，**绝不**为了"流畅"绕过 hard gates、subjective 判定、diff audit
