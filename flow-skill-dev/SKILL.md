@@ -70,6 +70,7 @@ description: >
 
 1. 先判定本次工作类型
 2. 定位权威副本（在中心仓库则切到中心仓库）
+2.5. **Pre-flight: 检查远端冲突意图**（新增,防止多 agent 并发改同一 skill）
 3. 调用 `skill-creator` 理清范围与契约
 4. 调用 `writing-skills` 编写或修订 skill
 5. 运行 `skill-behavior-test`
@@ -142,6 +143,66 @@ chose_center: true | false（false 时说明原因，如 "中心仓库无此 ski
 ```
 
 **例外**：用户明确表示"只想本地试一下、不打算回流到中心" → 可以在下游副本改，但**必须在最终报告里 flag 警告"该改动不会进入 GitHub source，下次同步会被覆盖"**。
+
+## Step 2.5: Pre-flight — 检查远端冲突意图
+
+**为什么必跑**：多 agent 并发改同一 skill 会出现"我设计 A 版,另一 agent 已 push B 版,我 push 时冲突"。在动手前 fetch + diff 检查能秒发现冲突意图,避免推完发现要 reset/重做。**Step 2 已经决定了 `authoritative_dir`,Step 2.5 据此分支跑命令**。
+
+**按 authoritative_dir 类型分支执行**:
+
+### 分支 A: 中心仓库 `~/Documents/projects/skills/`(99% 情况)
+
+```bash
+cd ~/Documents/projects/skills
+
+# 1. fetch 最新远端,但不 merge(只看)
+git fetch origin main
+
+# 2a. 现有 skill: 看远端有没有改 <skill-name>/ 下的文件
+git log HEAD..origin/main --oneline -- <skill-name>/
+
+# 2b. new-skill 额外查: 远端是否已有同名 skill(防止跟别的 agent 撞名)
+git ls-tree origin/main -- <skill-name>/ 2>/dev/null
+
+# 3. 看本地有没有未提交改动跟该 skill 相关
+git status --short <skill-name>/
+```
+
+**判定**:
+
+| 远端有改动? | 本地有改动? | 行动 |
+|---|---|---|
+| 无 | 无 | ✓ 直接进 Step 3 |
+| 无 | 有 | ✓ 进 Step 3(本地是之前会话延续或正在改) |
+| **有** | 无 | **停止,问用户**:"远端已有 N 个 commit 改了 `<skill>/`,要 merge/rebase 后再改,还是丢弃远端继续我的设计?" |
+| **有** | 有 | **停止,问用户**:同上 + 建议 `git stash` 暂存本地未提交内容,再决定 merge/rebase/丢弃 |
+| new-skill 命中已有同名 | — | **停止,问用户**:"远端已有同名 skill `<name>`,是冲突(rename)还是接力(继续他人设计)?" |
+
+### 分支 B: skillshare clone `~/.config/skillshare/skills/_YeomanYe-skills/`
+
+**警告并阻断**:该路径是 skillshare 的 source clone,**不该直接改**。改动会被下次 `git pull` 覆盖,且无法回流 GitHub。
+
+正确做法:返回 Step 2 改 `authoritative_dir = ~/Documents/projects/skills/<name>/`,在中心改完后通过 sync-skills 分发到 skillshare clone。
+
+### 分支 C: 项目级 `.claude/skills/` 或 `.skillshare/skills/`
+
+**项目级 skill,跳过 Step 2.5**(项目 git 不是 skills repo,无远端冲突风险;但 Step 8 sync 仍按项目自己的 git remote 处理)。
+
+### 分支 D: 用户级 `~/.claude/skills/`(skillshare 同步 target)
+
+**警告并阻断**:该路径是 skillshare 的 sync target(symlink 或 copy),不是源。改这里不会进任何 git。返回 Step 2 改 `authoritative_dir`。
+
+---
+
+**禁止**:
+- ❌ "我先做,push 失败再说" — push 失败的代价是 rebase + 可能完全重做
+- ❌ 跳过 Step 2.5 直接进 Step 3 — 即使你"觉得"远端不会冲突,也必须实跑命令
+- ❌ 看到冲突就自动 `git reset --hard origin/main` 或 `git merge` — 必须让用户决定取舍
+- ❌ 在分支 B/D 警告下硬改 — 改了等于白改
+
+**例外**:
+- minor-update 不走本 orchestrator → 不适用 Step 2.5
+- 自指场景(用 flow-skill-dev 改 flow-skill-dev 自己): 仍按分支 A 跑,实测可终止无死循环
 
 ## Step 3: Scope With `skill-creator`
 
@@ -268,6 +329,14 @@ repo 的另一个 working copy），由 skillshare 用 `git pull` / `skillshare 
 那是 skillshare 的 sync target，由 `skillshare sync --force` 处理。
 
 若跳过该步骤，必须在最终报告中明确说明原因。
+
+### Push 失败的诊断
+
+如果 Step 8 的 `git push origin main` 失败(typically `rejected (non-fast-forward)`),按以下顺序检查:
+
+1. **首要怀疑: 漏跑 Step 2.5** — 远端在本会话期间已有新 commit,本地需 rebase。补跑 `git fetch origin main && git log HEAD..origin/main` 看远端有什么
+2. **正确恢复**: `git stash`(若有未提交)→ `git pull --rebase origin main` → `git stash pop` → 解冲突 → `git push`
+3. **永远不要** `git push --force` 来"解决"这种 push 失败 — 那会冲掉别的 agent 的工作
 
 ## Missing Dependency Fallbacks
 
