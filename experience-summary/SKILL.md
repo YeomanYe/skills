@@ -164,9 +164,10 @@ description: Use after finishing a real task to triage the lesson/pattern/gotcha
 
 ### Step 5: 输出契约
 
-固定格式:
+固定格式(顺序固定):
 
 ```
+【一句话沉淀】把<X>变成了<Y>,沉淀到了<Z>。
 【分诊结论】<出口名称>(Q<N> 命中)
 【推荐位置】<具体文件绝对路径或相对路径>
 【写作模板】
@@ -178,6 +179,36 @@ description: Use after finishing a real task to triage the lesson/pattern/gotcha
 - (可选)sync-shared.sh / sync-skills 分发要求
 - (可选)CLAUDE.md 行数超限警告
 ```
+
+**【一句话沉淀】格式硬约束**:
+
+- 必须有 3 个槽位: **X(做了什么经验)** / **Y(变成了什么载体)** / **Z(沉淀到了哪个概念位置)**
+- **不带技术细节** —— 完整禁用词清单见下表
+- 用**用户口语**描述(项目脚本 / 全局宪法 / 领域专家 / 启动手册 / 长期记忆 ...)
+- 每个出口的 Y/Z 模板见 `references/layer-map.md` 各层"叙事模板"段
+- 例子(参考用户思路):"把**重复的浏览器操作过程**变成了**代码**,沉淀到了**项目脚本**"
+
+**禁用词清单**(叙事行**绝对不能出现**):
+
+| 类别 | 禁用词 |
+|---|---|
+| 出口编号 | L0 / L1 / L2a / L2b / L3 / L4 / L5 / L6 / L7 / L8 / L9 / L10 |
+| 判断树编号 | Q0 / Q1 / ... / Q10 |
+| 技术形态 | hook / script / MCP / skill / director-* / flow-* / metaspec / frontmatter |
+| 文件名 / 路径 | constitution.md / settings.json / CLAUDE.md / AGENTS.md / `_shared/` / 任何绝对或相对路径 |
+| 工具命令 | sync-shared.sh / git push / skillshare sync / update-config |
+| skill 名 | flow-skill-dev / clean-commit / 任何已实现 skill 名 |
+
+如果叙事行需要表达某个技术概念,用**口语替换**:
+- 不写 "hook",写 "会话触发器" / "自动化钩子"
+- 不写 "constitution.md",写 "全局宪法" / "全局约束层"
+- 不写 "director-*",写 "领域专家" / "专家角色"
+- 不写 "CLAUDE.md",写 "启动手册" / "项目说明书"
+- 不写 "settings.json",写 "配置入口"
+
+**为什么放第一行**: 这是给**人类一眼可读**的沉淀总结;后面的【分诊结论 / 推荐位置 / 写作模板】是给执行者(走 flow-skill-dev 或直接落盘)的技术细节,可读性弱。两者分层,人类先看一句话,要落地时再读技术段。
+
+**handoff 边界**: 【一句话沉淀】是 **human-facing only**,不进 handoff payload。下游 skill(flow-skill-dev / update-config / sync-skills)消费的是【分诊结论 / 推荐位置 / 写作模板】3 段技术契约。这条要写进 SKILL.md 让下游不会误解析叙事行。
 
 ## Layer Map(11 个出口速查)
 
