@@ -2,37 +2,17 @@
 name: todo-driver
 description: >
   Use when interacting with the human-facing endpoints of the TODO Driver pipeline
-  (TODO → spec → dev → merge): initializing a project to support the pipeline,
-  appending a new slug-tagged TODO entry, adjusting an existing TODO entry's
-  position or appending hints to it, or reviewing-and-merging a ready spec
-  back into main. Four modes: `init` to onboard a project (create TODO.md +
-  docs/spec/ + .gitignore entries), `add` to append a new TODO entry, `adjust`
-  to reorder an existing TODO or append hints to it (before stage1 picks it up),
-  `review-merge` for the audit + squash merge + cleanup flow.
-  用于 TODO Driver 流水线（TODO → spec → dev → merge）的四个人手触发端点：
-  初始化项目接入流水线（mode=init）、追加带 slug 的 TODO 条目（mode=add）、
-  调整已有 TODO 的位置或追加 hints（mode=adjust，仅限 stage1 还没起过 spec 的项）、
-  审核并合并 status=ready-for-review 的 spec（mode=review-merge）。四个 mode 共享
-  slug 规范、frontmatter 字段约定、工程规范三级回退（AGENTS.md → CLAUDE.md → 通用规则）、
-  写入语言中文。
-  触发短语（init 路径，**初始化项目**）：「初始化 todo-driver」「把这个项目接入 todo-driver」
-  「setup todo-driver」「onboard todo-driver」「todo-driver init」「让这个工程支持 todo 流水线」。
-  触发短语（add 路径，**加一条 todo**）：「新建 TODO」「加一个待办」「记个新需求带 slug」
-  「ext-helper 记个 TODO」「create a TODO」「add todo with slug」「new todo」
-  「todo-driver add」。
-  触发短语（adjust 路径，**改顺序 / 补思路**）：「调整 todo 顺序」「把 X 放前面」「把 X 插到 Y 前」
-  「给 todo X 补思路」「补充 hints」「记一下关键路径到 todo」「reorder todo」「move X before Y」
-  「add hints to <slug>」「todo-driver adjust」。
-  触发短语（review-merge 路径）：「review 这个 todo」「合并 todo 分支」
-  「审 todo 并 merge」「todo-review-merge」「结清 ready 的 todo」「merge ready spec」
-  「合并 ready 的 todo」。
-  统一触发：「todo-driver」「跑一下 todo-driver」「todo-driver init」「todo-driver add」
-  「todo-driver adjust」「todo-driver review-merge」。
-  Do NOT use for: 改 slug 本身（删原 + add 新）/ 删 TODO 条目（直接 Edit）/ 修改已起 spec 的
-  TODO 行内容（spec 已是事实源）/ 不带 slug 的快速备忘（直接 Edit TODO.md）/
-  通用 PR review（→ requesting-code-review）/ 不走 todo-driver 流水线的项目 /
-  把 draft spec 改成 approved（那是人手动改 frontmatter）/ stage 1/2 cron prompt
-  本身的功能（在 references/stage{1,2}-prompt.md，不归本 skill 管）。
+  (TODO → spec → dev → merge): `init` (onboard project), `add` (append slug-tagged
+  TODO), `adjust` (reorder TODO or append hints before stage1 picks it up),
+  `review-merge` (audit + squash merge ready spec).
+  TODO Driver 流水线（TODO → spec → dev → merge）的人手触发端点。
+  触发 init：「初始化 todo-driver」「让这个工程支持 todo 流水线」「setup todo-driver」。
+  触发 add：「新建 TODO」「加一个待办」「记个带 slug 的 todo」「add todo with slug」。
+  触发 adjust：「调整 todo 顺序」「把 X 插到 Y 前」「补 hints」「reorder todo」。
+  触发 review-merge：「review 这个 todo」「合并 ready 的 spec」「审 todo 并 merge」。
+  统称：「todo-driver」「todo-driver <mode>」。
+  Do NOT use for: 改/删 slug（删原 + add 新）/ 不带 slug 的备忘（直接 Edit TODO.md）/
+  通用 PR review（→ requesting-code-review）/ stage 1/2 cron prompt 本身（在 references/）。
 ---
 
 # todo-driver
