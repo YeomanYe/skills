@@ -2,21 +2,15 @@
 name: flow-codex-goal
 description: >
   Use when an orchestrator agent (Claude / Codex / any other) needs to drive a
-  long-horizon Codex task end-to-end with: explicit Phase 0 contract signoff
-  (acceptance criteria + stop conditions + custom score rubric), independent
-  baseline scoring, hard-isolated fresh-process Reviewer Codex (separate process
-  + separate read-only worktree + scrubbed env), per-round snapshot with
-  max-score rollback, runtime evidence with mandatory UI screenshots pushed
-  immediately to IM, full review audit log, and an orchestrator that stays
-  mostly idle so the human can interrupt and adjust at any time. Trigger on
-  phrases like "用 codex goal 跑这个长任务", "让 codex 后台跑", "无人值守长跑",
+  long-horizon Codex task end-to-end with acceptance criteria, hard-isolated
+  Reviewer Codex, per-round snapshot + max-score rollback, mandatory UI evidence
+  pushed to IM, and an idle orchestrator so the human can interrupt anytime.
+  Trigger phrases: "用 codex goal 跑这个长任务", "让 codex 后台跑", "无人值守长跑",
   "use codex goal mode", "long-horizon agent task", "background codex execution",
-  "ralph loop", "codex 循环改造", "let codex run for hours". 用户明确指定
-  "用 codex-goal" 时尊重用户对任务大小的判断权——即使任务较短也进入流程（仅一次性
-  告知代价，不阻止）。Do NOT use（仅 agent 自动路由时）for short tasks (suggest
-  `flow-dev-task` instead), exploratory work without acceptance criteria (use
-  brainstorming), or tasks where the orchestrator itself should be the executor
-  (use `flow-dev-task`).
+  "ralph loop", "codex 循环改造", "let codex run for hours". 用户明示 "用
+  codex-goal" 时尊重判断,短任务也进入(仅一次性告知代价)。Do NOT use(自动路由时)
+  for short tasks (→ flow-dev-task), exploratory work without acceptance criteria
+  (→ brainstorming), or executor-style tasks (→ flow-dev-task).
 type: workflow
 ---
 
