@@ -1,6 +1,6 @@
 # TODO Flow — 系统说明
 
-把项目 TODO 串成 "draft spec → review → dev → review → merge" 流水线。  
+把项目 TODO 串成 "draft spec → review → dev → review → done" 流水线。
 **Stage 0/3 走 skill（人触发），Stage 1/2 走 cron + 这里的 prompt**。
 
 ---
@@ -21,9 +21,9 @@ dev-in-progress  branch todo/<slug> 存在 + status 仍是 approved
                        │ stage 2 跑完
                        ▼
 dev-done         status: ready-for-review
-                       │ skill 3 review pass + squash merge
+                       │ todo-flow done: review pass + squash merge
                        ▼
-merged           spec 被移到 docs/spec/_done/，branch 删除，TODO 标 [x]
+done             spec 被移到 docs/spec/_done/，branch 删除，TODO 标 [x]
 ```
 
 **特殊态**：`status: blocked` —— `attempts >= 3` 后自动标，需人介入。
@@ -40,7 +40,7 @@ merged           spec 被移到 docs/spec/_done/，branch 删除，TODO 标 [x]
 ```
 
 - `- [ ]` = 系统标记的未完成（pending/draft/approved/in-progress/ready）
-- `- [x]` = 系统标记的已合并（由 skill 3 在 merge 后改）
+- `- [x]` = 系统标记的已完成（由 todo-flow done 在 squash merge 后改）
 - slug 命名规则：kebab-case，3-30 字符，仅 `a-z0-9-`
 - 无 slug 的旧 TODO 会被 stage 1 跳过（不处理）
 
@@ -53,7 +53,7 @@ merged           spec 被移到 docs/spec/_done/，branch 删除，TODO 标 [x]
   - [ ] `payment-receipt` 生成发票
 ```
 
-父 epic 由 skill 3 在所有子项 merged 后自动 close。
+父 epic 由 skill 3 在所有子项 done 后自动 close。
 
 ---
 
@@ -66,7 +66,7 @@ title: 主题切换支持深色/浅色/跟随系统
 status: draft | approved | ready-for-review | blocked
 kind: implementation | decomposition
 epic: false                  # 仅 decomposition kind 时可能 true
-depends_on: []               # [<slug>, ...] 必须全部 merged 后才能进 dev
+depends_on: []               # [<slug>, ...] 必须全部 done 后才能进 dev
 attempts: 0                  # stage 2 跑过几次，>=3 自动 blocked
 self_approved: false         # stage 1 是否自审通过
 self_approved_reasons: []    # 仅 self_approved=true 时填
@@ -158,8 +158,8 @@ attempts 字段 +1。`attempts >= 3` 后自动 `status: blocked`。
 - branch 命名：`todo/<slug>`
 - branch 基线：`main`
 - 推送：`git push -u origin todo/<slug>`
-- merge 策略：squash（skill 3 自动）
-- merge 后：删 branch + 删 worktree + 移 spec 到 `_done/`
+- done 策略：squash merge（todo-flow done 自动）
+- done 后：删 branch + 删 worktree + 移 spec 到 `_done/`
 
 **确保 `.gitignore` 包含 `.worktrees/`**。stage 1 第一次跑时会检查并提示。
 
@@ -177,9 +177,9 @@ attempts 字段 +1。`attempts >= 3` 后自动 `status: blocked`。
                   agent 扫 spec/*.md → 找 approved → 开 worktree → 实现 → 推 branch → IM 通知
 
 你（手动）
-   ├─ skill `todo-init`           新建 TODO（带 slug）
+   ├─ skill `todo-flow add`       新建 TODO（带 slug）
    ├─ 改 spec status: approved    审通过让 stage 2 拾起
-   └─ skill `todo-review-merge`   review + squash merge
+   └─ skill `todo-flow done`      review + squash merge + 归档
 ```
 
 频率建议：

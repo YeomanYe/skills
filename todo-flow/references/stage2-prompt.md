@@ -63,7 +63,7 @@ git fetch origin 2>/dev/null || true
      | spec status | branch / worktree | 含义 | 报告分类 |
      |---|---|---|---|
      | `approved` | 残留 | 上次 stage2 跑死或卡住，仍占着 slot | `needs_cleanup` |
-     | `ready-for-review` | 残留 | 正常等 review-merge | `awaiting_review` |
+     | `ready-for-review` | 残留 | 正常等 done | `awaiting_review` |
      | `approved` | 无残留 | 不可能（互斥），不会走到本分支 | — |
 
 4. 全部 spec 遍历完都没选中 → 该工程无候选，跳过。
@@ -212,7 +212,7 @@ mkdir -p "$artifacts_dir"
 **严格规则**：
 - 产物**永不 commit**，永远不 `git add` 这个目录
 - 主仓库 `.gitignore` 必须包含 `.worktrees/`（worktree 在主仓库根目录可见，必须忽略）；自愈逻辑已在 Step 2 完成
-- review-merge 或人工 review 时，agent / 用户**直接读本机 `${project_root}/.worktrees/${slug}/.review-artifacts/`**
+- done 或人工 review 时，agent / 用户**直接读本机 `${project_root}/.worktrees/${slug}/.review-artifacts/`**
 - 失败路径同样不 commit artifacts；报告里吐绝对路径
 
 #### Step 5.5.1：启动 dev server（随机端口，避开默认）
@@ -319,7 +319,7 @@ wait $DEV_PID 2>/dev/null || true
 - 备注: <一句>
 ```
 
-**注意**：报告里写**绝对路径**，让 review-merge / 人工 review 时能直接打开本机文件。artifacts **不进 git 历史**。
+**注意**：报告里写**绝对路径**，让 done / 人工 review 时能直接打开本机文件。artifacts **不进 git 历史**。
 
 ### Step 6：成功路径
 
@@ -332,7 +332,7 @@ wait $DEV_PID 2>/dev/null || true
 3. commit 顺序（**只 commit 代码 + spec，绝不 commit `.review-artifacts/`**）：
    - 先 commit 代码实现（subject 用 `feat:` / `fix:` / 按 spec 性质）
    - 再 commit spec 更新（subject `chore(todo): mark ${slug} ready-for-review`）
-   - `.review-artifacts/${slug}/` 留在 worktree 本地，不进 git 历史；review-merge 时 agent 从本地读
+   - `.review-artifacts/${slug}/` 留在 worktree 本地，不进 git 历史；done 时 agent 从本地读
 4. push branch：
 
    ```bash
@@ -395,7 +395,7 @@ write code → run hard gates → fail → diagnose → fix → run again
 - Awaiting review: <list of slugs that are ready-for-review with branch/worktree>
 - Needs cleanup: <list of slugs with approved+残留 worktree/branch — 用户要手动清理>
 - Skipped projects: <dirty / 不是 git 仓库 等>
-- Next: 等 todo-flow review-merge / 下次 cron 接下一条
+- Next: 等 todo-flow done / 下次 cron 接下一条
 ```
 
 失败：
@@ -415,7 +415,7 @@ write code → run hard gates → fail → diagnose → fix → run again
 
 ```
 🟰 Nothing to develop
-- Awaiting review: <list — 等 review-merge>
+- Awaiting review: <list — 等 done>
 - Needs cleanup: <list — ⚠️ approved spec 但残留 worktree/branch，要手动清理才能继续>
 - Skipped projects: <list — dirty / 不是仓库等>
 - 下次 cron 触发再扫

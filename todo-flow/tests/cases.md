@@ -234,14 +234,23 @@
 
 ---
 
-## Mode `review-merge`
+## Mode `done`
+
+### Case D0: 旧 mode review-merge 兼容触发
+
+- 前置：项目有 1 个 `ready-for-review` spec
+- 输入：用户说"todo-flow review-merge"
+- 预期：
+  - mode 解析为 `done`
+  - 报告里提示一次 `review-merge` 是旧 mode 兼容
+  - 对外输出使用 `mode: done`
 
 ### Case 14: 0 ready spec → idle
 
 - 前置：所有 spec 的 status 都不是 `ready-for-review`
 - 输入：用户调用"review 这个 todo"
 - 预期：
-  - mode 解析为 `review-merge`（"review" + "todo"）
+  - mode 解析为 `done`（"review" + "todo"）
   - Step 1 列出 0 个候选
   - 不进 Step 3+
   - `verdict: idle`
@@ -261,12 +270,12 @@
   - Step 8 verdict: PASS
   - Step 9 完整执行：squash + archive + mv spec + 标 TODO + 删 worktree + 删 branch + push main
   - Step 11 非 epic 子项 → 跳过
-  - 输出 `verdict: merged` + `merge_sha`
+  - 输出 `verdict: done` + `done_sha`
 
 ### Case 16: 多个 ready spec → 用户选
 
 - 前置：3 个 spec ready-for-review
-- 输入：用户调用 review-merge（无具体 slug）
+- 输入：用户调用 done（无具体 slug）
 - 预期：
   - Step 2 用 AskUserQuestion 列出 3 个，附 `updated` 时间
   - 用户选 → 用那个
@@ -314,7 +323,7 @@
   - Step 8 REJECT
   - must_fix 列出 file:line
 
-### Case 22: epic 子项 merged 后父 epic 自动关闭
+### Case 22: epic 子项 done 后父 epic 自动关闭
 
 - 前置：
   - epic `style-switch` spec 在 docs/spec/
@@ -344,7 +353,7 @@
   - 第 9 步 push main 失败
   - **不**尝试 force push
   - 报告：本地已 2 个 commit，需用户手动推送
-  - 输出 `verdict: merged` + `push_status: failed`
+  - 输出 `verdict: done` + `push_status: failed`
 
 ### Case 25: Worktree 内有未提交修改 → 拒绝删 worktree
 
@@ -352,21 +361,21 @@
 - 预期：
   - Step 9 第 6 步删 worktree 前检查
   - 非空 → 不删，报告用户处理
-  - 主流程仍 merged 完成
-  - 输出 `verdict: merged` + `cleanup_status: partial`
+  - 主流程仍 done 完成
+  - 输出 `verdict: done` + `cleanup_status: partial`
 
 ### Case 26: 反例触发 — 通用 PR review
 
 - 输入：用户说"帮我 review 一下这个 PR"，并贴 PR 链接
 - 预期：
-  - mode 解析可能落到 `review-merge`，但 Step 1 找不到对应 ready spec
+  - mode 解析可能落到 `done`，但 Step 1 找不到对应 ready spec
   - 报告"该 branch 不在 todo-flow 流水线，请用 requesting-code-review"
   - 拒绝触发
 
 ### Case 27: 反例触发 — docs/spec/ 不存在
 
 - 前置：项目根没有 docs/spec/
-- 输入：调用 review-merge
+- 输入：调用 done
 - 预期：
   - Step 1 列不出任何 spec
   - 报告"docs/spec/ 不存在，本项目未启用 todo-flow"
@@ -374,7 +383,7 @@
 
 ---
 
-## Mode Resolution Tests（合并后新增）
+## Mode Resolution Tests（done mode）
 
 ### Case 28: 显式指定 mode
 
@@ -388,13 +397,13 @@
 - 输入：用户说"加个 TODO 多语言支持"
 - 预期：
   - 短语含"加" + "TODO" → init
-  - **不**触发 review-merge 路径
+  - **不**触发 done 路径
 
-### Case 30: 触发短语明确指向 review-merge
+### Case 30: 触发短语明确指向 done
 
 - 输入：用户说"merge ready 的 todo"
 - 预期：
-  - 短语含"merge" + "ready" + "todo" → review-merge
+  - 短语含"merge" + "ready" + "todo" → done
   - **不**触发 init
 
 ### Case 31: 短语模糊 + 状态明显 → 用状态兜底
@@ -403,14 +412,14 @@
 - 前置：项目有 1 个 ready-for-review spec
 - 预期：
   - 短语无明确指向
-  - 状态推断：有 ready spec → review-merge
-  - 进入 review-merge 流程并声明"current mode: review-merge"
+  - 状态推断：有 ready spec → done
+  - 进入 done 流程并声明"current mode: done"
 
 ### Case 32: 短语模糊 + 状态也模糊 → AskUserQuestion
 
 - 输入：用户说"todo-flow"
 - 前置：既没 ready spec，TODO.md 也没新增意图
 - 预期：
-  - AskUserQuestion 让用户二选一：init / review-merge
+  - AskUserQuestion 让用户二选一：init / done
   - 用户选 → 进对应流程
   - 用户拒选 → stop

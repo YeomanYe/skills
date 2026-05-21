@@ -2,14 +2,14 @@
 name: todo-flow
 description: >
   Use when interacting with the human-facing endpoints of the TODO Flow pipeline
-  (TODO → spec → dev → merge): `init` (onboard project), `add` (append slug-tagged
+  (TODO → spec → dev → done): `init` (onboard project), `add` (append slug-tagged
   TODO), `adjust` (open a numbered table panel to reorder/edit TODOs and add hints before stage1 picks them up),
-  `review-merge` (audit + squash merge ready spec).
-  TODO Flow 流水线（TODO → spec → dev → merge）的人手触发端点。
+  `done` (audit ready spec, squash merge, archive as done; legacy alias: `review-merge`).
+  TODO Flow 流水线（TODO → spec → dev → done）的人手触发端点。
   触发 init：「初始化 todo-flow」「初始化 todo-driver」「让这个工程支持 todo 流水线」「setup todo-flow」。
   触发 add：「新建 TODO」「加一个待办」「记个带 slug 的 todo」「add todo with slug」。
   触发 adjust：「调整 todo 顺序」「把 X 插到 Y 前」「补 hints」「修改 todo」「panel 模式」「reorder todo」。
-  触发 review-merge：「review 这个 todo」「合并 ready 的 spec」「审 todo 并 merge」。
+  触发 done：「done 这个 todo」「完成 ready spec」「标记完成」「review 这个 todo」；兼容旧说法「review-merge」「合并 ready 的 spec」「审 todo 并 merge」。
   统称：「todo-flow」「todo-flow <mode>」。兼容旧名：「todo-driver」「todo-driver <mode>」。
   Do NOT use for: 改/删 slug（删原 + add 新）/ 不带 slug 的备忘（直接 Edit TODO.md）/
   通用 PR review（→ requesting-code-review）/ stage 1/2 cron prompt 本身（在 references/）。
@@ -24,7 +24,7 @@ description: >
 - **`init`**：把一个普通工程**初始化**为支持 todo-flow 流水线的工程——创建 `TODO.md` + `docs/spec/` + 改 `.gitignore`。一次性动作，幂等。
 - **`add`**：向项目 `TODO.md` 追加一条带 slug 的待办，让 stage 1 cron 起草 spec。
 - **`adjust`**：进入 TODO panel 模式，用编号表格连续调整**还没起 spec** 的 TODO：改顺序、修改条目内容、追加 hints；直到用户说退出才一次性 commit + push。
-- **`review-merge`**：审核 `status: ready-for-review` 的 spec，pass 则 squash merge 到默认分支 + 原子清理 branch/worktree/spec/TODO。
+- **`done`**：审核 `status: ready-for-review` 的 spec，pass 则 squash merge 到默认分支 + 归档 spec 到 `_done` + 原子清理 branch/worktree/TODO。
 
 中间的 stage 1（起草 spec）和 stage 2（开发 + 走查 + push branch）由 cron 喂的 prompt 接管（`references/stage{1,2}-prompt.md`），不在本 skill 范围。
 
@@ -41,21 +41,21 @@ description: >
 | `init` | 用户要把一个项目接入 todo-flow 流水线 | 创建 `TODO.md` + `docs/spec/` + 改 `.gitignore` 加 `.worktrees/`；幂等 | 低 |
 | `add` | 用户要新建带 slug 的 TODO | 在 `TODO.md` 对应段末追加一行 | 低 |
 | `adjust` | 用户要给**还没起 spec** 的 TODO 改顺序 / 修改内容 / 补思路 | 进入 panel 模式，连续改 `TODO.md`；退出后 commit + push | 低 |
-| `review-merge` | 用户要审核并合并 ready spec | squash merge + 删 branch + 删 worktree + push 默认分支 | 高 |
+| `done` | 用户要审核并完成 ready spec | squash merge + 归档 spec 到 `_done` + 删 branch/worktree + push 默认分支 | 高 |
 
 ## Resolving Mode
 
 按以下顺序判定：
 
-1. **用户显式指定**（如 `todo-flow init` / `todo-flow add` / `todo-flow adjust` / `todo-flow review-merge`；旧名 `todo-driver <mode>` 同样兼容）→ 用指定的
+1. **用户显式指定**（如 `todo-flow init` / `todo-flow add` / `todo-flow adjust` / `todo-flow done`；旧 mode `todo-flow review-merge` 与旧 skill 名 `todo-driver <mode>` 同样兼容）→ 用指定的
 2. **触发短语推断**：
    - 含"初始化"/"接入"/"setup"/"onboard" + "todo-flow"/"todo-driver"/"todo 流水线" → `init`
    - 含"新建"/"加"/"记"/"create"/"add" + "TODO"/"待办" → `add`
    - 含"调整"/"排序"/"插到前/后"/"挪"/"补思路"/"补充 hints"/"修改 todo"/"panel 模式"/"reorder"/"move X before/after"/"add hints" + "todo"/具体 slug → `adjust`
-   - 含"review"/"审"/"合并"/"merge" + "todo"/"spec" → `review-merge`
+   - 含"done"/"完成"/"标记完成"/"review"/"审"/"合并"/"merge" + "todo"/"spec"/"ready" → `done`
 3. **状态推断**（兜底）：
    - 项目根**没有** `TODO.md` 也**没有** `docs/spec/` → 倾向 `init`（流水线还没接入）
-   - 项目根有 `docs/spec/*.md` 且至少 1 个 `status: ready-for-review` → 倾向 `review-merge`
+   - 项目根有 `docs/spec/*.md` 且至少 1 个 `status: ready-for-review` → 倾向 `done`
    - 否则 → 倾向 `add`（注：`adjust` 不进兜底——它需要明确的目标 slug，不应被状态推断自动选中）
 4. **仍模糊** → 用 AskUserQuestion 二选一（或四选一）
 
@@ -65,14 +65,16 @@ description: >
 
 > ⚠️ **skill 改名**：本 skill 旧名是 `todo-driver`，现名 `todo-flow`。看到 `todo-driver <mode>` 时按 `todo-flow <mode>` 处理，并在报告里提示一次旧名兼容；不要因为旧名存在就拒绝执行。
 
+> ⚠️ **mode 改名**：最终收口 mode 旧名是 `review-merge`，现名是 `done`。看到 `review-merge` 时按 `done` 处理，并在报告里提示一次旧 mode 兼容；对外输出优先使用 `mode: done`、`verdict: done`。
+
 ## When to Use
 
 满足任一即可触发：
 - 用户想把一个项目接入 todo-flow 流水线（无 `TODO.md` / `docs/spec/` 的工程）
 - 用户描述了一个想加进 `TODO.md` 的新需求/功能/重构
 - 用户想给一个**还没起 spec** 的 TODO 改顺序 / 修改内容 / 补 hints（关键交互路径 / 核心思路 / 新约束）
-- 项目有 `docs/spec/*.md` 文件且其中至少一个 `status: ready-for-review`，用户希望推进 merge
-- 用户在 todo-flow 流水线相关的上下文里提及 init / add / adjust / review / merge 这类动作
+- 项目有 `docs/spec/*.md` 文件且其中至少一个 `status: ready-for-review`，用户希望审核并完成该 TODO
+- 用户在 todo-flow 流水线相关的上下文里提及 init / add / adjust / done / review / merge 这类动作
 
 ## When NOT to Use
 
@@ -608,11 +610,11 @@ Append hint to `keyboard-shortcuts`: 使用 chrome.commands API
 
 ---
 
-## Mode `review-merge`
+## Mode `done`
 
-整合 3 件事到一次调用：审 → 合 → 清。任一审核环节不过 → 走 **reject 路径**（findings 回写 spec，status 退回 approved 让 stage 2 重做）。
+整合 3 件事到一次调用：审 → 合 → 归档为 done。任一审核环节不过 → 走 **reject 路径**（findings 回写 spec，status 退回 approved 让 stage 2 重做）。
 
-### Required Workflow（review-merge）
+### Required Workflow（done）
 
 按以下顺序：
 
@@ -626,7 +628,7 @@ Append hint to `keyboard-shortcuts`: 使用 chrome.commands API
 8. 产出 review report → 通过 / 不通过判定
 9. **通过路径**：squash merge + 清理
 10. **不通过路径**：findings 回写 spec
-11. （若 merged）检查 epic 父项是否可关闭
+11. （若 done）检查 epic 父项是否可关闭
 
 不要跳过 Step 4-7 任一个直接进 merge。**stage1 一律 approved 不代表免审**——事后审 diff 是否符合 spec 估算才是本 mode 的核心价值。
 
@@ -776,7 +778,7 @@ git merge --squash todo/<slug>
 SQUASH_MSG="<spec.title>
 
 Source: docs/spec/<slug>.md
-Spec was reviewed and merged via todo-flow review-merge."
+Spec was reviewed and merged via todo-flow done."
 git commit -m "$SQUASH_MSG"
 
 # 3. mv spec 到 _done/
@@ -865,25 +867,25 @@ grep -rE "^  - \[.\] \`<slug>\`" TODO.md
 
 未全 done → 不动 epic，输出 "epic <epic-slug> 进度 X/Y，未关闭"
 
-### Output Contract（review-merge）
+### Output Contract（done）
 
 报告必须包含：
 
-- `mode: review-merge`
+- `mode: done`
 - `slug`: 处理的 slug
-- `verdict`: `merged` / `rejected` / `idle` / `refused`
-- `merge_sha`: 仅 merged 时（main 上的 squash commit SHA）
+- `verdict`: `done` / `rejected` / `idle` / `refused`
+- `done_sha`: 仅 done 时（main 上的 squash commit SHA）
 - `must_fix`: 仅 rejected 时的清单
 - `epic_closed`: 若关联 epic 也关闭了，列出 epic slug
 - `push_status`: `pushed` / `failed`（push main 是否成功）
 - `cleanup_status`: `complete` / `partial`（branch/worktree 是否全清掉）
 - `next_step`:
-  - merged: `merge 完成，下一个 TODO 可让 stage 2 拾起`
+  - done: `done 完成，下一个 TODO 可让 stage 2 拾起`
   - rejected: `findings 已写回 spec，等 stage 2 重做`
   - idle: `没有 ready-for-review 的 spec`
   - refused: `<拒绝原因>`
 
-### Common Failure Modes（review-merge）
+### Common Failure Modes（done）
 
 **1. Hard gates 红了还推**：lint fail 视为"小事"。任一 red → 必 REJECT，不豁免。
 
@@ -918,7 +920,7 @@ grep -rE "^  - \[.\] \`<slug>\`" TODO.md
 - 用户要"试跑 stage 1 / 我想看看 prompt 长啥样" → 用 Read 工具读 `references/stage1-prompt.md` 整篇，或 cp 到用户指定路径
 - 用户要"接 cron" → 给出读取这两个 prompt 文件的具体命令（cron 程序按需 `cat` / 加载）
 
-**这些 reference 是状态机的契约定义**。改它们等于改 stage 1/2 prompt 端的行为，必须同步审视 `init` / `review-merge` 两个 mode 的 SKILL.md 是否还对齐。普通迭代只动 SKILL.md 不动 references/。
+**这些 reference 是状态机的契约定义**。改它们等于改 stage 1/2 prompt 端的行为，必须同步审视 `init` / `done` 两个 mode 的 SKILL.md 是否还对齐。普通迭代只动 SKILL.md 不动 references/。
 
 ---
 
@@ -972,7 +974,7 @@ grep -rE "^  - \[.\] \`<slug>\`" TODO.md
 ```
 
 - `- [ ]` = 未合并（pending / draft / approved / in-progress / ready）
-- `- [x]` = 已合并（由 review-merge mode 在 merge 后改）
+- `- [x]` = 已合并（由 done mode 在 merge 后改）
 
 **hints 抽取规则**（stage1 / agent 都按此处理，不允许另行解释）：
 
@@ -1003,6 +1005,6 @@ grep -rE "^  - \[.\] \`<slug>\`" TODO.md
 - 一次调用 = 一个 mode；`adjust` 是唯一允许在同一 mode 内持续交互的 panel，会在退出时一次性收口
 - 共享约束严格执行，**绝不**为了"流畅"绕过 hard gates、subjective 判定、diff audit
 - "merge 了一半"比"完全没 merge"更糟；任何清理步骤失败 → 报错 stop
-- mode 边界清晰：add **不**碰 git 状态；review-merge **不**新增 TODO 条目；adjust **不**在退出前 commit
+- mode 边界清晰：add **不**碰 git 状态；done **不**新增 TODO 条目；adjust **不**在退出前 commit
 
 若做不到"原子干净"，就不要假装能安全完成。
