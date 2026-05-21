@@ -8,10 +8,17 @@
 
 ## 占位符约定
 
-- `${slug}` — 来自 spec frontmatter 的 `id`
-- `${today}` — `date -u +%Y-%m-%d`
-- `${project_root}` — 当前处理工程的绝对路径
-- `${default_branch}` — 默认主干分支名，**探测**：
+> **两种占位符,语法上严格区分**:
+> - `${UPPER_SNAKE}` = 预处理占位符（调用方喂 prompt 前字符串替换;本 stage 暂无）
+> - `<lower_snake>` = 运行时占位符（agent 从仓库状态推断自动填）
+> - bash 代码块里的 `${shell_var}` 是 shell 语法,**不算占位符**
+
+### 运行时占位符
+
+- `<slug>` — 来自 spec frontmatter 的 `id`
+- `<today>` — `date -u +%Y-%m-%d`
+- `<project_root>` — 当前处理工程的绝对路径
+- `<default_branch>` — 默认主干分支名，**探测**：
 
   ```bash
   default_branch=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')
@@ -34,7 +41,7 @@ PROJECTS=(
 
 ### Step 0：选择本次处理的工程和 spec（无入参，从仓库状态推断）
 
-遍历上面硬编码的 `PROJECTS` 数组，对每个 `${project_root}`：
+遍历上面硬编码的 `PROJECTS` 数组，对每个 `<project_root>`：
 
 ```bash
 cd "${project_root}"
@@ -48,16 +55,16 @@ git fetch origin 2>/dev/null || true
 按文件名**字典序**遍历 `docs/spec/*.md`（不含 `_done/`），对每个 spec：
 
 1. 读 frontmatter `status`。**只有 `approved` 进入后续判定**，其它（`draft` / `ready-for-review` / 已合并未归档）跳过。
-2. 解析出 `id` 作为 `${slug}`。
-3. 检查 `todo/${slug}` 分支与 worktree 残留状态，并**按状态分类记账**（决定本次循环的报告口径）：
+2. 解析出 `id` 作为 `<slug>`。
+3. 检查 `todo/<slug>` 分支与 worktree 残留状态，并**按状态分类记账**（决定本次循环的报告口径）：
 
    ```bash
-   has_local_branch=$(git show-ref --verify --quiet "refs/heads/todo/${slug}" && echo 1 || echo 0)
-   has_remote_branch=$(git ls-remote --exit-code --heads origin "todo/${slug}" >/dev/null 2>&1 && echo 1 || echo 0)
-   has_worktree=$([ -e ".worktrees/${slug}" ] && echo 1 || echo 0)
+   has_local_branch=$(git show-ref --verify --quiet "refs/heads/todo/<slug>" && echo 1 || echo 0)
+   has_remote_branch=$(git ls-remote --exit-code --heads origin "todo/<slug>" >/dev/null 2>&1 && echo 1 || echo 0)
+   has_worktree=$([ -e ".worktrees/<slug>" ] && echo 1 || echo 0)
    ```
 
-   - 全为 0 → **选中**该 spec，记下 `${project_root}` `${slug}`，跳出整个遍历
+   - 全为 0 → **选中**该 spec，记下 `<project_root>` `<slug>`，跳出整个遍历
    - 任一为 1 → 跳过该 spec，但**按以下分类**记录到 `stale_slugs[]`（供报告输出，让用户能识别死锁源头）：
 
      | spec status | branch / worktree | 含义 | 报告分类 |
@@ -129,7 +136,7 @@ cd "$worktree_dir"
 
 ### Step 3：理解 spec
 
-完整读一遍 `docs/spec/${slug}.md`，逐节理解：
+完整读一遍 `docs/spec/<slug>.md`，逐节理解：
 
 - "目标" → 做什么
 - "推荐方案 + 理由" → 怎么做
@@ -212,7 +219,7 @@ mkdir -p "$artifacts_dir"
 **严格规则**：
 - 产物**永不 commit**，永远不 `git add` 这个目录
 - 主仓库 `.gitignore` 必须包含 `.worktrees/`（worktree 在主仓库根目录可见，必须忽略）；自愈逻辑已在 Step 2 完成
-- done 或人工 review 时，agent / 用户**直接读本机 `${project_root}/.worktrees/${slug}/.review-artifacts/`**
+- done 或人工 review 时，agent / 用户**直接读本机 `<project_root>/.worktrees/<slug>/.review-artifacts/`**
 - 失败路径同样不 commit artifacts；报告里吐绝对路径
 
 #### Step 5.5.1：启动 dev server（随机端口，避开默认）
@@ -256,12 +263,12 @@ dev server 60s 内没起来 → kill 进程、把 log tail 写进 spec Decisions
 
 1. `playwright_navigate` → `http://localhost:${PORT}`（首次调用时显式设 `headless: true` + `viewport: { width, height }`）
 2. **默认截图清单**（兜底，不依赖 spec 完整性）：
-   - `${artifacts_dir}/01-landing.png` — 主页面整屏（`fullPage: true`）
-   - 若 spec 提到新弹窗 / modal / drawer / 二次确认态 → 触发到该状态后截 `${artifacts_dir}/02-<state-slug>.png`、`03-...`
+   - `<artifacts_dir>/01-landing.png` — 主页面整屏（`fullPage: true`）
+   - 若 spec 提到新弹窗 / modal / drawer / 二次确认态 → 触发到该状态后截 `<artifacts_dir>/02-<state-slug>.png`、`03-...`
 3. **验收标准遍历**：spec "验收标准" 里每一条非"测试通过/lint clean"的条目：
    - 描述了可点击元素（按钮 / 链接 / 设置项 / tab）→ 尽力定位并 `playwright_click`
-   - 每次有意义的状态变化后 → 截图存 `${artifacts_dir}/<序号>-<criterion-slug>.png`
-   - 用 `playwright_console_logs` 抓 console，append 到 `${artifacts_dir}/console.log`
+   - 每次有意义的状态变化后 → 截图存 `<artifacts_dir>/<序号>-<criterion-slug>.png`
+   - 用 `playwright_console_logs` 抓 console，append 到 `<artifacts_dir>/console.log`
 
 **禁止局部截图**：不允许只截一个组件来代替整屏视口截图。每张图必须是 `fullPage: true` 的整屏。
 
@@ -273,7 +280,7 @@ dev server 60s 内没起来 → kill 进程、把 log tail 写进 spec Decisions
 
 Playwright 录屏（用 `recordVideo` 启动 context；具体参数视 MCP 工具能力而定）：
 
-- 输出到 `${artifacts_dir}/walkthrough.webm`（webm 是 Playwright 默认格式，体积小）
+- 输出到 `<artifacts_dir>/walkthrough.webm`（webm 是 Playwright 默认格式，体积小）
 - 视口尺寸跟 5.5.2 保持一致
 - 录制 spec 在"验收标准"里描述的主交互链路（一次连续操作，不要分段）
 - 录屏结束后 `playwright_close` 触发文件 flush
@@ -292,7 +299,7 @@ wait $DEV_PID 2>/dev/null || true
 #### Step 5.5.5：判定走查结果
 
 收集：
-- `${artifacts_dir}/console.log` 中 `error` / `Error` / `Uncaught` 行数 → `console_errors`
+- `<artifacts_dir>/console.log` 中 `error` / `Error` / `Uncaught` 行数 → `console_errors`
 - 截图总数 → `screenshots`
 - 录屏文件大小（如有）→ `video_size_mb`
 
@@ -327,16 +334,16 @@ wait $DEV_PID 2>/dev/null || true
 
 1. 更新 spec frontmatter：
    - `status: ready-for-review`
-   - `updated: ${today}`
-2. 在 `## Decisions log` 追加：`- **${today}**: 实现完成，<一句重要决定>`
+   - `updated: <today>`
+2. 在 `## Decisions log` 追加：`- **<today>**: 实现完成，<一句重要决定>`
 3. commit 顺序（**只 commit 代码 + spec，绝不 commit `.review-artifacts/`**）：
    - 先 commit 代码实现（subject 用 `feat:` / `fix:` / 按 spec 性质）
-   - 再 commit spec 更新（subject `chore(todo): mark ${slug} ready-for-review`）
-   - `.review-artifacts/${slug}/` 留在 worktree 本地，不进 git 历史；done 时 agent 从本地读
+   - 再 commit spec 更新（subject `chore(todo): mark <slug> ready-for-review`）
+   - `.review-artifacts/<slug>/` 留在 worktree 本地，不进 git 历史；done 时 agent 从本地读
 4. push branch：
 
    ```bash
-   git push -u origin "todo/${slug}"
+   git push -u origin "todo/<slug>"
    ```
 
 5. 报告成功（见输出格式）
@@ -348,14 +355,14 @@ wait $DEV_PID 2>/dev/null || true
 1. 在 worktree 里的 spec 末尾追加：
 
    ```md
-   ## Attempt failure (${today} HH:MM Z)
+   ## Attempt failure (<today> HH:MM Z)
    - 错误: <精确错误源 + file:line>
    - 原因: <诊断>
    - 已尝试: <做过哪些修复>
    - 卡在哪: <停下的具体步骤>
    ```
 
-2. 更新 frontmatter `updated: ${today}`，**不改 `status`**（保持 approved；调用方判断后续）
+2. 更新 frontmatter `updated: <today>`，**不改 `status`**（保持 approved；调用方判断后续）
 3. commit 到 worktree branch：**只** spec（artifacts 留在本地 worktree 不进 commit）；report 里吐 artifacts 绝对路径帮诊断
 4. **仍然 push branch**（让调用方能看到半成品 diff 诊断 + 本地 worktree 还在能看截图）
 5. 报告失败
@@ -363,9 +370,9 @@ wait $DEV_PID 2>/dev/null || true
 ### Step 8：清洁
 
 不论成功失败：
-- **不**切回 `${default_branch}` / 其它分支
+- **不**切回 `<default_branch>` / 其它分支
 - **不**删 worktree 或 branch（调用方决定何时清理）
-- **不**强 push / reset hard / 改远程 `${default_branch}`
+- **不**强 push / reset hard / 改远程 `<default_branch>`
 - **不**在主仓库目录留下修改
 
 ## 内部 fix-retry 限制
@@ -426,10 +433,10 @@ write code → run hard gates → fail → diagnose → fix → run again
 ## 约束（合并自原 "边界"）
 
 - 单次调用最多处理 **1 个 spec**
-- 不 merge 到 `${default_branch}`
+- 不 merge 到 `<default_branch>`
 - 不改其他 spec 文件、不改 `TODO.md`
 - 不在主仓库目录留下修改（所有改动只在 worktree 内）
-- 调用方负责后续清理 `.worktrees/${slug}`
+- 调用方负责后续清理 `.worktrees/<slug>`
 - 如果 spec 验收标准内部矛盾（实现时发现做不到），把矛盾点写进 failure log 让调用方改 spec
 
 ## 工具调用建议

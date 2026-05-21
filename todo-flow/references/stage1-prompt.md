@@ -4,15 +4,22 @@
 
 ---
 
-你的任务：在一组工程里挑出"**下一个需要起草 spec 的 TODO**"，为其生成 spec 写到该工程的 `docs/spec/${slug}.md`、commit 到默认分支、push 到远端。**所有 spec 一律自审通过、直接 `status: approved`**，可被 stage2 立即接力——本流程不留人工审核环节。一次调用只产出 **1 个 spec**（处理完一个工程的一个 todo 就停）。
+你的任务：在一组工程里挑出"**下一个需要起草 spec 的 TODO**"，为其生成 spec 写到该工程的 `docs/spec/<slug>.md`、commit 到默认分支、push 到远端。**所有 spec 一律自审通过、直接 `status: approved`**，可被 stage2 立即接力——本流程不留人工审核环节。一次调用只产出 **1 个 spec**（处理完一个工程的一个 todo 就停）。
 
-> ⚠️ **stage1 在主仓库主分支直接操作，不创建任何 worktree / 不创建任何 branch**。这是 docs-only 改动（只动 `docs/spec/${slug}.md`），不需要隔离环境。worktree / `todo/${slug}` branch 是 stage2 的事。
+> ⚠️ **stage1 在主仓库主分支直接操作，不创建任何 worktree / 不创建任何 branch**。这是 docs-only 改动（只动 `docs/spec/<slug>.md`），不需要隔离环境。worktree / `todo/<slug>` branch 是 stage2 的事。
 
 ## 占位符约定
 
-- `${slug}` — kebab-case 唯一标识，正则 `^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$`
-- `${today}` — 今天日期，用 `date -u +%Y-%m-%d`（不要靠语境推断）
-- `${project_root}` — 当前处理工程的绝对路径
+> **两种占位符,语法上严格区分**:
+> - `${UPPER_SNAKE}` = 预处理占位符（调用方喂 prompt 前字符串替换;本 stage 暂无）
+> - `<lower_snake>` = 运行时占位符（agent 从仓库状态推断自动填）
+> - bash 代码块里的 `${shell_var}` 是 shell 语法,**不算占位符**
+
+### 运行时占位符
+
+- `<slug>` — kebab-case 唯一标识，正则 `^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$`
+- `<today>` — 今天日期，用 `date -u +%Y-%m-%d`（不要靠语境推断）
+- `<project_root>` — 当前处理工程的绝对路径
 
 ## 工程清单（在 prompt 内硬编码）
 
@@ -62,7 +69,7 @@ hints=("${hints[@]## }"); hints=("${hints[@]%% }")
 **保持英文/原文**（结构性，不翻）：
 
 - frontmatter 字段名（`id` / `title` / `status` / ...）和枚举值（`approved` / `true` / `1440x900` ...）
-- `${slug}` 本身（kebab-case 英文）
+- `<slug>` 本身（kebab-case 英文）
 - 文件路径 / 行号引用 / API 名 / 库名 / 命令 / 代码片段
 
 判定原则：**结构（字段名 / 枚举 / 标识符 / 代码引用）保持英文；人读的句子一律中文**。
@@ -85,7 +92,7 @@ hints=("${hints[@]## }"); hints=("${hints[@]%% }")
 
 ### Step 0：选择本次处理的工程和 slug（无入参，从仓库状态推断）
 
-遍历上面硬编码的 `PROJECTS` 数组，对每个 `${project_root}` 按下面规则找候选：
+遍历上面硬编码的 `PROJECTS` 数组，对每个 `<project_root>` 按下面规则找候选：
 
 ```bash
 cd "${project_root}"
@@ -106,17 +113,17 @@ test -z "$(git status --porcelain)" || { echo "skip: ${project_root} dirty"; con
 在该工程的 `TODO.md` 中按文档**出现顺序**扫描 `- [ ]` 项，对每一项：
 
 1. 解析 slug（反引号正则 `` `([a-z0-9][a-z0-9-]{1,28}[a-z0-9])` ``）。解析不到 → 跳过该项，看下一项。
-2. 检查 `docs/spec/${slug}.md` 是否存在 + `docs/spec/_done/${slug}.md` 是否存在。
+2. 检查 `docs/spec/<slug>.md` 是否存在 + `docs/spec/_done/<slug>.md` 是否存在。
    - 任一存在 → 该 TODO 已经在流水线上（起过 spec / 已 merge），**跳过该项，看下一项**
-   - 都不存在 → **选中**，记下 `${project_root}` `${slug}` `${title}` `${summary}`，跳出整个遍历
+   - 都不存在 → **选中**，记下 `<project_root>` `<slug>` `<title>` `<summary>`，跳出整个遍历
 
 遍历完所有工程都没选中 → 报告 `🟰 nothing to draft` 并 exit 0。这是正常空跑，cron 会下次再来。
 
 **轮转效果**：因为每次都是"挑第一个还没起 spec 的 TODO"，工程 A 的 todo#1 起完 spec 后下次扫到 A 时它有 spec 了会跳过，自然轮到 B 的 todo#1；等所有工程的 todo#1 都起完，再次扫到 A 时第一个未起 spec 的就是 todo#2，自然轮到第二轮。**无状态、无 round 概念、断点续跑天然安全**。
 
-### Step 1：环境 sanity check（在选中的 `${project_root}`）
+### Step 1：环境 sanity check（在选中的 `<project_root>`）
 
-Step 0 已完成 git 仓库 / 默认分支 / 工作树干净 的全部筛选，并把 `${default_branch}` 留在变量里供后续使用。这里只补 `docs/spec/` 目录：
+Step 0 已完成 git 仓库 / 默认分支 / 工作树干净 的全部筛选，并把 `<default_branch>` 留在变量里供后续使用。这里只补 `docs/spec/` 目录：
 
 ```bash
 set -euo pipefail
@@ -297,7 +304,7 @@ git push origin "${default_branch}" 2>&1 || echo "WARN: push failed, spec commit
 
 - **完全无入参**，所有决策从仓库状态推断。同一时刻反复跑只会让"还没起 spec 的下一条"被拿走，不会重复起草。
 - 单次调用最多产出 **1 个 spec**。
-- 只写 `${project_root}/docs/spec/${slug}.md`，不改任何代码、不创建分支/worktree。
+- 只写 `<project_root>/docs/spec/<slug>.md`，不改任何代码、不创建分支/worktree。
 - **必须**在 Step 6 把 spec commit 到默认分支并 push（push 失败容忍，但 commit 不能省）——否则 stage2 看到工作树脏会跳过整个工程，形成死锁。
 - commit 只 `git add` 这次新建的 spec 文件，**禁止** `git add .` / `git add -A`。staged 列表 ≠ 单文件 → abort。
 - 不覆盖已存在的 spec（Step 0 检测到 → 跳过该 TODO 继续找下一条）。

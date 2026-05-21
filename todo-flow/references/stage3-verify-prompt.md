@@ -10,24 +10,27 @@
 
 ## 占位符约定
 
-> ⚠️ **所有 `${...}` 占位符**必须由调用方用字符串预处理替换为真实值后再喂给 agent。
+> **两种占位符,语法上严格区分**:
+> - `${UPPER_SNAKE}` = **预处理占位符**(调用方喂 prompt 前字符串替换)
+> - `<lower_snake>` = **运行时占位符**(agent 从仓库状态推断自动填)
+> - bash 代码块里的 `${shell_var}` 是 shell 语法,**不算占位符**(由 agent 在脚本内赋值后展开)
 
-### 运行时占位符(spec / 仓库探测,agent 自动填)
+### 运行时占位符(agent 自动填,语法 `<lower_snake>`)
 
-- `${slug}` — 来自 spec frontmatter 的 `id`
-- `${today}` — `date -u +%Y-%m-%d`
-- `${now_iso}` — `date -u +%Y-%m-%dT%H:%M:%SZ`
-- `${project_root}` — 当前处理工程的绝对路径
-- `${default_branch}` — 默认主干分支名,**探测**:
+- `<slug>` — 来自 spec frontmatter 的 `id`
+- `<today>` — `date -u +%Y-%m-%d`
+- `<now_iso>` — `date -u +%Y-%m-%dT%H:%M:%SZ`
+- `<project_root>` — 当前处理工程的绝对路径
+- `<default_branch>` — 默认主干分支名,**探测**:
 
   ```bash
   default_branch=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')
   default_branch=${default_branch:-main}
   ```
 
-- `${worktree_path}` — `${project_root}/.worktrees/${slug}`(stage2 创建的,stage3 复用)
+- `<worktree_path>` — `<project_root>/.worktrees/<slug>`(stage2 创建的,stage3 复用)
 
-### 预处理占位符(你跑 prompt 前预处理替换)
+### 预处理占位符(调用方字符串替换,语法 `${UPPER_SNAKE}`)
 
 - `${LARK_APP_ID}` — 飞书 bot 的 app_id(如 `cli_a95e48e3e1b89bb6`)
 - `${LARK_APP_SECRET}` — 飞书 bot 的 app_secret(headless tenant_access_token 模式)
@@ -89,7 +92,7 @@ done
 
 ### Step 0:选择本次处理的工程和 spec(无入参,从仓库状态推断)
 
-遍历 `PROJECTS` 数组,对每个 `${project_root}`:
+遍历 `PROJECTS` 数组,对每个 `<project_root>`:
 
 ```bash
 cd "${project_root}"
@@ -226,10 +229,10 @@ fi
 
 - VERDICT = pass:
   - `status: verified`
-  - `verified_at: ${now_iso}`
+  - `verified_at: <now_iso>`
 - VERDICT = fail:
   - `status: verify-failed`
-  - `verify_failed_at: ${now_iso}`
+  - `verify_failed_at: <now_iso>`
   - `attempts: <原值 +1>`(stage2 已有 attempts 字段,本步只 +1)
 
 在 spec 末尾追加:
@@ -256,8 +259,8 @@ git push origin "todo/${TARGET_SLUG}"
 
 **不**:
 - ❌ commit `.review-artifacts/`(留在 worktree 本地)
-- ❌ 切回 `${default_branch}` / 删 worktree(调用方决定何时清理)
-- ❌ `--force` / `reset --hard` / 改远程 `${default_branch}`
+- ❌ 切回 `<default_branch>` / 删 worktree(调用方决定何时清理)
+- ❌ `--force` / `reset --hard` / 改远程 `<default_branch>`
 
 ### Step 8:清洁退出
 
