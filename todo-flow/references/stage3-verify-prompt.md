@@ -225,7 +225,7 @@ FAIL_REASON=""
 
 更新 frontmatter:
 - `verified` → `status: verified` + `verified_at: <now_iso>`
-- `verify-failed` → `status: verify-failed` + `verify_failed_at: <now_iso>` + `attempts: <旧值 +1>`
+- `verify-failed` → `status: verify-failed` + `verify_failed_at: <now_iso>` + `verify_attempts: <旧值 +1>`(**不动 `attempts` — 它是 stage2 专属计数,stage3 独立用 `verify_attempts`,避免一次 rework 循环双计数提前 blocked**)
 
 ### Step 6:Commit spec + push
 
@@ -319,7 +319,7 @@ stage3 verify 是**单次执行**,**不**做 fix-retry(那是 stage2 的事)。v
     "console_error_from_changed_files": ["TypeError: Cannot read..."]
   },
   "pushed": true,
-  "attempts": <旧值 +1>,
+  "verify_attempts": <旧值 +1>,
   "summary": "✗ stage3: `<slug>` verify failed (test exit 1 + console.error)",
   "im_attach": [
     {"type": "image", "path": "<ARTIFACTS_DIR>/screenshots/main.png",         "caption": "主页面"},

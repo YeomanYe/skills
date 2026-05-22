@@ -74,9 +74,8 @@ verify_failed_at: <ISO timestamp>       # stage3 verify-failed 时写
 kind: implementation | decomposition
 epic: false                  # 仅 decomposition kind 时可能 true
 depends_on: []               # [<slug>, ...] 必须全部 done 后才能进 dev
-attempts: 0                  # stage 2 跑过几次，>=3 自动 blocked
-self_approved: false         # stage 1 是否自审通过
-self_approved_reasons: []    # 仅 self_approved=true 时填
+attempts: 0                  # stage 2 IMPL_FAIL 累积次数(仅 stage2 +1,不算 stage3 verify-failed),>=3 自动 blocked
+verify_attempts: 0           # stage 3 verify-failed 累积次数(独立计数,不触发 blocked,只供 done mode 评估可信度)
 created: 2026-05-20
 updated: 2026-05-20
 ---
@@ -115,6 +114,30 @@ updated: 2026-05-20
 - **2026-05-20**: 选了选项 A 因为 ...
 - **2026-05-22**: review feedback: ... → 修了 ...（review fail 后回到 approved 时追加）
 ```
+
+---
+
+## 3 stage 通用 JSON 输出契约(v2 新,硬约束)
+
+所有 stage(1/2/3)的 Output Contract JSON 都**必须**含以下"通用字段",外层工具统一靠这套字段解析。各 stage 可追加自己的专属字段(如 stage3 的 `hard_gates` / `visual_check`),但通用字段不能缺:
+
+| 字段 | 类型 | 含义 |
+|---|---|---|
+| `stage` | int | 1 / 2 / 3 |
+| `verdict` | string | success / failure / verified / verify-failed / idle / skipped |
+| `slug` | string \| null | 当前 spec id,idle 时 null |
+| `project` | string \| null | 工程绝对路径 |
+| `summary` | string | IM 主消息正文,≤ 200 字 |
+| `im_attach` | array | 外层必发附件清单 `[{type, path, caption?}]`,可空 |
+| `local_artifacts` | array | 用户查阅路径(IM 不发) `[{type, path}]`,可空 |
+| `errors` | array | 失败原因 `[{step, exit?, tail}]`,可空 |
+| `next_action` | string | 下一步建议(给人 / 给调用方) |
+
+**im_attach 默认规则**(各 stage 一致):
+- stage1 success: `[{type:"file", path:"<spec.md>"}]`(发新起的 spec)
+- stage2 任意: `[]`(stage2 无截图,默认不发附件)
+- stage3 verified: `[{type:"image", path:"<main.png>"}]`(只 1 张主截图)
+- stage3 verify-failed: ≤4 项(主截图 + ≤2 失败截图 + error-tail.txt)
 
 ---
 

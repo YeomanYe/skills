@@ -170,9 +170,24 @@ cd "$worktree_dir"
 - 不引入 spec 未列出的新依赖
 - 不修改公开 API / 类型签名（spec 未授权时）
 
-### Step 5：实现完成判定（stage2 不跑 hard gates，交给 stage3）
+### Step 5：实现完成判定（stage2 跑轻量编译自检 + 自判定）
 
-stage2 只对"实现是否落地"自我判定,**不**跑 lint/test/build/Playwright(那是 stage3 的事)。判 `IMPL_OK`:
+stage2 **不**跑完整 lint/test/Playwright(那是 stage3 的事),但**必须**跑**轻量编译自检**拦掉 typo / syntax error / 缺依赖等"代码起码能跑"信号(避免把死活跑不起来的代码 push 到 todo branch,浪费 stage3 一轮):
+
+```bash
+# 按项目栈跑轻量自检(不算 hard gate,只 fail-fast)
+if [ -f package.json ]; then
+  $INSTALL 2>&1 | tail -5 || { IMPL_FAIL=1; FAIL_REASON="install failed"; }
+  # tsconfig 存在则 typecheck
+  [ -f tsconfig.json ] && (npx tsc --noEmit 2>&1 | tail -5 || { IMPL_FAIL=1; FAIL_REASON="tsc --noEmit failed"; })
+elif [ -f Cargo.toml ]; then
+  cargo check 2>&1 | tail -10 || { IMPL_FAIL=1; FAIL_REASON="cargo check failed"; }
+elif [ -f go.mod ]; then
+  go vet ./... 2>&1 | tail -10 || { IMPL_FAIL=1; FAIL_REASON="go vet failed"; }
+fi
+```
+
+然后判 `IMPL_OK`:
 
 - 改动文件清单覆盖 spec "影响范围" 列表(允许范围内任意子集)
 - 至少 1 个 commit(代码 + 必要的 test) — 改动应包含 spec "验收标准" 的可测条件对应的实现

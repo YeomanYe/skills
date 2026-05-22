@@ -753,6 +753,11 @@ squash merge 成功后,在默认分支上做版本升级:
 
 **生成 CHANGELOG.md 条目**(Keep a Changelog 风格):
 
+**前置处理**(必跑):
+- `CHANGELOG.md` 不存在 → 先 `printf '# Changelog\n\nAll notable changes to this project will be documented in this file.\n\nThe format is based on [Keep a Changelog](https://keepachangelog.com/).\n\n' > CHANGELOG.md`
+- 已存在 `## [Unreleased]` 段 → 把本次 entry 先 append 到 Unreleased 段对应分类,再把整个 Unreleased 段 promote 成 `## [<new_version>] - <today>`(避免留孤段)
+- 不存在 `[Unreleased]` 段 → 直接在 `# Changelog` 标题之后插入新版本段
+
 在 `CHANGELOG.md` 顶部(`# Changelog` 标题之后,第一个 `##` 之前)插入:
 
 ```md
