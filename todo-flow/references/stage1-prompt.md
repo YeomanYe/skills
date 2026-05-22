@@ -11,9 +11,22 @@
 ## 占位符约定
 
 > **两种占位符,语法上严格区分**:
-> - `${UPPER_SNAKE}` = 预处理占位符（调用方喂 prompt 前字符串替换;本 stage 暂无）
+> - `${UPPER_SNAKE}` = 预处理占位符（调用方喂 prompt 前字符串替换）
 > - `<lower_snake>` = 运行时占位符（agent 从仓库状态推断自动填）
 > - bash 代码块里的 `${shell_var}` 是 shell 语法,**不算占位符**
+
+### 预处理占位符（调用方字符串替换）
+
+- `${PROJECTS_ARRAY}` — 工程绝对路径数组（必须跟 stage2/stage3 严格一致）
+
+替换示例:
+```bash
+PROJECTS=(
+  "/Users/ym/Documents/projects/A"
+  "/Users/ym/Documents/projects/B"
+  "/Users/ym/Documents/projects/C"
+)
+```
 
 ### 运行时占位符
 
@@ -21,17 +34,13 @@
 - `<today>` — 今天日期，用 `date -u +%Y-%m-%d`（不要靠语境推断）
 - `<project_root>` — 当前处理工程的绝对路径
 
-## 工程清单（在 prompt 内硬编码）
-
-> ⚠️ **使用前修改这份清单为你的实际工程绝对路径**。遍历顺序 = 数组顺序。
+## 工程清单（预处理后硬编码）
 
 ```
-PROJECTS=(
-  "/Users/ym/Documents/projects/A"
-  "/Users/ym/Documents/projects/B"
-  "/Users/ym/Documents/projects/C"
-)
+PROJECTS=${PROJECTS_ARRAY}
 ```
+
+> ⚠️ **轮转顺序 = 数组顺序,必须与 stage2 / stage3 prompt 中的清单严格一致**。
 
 ## 工程内 TODO 约定（与 todo-flow skill 对齐）
 
@@ -89,6 +98,15 @@ hints=("${hints[@]## }"); hints=("${hints[@]%% }")
 注意上面正文里 `src/...` `punk-bg-dark` 是英文（代码引用），其余叙述全中文。
 
 ## 执行算法（严格按顺序）
+
+### Step -1：占位符未替换 fact-check（必跑，异常立即 exit）
+
+调用方应在喂 prompt 前预处理替换所有 `${...}` 占位符。agent 启动后**必须**校验关键占位符已替换:
+
+```bash
+[ "${#PROJECTS[@]}" -lt 1 ] && { echo "ERROR: PROJECTS 数组为空,占位符 \${PROJECTS_ARRAY} 未替换"; exit 2; }
+[[ "${PROJECTS[0]}" == *'${'* ]] && { echo "ERROR: PROJECTS[0] 未替换 (${PROJECTS[0]})"; exit 2; }
+```
 
 ### Step 0：选择本次处理的工程和 slug（无入参，从仓库状态推断）
 
@@ -234,19 +252,23 @@ needs_video_check: <Step 3.5 决定>    # 录屏走查（仅 visual=true 时可�
 6. **验收标准** — `- [ ]` checkbox 列表，**每条必须可测**。强制末尾两条：`- [ ] 所有现有测试通过` / `- [ ] lint clean / build success`
 7. **风险** — 潜在坑 + 回滚方案。**有高风险信号时必须在本节顶部用粗体标出**（例："**⚠️ 高风险：本改动涉及数据迁移**"）。
 
-### Step 5：写 Decisions log
+### Step 5：写 Stage 1 report（在 spec 头部,frontmatter 之后,正文之前）
 
-文末附 `## Decisions log` 区段，本次留一条：
-
-```md
-- **${today}**: 初版 spec，<一句关键决定>
-```
-
-如检出高风险信号，再追加一行：
+在 frontmatter `---` 闭合之后,第 1 个 `##` 之前,**插入一个 `## Stage 1 report` 段**(覆盖式,每次 stage1 跑都重写这段;stage1 一般只跑一次,但 idempotent):
 
 ```md
-- **${today}**: 高风险信号：<具体哪几项>（已记入"风险"区段，但仍 approved）
+## Stage 1 report (${today})
+- 起草自:stage1 cron prompt
+- 改动规模估算: <n> 文件 / <n> 行
+- 高风险信号: <none | auth/payments/migration/...>
+- needs_visual_check: <true | false>
+- needs_video_check: <true | false>
+- 关键决定: <一句>
 ```
+
+如检出高风险信号,在"关键决定"之后追加 `- 风险:<具体哪几项>(已记入下文「风险」区段,但仍 approved)`
+
+> 报告写在 spec **头部**(而非文末),让人审 / stage2 / stage3 / done mode 一眼看到处理过程,无需翻到文末。所有后续 stage 也都遵循"报告写头部"约定。
 
 ### Step 6：commit + push spec（让 stage2 不再被脏工作树阻塞）
 
@@ -277,28 +299,72 @@ spec_sha=$(git rev-parse HEAD)
 git push origin "${default_branch}" 2>&1 || echo "WARN: push failed, spec committed locally only (sha=${spec_sha})"
 ```
 
-### Step 7：报告
+### Step 7：输出 JSON 报告（结构化,给外层工具解析）
 
-输出简短摘要（≤ 9 行）：
+**唯一输出 = 一个合法 JSON block**(包在 ```json ... ``` 里),外层调用方用 jq 解析后通过飞书等回传给用户。
 
-```
-✅ Spec drafted: ${slug}
-- Project: ${project_root}
-- File: ${project_root}/docs/spec/${slug}.md
-- Spec commit: <sha>（pushed | local-only）
-- Estimated change: <n> 文件 / <n> 行
-- High-risk flags: <none | auth/payments/migration/...>
-- Skipped projects: <list 或 "无">     # 没 TODO.md / 不在默认分支 / dirty / TODO 全做完了
-- Next: 可直接进 stage2
+成功(起了一个 spec):
+
+```json
+{
+  "stage": 1,
+  "verdict": "success",
+  "slug": "<slug>",
+  "project": "<project_root>",
+  "branch": "<default_branch>",
+  "spec_path": "<project_root>/docs/spec/<slug>.md",
+  "commit_shas": ["<spec_sha>"],
+  "pushed": true,
+  "estimated_change": {"files": <n>, "lines": <n>},
+  "high_risk_flags": ["auth", "migration"],
+  "needs_visual_check": <true | false>,
+  "needs_video_check": <true | false>,
+  "skipped_projects": [{"path": "<...>", "reason": "no TODO.md | dirty | not on default | all-done"}],
+  "summary": "✓ stage1: drafted spec `<slug>` at <project basename> → status approved, pushed to <branch>",
+  "im_attach": [{"type": "file", "path": "<project_root>/docs/spec/<slug>.md", "caption": "spec 全文"}],
+  "local_artifacts": [],
+  "errors": [],
+  "next_action": "stage2 cron 下次会拾起"
+}
 ```
 
-空跑（所有工程都没新 TODO 可起）：
+空跑(所有工程没新 TODO 可起):
 
+```json
+{
+  "stage": 1,
+  "verdict": "idle",
+  "slug": null,
+  "project": null,
+  "scanned_projects": [{"path": "<...>", "todos_pending": 0}],
+  "summary": "no TODO without spec found across <n> projects",
+  "im_attach": [],
+  "local_artifacts": [],
+  "errors": [],
+  "next_action": "等待新 TODO 加入,下次 cron 再扫"
+}
 ```
-🟰 Nothing to draft
-- Scanned: <list of projects with their TODO 状态>
-- 下次 cron 触发再扫
+
+跳过/skipped(选中工程但无法起,如写文件失败):
+
+```json
+{
+  "stage": 1,
+  "verdict": "skipped" | "failure",
+  "slug": "<slug>",
+  "project": "<project_root>",
+  "summary": "stage1: <skip / fail 原因>",
+  "im_attach": [],
+  "errors": [{"step": "<which step>", "exit": <code>, "tail": "<error tail>"}],
+  "next_action": "<人介入建议>"
+}
 ```
+
+**输出格式硬约束**:
+- 只输出**一个** JSON block,不加额外文字解释
+- 字段名按上面 schema,缺省值用 `null` / `[]`,不省略字段
+- `summary` 是 IM 主消息正文(≤ 200 字)
+- `im_attach` 是外层必发清单,`local_artifacts` 是不发但供用户查阅
 
 ## 约束（合并自原 "边界" + "失败处理"）
 

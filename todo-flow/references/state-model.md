@@ -23,6 +23,7 @@ dev-in-progress  branch todo/<slug> 存在 + status 仍是 approved
 dev-done         status: ready-for-review        ← stage 2 输出
 verify-pass      status: verified                 ← stage 3 输出
 verify-fail      status: verify-failed            ← stage 3 输出
+needs-rework     status: needs-rework             ← revise mode 输出,stage 2 再次拾起按 `## Rework instructions` 重做
                        │ todo-flow done: review pass + squash merge
                        ▼
 done             spec 被移到 docs/spec/_done/，branch 删除，TODO 标 [x]
@@ -65,7 +66,11 @@ done             spec 被移到 docs/spec/_done/，branch 删除，TODO 标 [x]
 ---
 id: theme-toggle
 title: 主题切换支持深色/浅色/跟随系统
-status: draft | approved | ready-for-review | verified | verify-failed | blocked
+status: draft | approved | ready-for-review | verified | verify-failed | needs-rework | blocked
+change_type: added | changed | fixed   # 可选,done mode 写 CHANGELOG 时用
+bump_hint: patch | minor | major       # 可选,done mode 决定 semver bump 时用(优先级低于 --version 入参)
+verified_at: <ISO timestamp>            # stage3 verified 时写
+verify_failed_at: <ISO timestamp>       # stage3 verify-failed 时写
 kind: implementation | decomposition
 epic: false                  # 仅 decomposition kind 时可能 true
 depends_on: []               # [<slug>, ...] 必须全部 done 后才能进 dev
@@ -113,19 +118,20 @@ updated: 2026-05-20
 
 ---
 
-## Stage 2 失败后的日志格式
+## Spec 头部报告段约定(v2 新)
 
-stage 2 dev 跑失败时，**追加**到 spec 末尾：
+所有 stage 跑完后**在 spec 头部写报告段**(frontmatter `---` 之后,业务正文 `## 目标` 之前)。每个 stage 一段,**覆盖式写**(每次 stage 跑都重写自己那段,不追加)。
 
-```md
-## Attempt 1 failure (2026-05-20T14:23Z)
-- 错误: `pnpm test` 失败 in `src/foo.test.ts:42`
-- 原因: <agent 自己写的诊断>
-- 已尝试: <采取的修复手段>
-- 卡在哪: <停下的那一步>
-```
+顺序(从上到下):
+1. `## Stage 1 report (<today>)` — stage1 起草报告
+2. `## Stage 2 report (<today>)` — stage2 实现报告(成功 / 失败)
+3. `## Stage 3 report (<today>)` — stage3 verify 报告
+4. `## Rework instructions (<today>)` — revise mode 给的返工指令(stage 2 下次必读)
+5. `## Review feedback (<today>)` — done mode reject 时回写的 review findings
 
-attempts 字段 +1。`attempts >= 3` 后自动 `status: blocked`。
+stage 2 失败时不再追加 `## Attempt N failure`,而是把失败信息写进 `## Stage 2 report` 的 VERDICT/失败原因字段。`attempts` 字段在 frontmatter,`attempts >= 3` 自动 `status: blocked`。
+
+`needs-rework` 状态下,stage 2 必须**先读** `## Rework instructions` 段作为补充约束,再实现。
 
 ---
 

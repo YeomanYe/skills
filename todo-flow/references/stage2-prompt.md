@@ -9,9 +9,13 @@
 ## 占位符约定
 
 > **两种占位符,语法上严格区分**:
-> - `${UPPER_SNAKE}` = 预处理占位符（调用方喂 prompt 前字符串替换;本 stage 暂无）
+> - `${UPPER_SNAKE}` = 预处理占位符（调用方喂 prompt 前字符串替换）
 > - `<lower_snake>` = 运行时占位符（agent 从仓库状态推断自动填）
 > - bash 代码块里的 `${shell_var}` 是 shell 语法,**不算占位符**
+
+### 预处理占位符
+
+- `${PROJECTS_ARRAY}` — 工程绝对路径数组(必须跟 stage1/stage3 严格一致)
 
 ### 运行时占位符
 
@@ -25,19 +29,22 @@
   default_branch=${default_branch:-main}
   ```
 
-## 工程清单（在 prompt 内硬编码）
-
-> ⚠️ **使用前修改这份清单为你的实际工程绝对路径**。轮转顺序 = 数组顺序。**必须与 stage1 prompt 中的清单保持一致**。
+## 工程清单（预处理后硬编码）
 
 ```
-PROJECTS=(
-  "/Users/ym/Documents/projects/A"
-  "/Users/ym/Documents/projects/B"
-  "/Users/ym/Documents/projects/C"
-)
+PROJECTS=${PROJECTS_ARRAY}
 ```
+
+> ⚠️ **轮转顺序 = 数组顺序,必须与 stage1 / stage3 prompt 中的清单严格一致**。
 
 ## 执行算法（严格按顺序）
+
+### Step -1：占位符未替换 fact-check（必跑,异常立即 exit）
+
+```bash
+[ "${#PROJECTS[@]}" -lt 1 ] && { echo "ERROR: PROJECTS 数组为空,占位符 \${PROJECTS_ARRAY} 未替换"; exit 2; }
+[[ "${PROJECTS[0]}" == *'${'* ]] && { echo "ERROR: PROJECTS[0] 未替换 (${PROJECTS[0]})"; exit 2; }
+```
 
 ### Step 0：选择本次处理的工程和 spec（无入参，从仓库状态推断）
 
@@ -54,7 +61,7 @@ git fetch origin 2>/dev/null || true
 
 按文件名**字典序**遍历 `docs/spec/*.md`（不含 `_done/`），对每个 spec：
 
-1. 读 frontmatter `status`。**只有 `approved` 进入后续判定**，其它（`draft` / `ready-for-review` / 已合并未归档）跳过。
+1. 读 frontmatter `status`。**`approved` 或 `needs-rework` 进入后续判定**(needs-rework 是 revise mode 触发的返工状态,本 stage 当 approved 处理但要额外读 `## Rework instructions` 段作为补充约束),其它跳过。
 2. 解析出 `id` 作为 `<slug>`。
 3. 检查 `todo/<slug>` 分支与 worktree 残留状态，并**按状态分类记账**（决定本次循环的报告口径）：
 
@@ -163,287 +170,168 @@ cd "$worktree_dir"
 - 不引入 spec 未列出的新依赖
 - 不修改公开 API / 类型签名（spec 未授权时）
 
-### Step 5：跑验证（hard gates）
+### Step 5：实现完成判定（stage2 不跑 hard gates，交给 stage3）
 
-**探测项目类型**，按命中的栈跑：
+stage2 只对"实现是否落地"自我判定,**不**跑 lint/test/build/Playwright(那是 stage3 的事)。判 `IMPL_OK`:
 
-```bash
-if [ -f package.json ]; then
-  # JS/TS 优先 pnpm，无锁文件 fallback 到 npm
-  if [ -f pnpm-lock.yaml ]; then PM=pnpm; INSTALL="pnpm install --frozen-lockfile"
-  elif [ -f yarn.lock ]; then PM=yarn; INSTALL="yarn install --frozen-lockfile"
-  else PM=npm; INSTALL="npm ci"
-  fi
-  $INSTALL 2>&1 | tail -5
-  $PM run lint 2>&1 | tail -10  || { echo "lint script missing, skip"; }
-  $PM test 2>&1 | tail -20
-  $PM run build 2>&1 | tail -10 || { echo "build script missing, skip"; }
-elif [ -f Cargo.toml ]; then
-  cargo fmt --check && cargo clippy -- -D warnings && cargo test && cargo build
-elif [ -f pyproject.toml ]; then
-  # 由项目 AGENTS.md / CLAUDE.md 指定具体命令；找不到时报错让调用方补
-  echo "Python project: 用 AGENTS.md / CLAUDE.md 指定的 lint+test+build 命令"
-elif [ -f go.mod ]; then
-  go vet ./... && go test ./... && go build ./...
-else
-  echo "unknown stack, ask AGENTS.md / CLAUDE.md for verify commands"
-fi
-```
+- 改动文件清单覆盖 spec "影响范围" 列表(允许范围内任意子集)
+- 至少 1 个 commit(代码 + 必要的 test) — 改动应包含 spec "验收标准" 的可测条件对应的实现
+- worktree `git status --porcelain` 干净(没漏 add)
+- (TDD 流程下)至少存在一个 test 文件被新增或修改
 
-任一失败 → Step 7 失败路径。**禁止**用 `--no-verify` / `-n` 绕过 hook 或测试。
+判 `IMPL_FAIL`(任一命中):
 
-**验收标准复核**：在 worktree 内的 spec 里把已确认满足的 `- [ ]` 改成 `- [x]`。无法验证的条目保留 `- [ ]` 并在 Decisions log 注明原因。
+- agent 自己写代码陷入循环(同一处编译/类型错误 3 次未自愈)
+- spec "影响范围" 列出的关键文件 agent 找不到 / 误读
+- 用户在 spec 里硬约束的禁项被自己违反(如"不引新依赖"却 install 了)
 
-> 注：新 worktree 没有 `node_modules` / `target/` / 虚拟环境，首次 install 可能耗时（几分钟到十几分钟），不要误判为卡死。
+### Step 6：成功路径(`IMPL_OK`)
 
-### Step 5.5：Playwright 走查（截图 + 可选录屏）
-
-读 spec frontmatter `needs_visual_check`。`false` 或缺失 → **跳过本步**，直接进 Step 6。
-
-**全步骤遵守的视觉证据约束**（借鉴 [[delivery-gate]]）：
-
-- 视觉证据**只用 Playwright** 生成，禁用 chrome_devtools 或其它可见浏览器调试工具
-- 默认 **`headless: true`**，spec 没明确要求"可见窗口演示"则不要切有界面模式
-- 截图必须是**预设视口的整屏**——**禁止**只截局部组件替代整屏
-- **必须记录视口尺寸**写进 Visual review 报告
-- dev server **不占用工程默认开发端口**（避免与用户本机开着的 dev 冲突），用随机高位端口
-
-#### Step 5.5.0：产物存储约定（重要）
-
-```bash
-# 产物只存 worktree 内，跟 worktree 同生同灭
-artifacts_dir=".review-artifacts/${slug}"
-mkdir -p "$artifacts_dir"
-```
-
-**严格规则**：
-- 产物**永不 commit**，永远不 `git add` 这个目录
-- 主仓库 `.gitignore` 必须包含 `.worktrees/`（worktree 在主仓库根目录可见，必须忽略）；自愈逻辑已在 Step 2 完成
-- done 或人工 review 时，agent / 用户**直接读本机 `<project_root>/.worktrees/<slug>/.review-artifacts/`**
-- 失败路径同样不 commit artifacts；报告里吐绝对路径
-
-#### Step 5.5.1：启动 dev server（随机端口，避开默认）
-
-> `.gitignore` 自愈已在 Step 2 完成，这里直接起 dev server。
-
-```bash
-PORT=$(shuf -i 30000-50000 -n 1)
-export PORT
-```
-
-按命中的栈选启动命令：
-
-| 栈 | 启动命令 | 端口传递 |
-|---|---|---|
-| Plasmo 扩展（有 `plasmo` deps） | `pnpm dev:web` | env `PORT=${PORT}`（vite 会读） |
-| Vite | `pnpm dev` | `pnpm dev --port ${PORT}` |
-| Next.js | `pnpm dev` | `pnpm dev --port ${PORT}` |
-| Astro | `pnpm dev` | `pnpm dev --port ${PORT}` |
-| 其它 | 读 `package.json` `scripts.dev` 推断 | 找不到 → 跳过走查并在 Decisions log 写"无法启动 dev server" |
-
-**后台启动**（不阻塞 agent）：
-
-```bash
-($DEV_CMD > "$artifacts_dir/dev-server.log" 2>&1) &
-DEV_PID=$!
-# 等待端口就绪（最多 60s）
-for i in $(seq 1 60); do
-  curl -sf "http://localhost:${PORT}" > /dev/null && break
-  sleep 1
-done
-```
-
-dev server 60s 内没起来 → kill 进程、把 log tail 写进 spec Decisions log，跳过本步（不算失败，因为本意是辅助 review，不是 hard gate）。
-
-#### Step 5.5.2：设置视口 + 走查截图
-
-视口尺寸默认 `1440x900`（PC 主流验收尺寸）；spec 明确要求移动端则用 `390x844`（iPhone 14）。**记录最终使用的视口尺寸**，要写进 5.5.5 的报告。
-
-按以下顺序操作（用 `mcp__playwright__*` 工具）：
-
-1. `playwright_navigate` → `http://localhost:${PORT}`（首次调用时显式设 `headless: true` + `viewport: { width, height }`）
-2. **默认截图清单**（兜底，不依赖 spec 完整性）：
-   - `<artifacts_dir>/01-landing.png` — 主页面整屏（`fullPage: true`）
-   - 若 spec 提到新弹窗 / modal / drawer / 二次确认态 → 触发到该状态后截 `<artifacts_dir>/02-<state-slug>.png`、`03-...`
-3. **验收标准遍历**：spec "验收标准" 里每一条非"测试通过/lint clean"的条目：
-   - 描述了可点击元素（按钮 / 链接 / 设置项 / tab）→ 尽力定位并 `playwright_click`
-   - 每次有意义的状态变化后 → 截图存 `<artifacts_dir>/<序号>-<criterion-slug>.png`
-   - 用 `playwright_console_logs` 抓 console，append 到 `<artifacts_dir>/console.log`
-
-**禁止局部截图**：不允许只截一个组件来代替整屏视口截图。每张图必须是 `fullPage: true` 的整屏。
-
-#### Step 5.5.3：录屏走查（仅当 `needs_video_check: true`）
-
-读 spec frontmatter `needs_video_check`。`false` 或缺失 → **跳过本节**，直接进 5.5.4。
-
-录屏覆盖主交互链路——从入口操作到结果可见的端到端流程，不录孤立的按钮点击。
-
-Playwright 录屏（用 `recordVideo` 启动 context；具体参数视 MCP 工具能力而定）：
-
-- 输出到 `<artifacts_dir>/walkthrough.webm`（webm 是 Playwright 默认格式，体积小）
-- 视口尺寸跟 5.5.2 保持一致
-- 录制 spec 在"验收标准"里描述的主交互链路（一次连续操作，不要分段）
-- 录屏结束后 `playwright_close` 触发文件 flush
-
-录屏文件 > 50MB → 记进 Decisions log 提示用户"录屏体积偏大，建议人工查看后清理"，但不算失败。
-
-#### Step 5.5.4：收尾
-
-```bash
-# 关 Playwright + kill dev server
-# (mcp__playwright__playwright_close)
-kill $DEV_PID 2>/dev/null
-wait $DEV_PID 2>/dev/null || true
-```
-
-#### Step 5.5.5：判定走查结果
-
-收集：
-- `<artifacts_dir>/console.log` 中 `error` / `Error` / `Uncaught` 行数 → `console_errors`
-- 截图总数 → `screenshots`
-- 录屏文件大小（如有）→ `video_size_mb`
-
-判定规则：
-
-| 情况 | 处理 |
-|---|---|
-| `console_errors > 0` 且来源是 spec 改动文件 | **Step 7 失败路径**，错误日志写进 Attempt failure |
-| `console_errors > 0` 但来源是无关第三方 / 已知噪音 | 在 Decisions log 注明 + 留待 review 时人工判断，**不算失败** |
-| `screenshots == 0`（一张都没成功） | Decisions log 标"走查未执行成功"，**不算失败**（不卡 hard gate） |
-| 都通过 | 进 5.5.6 写报告。**不要 commit artifacts**——它们只在 worktree 本地 |
-
-#### Step 5.5.6：在 spec 末尾追加走查报告
+在 worktree 内的 spec **头部**(frontmatter `---` 之后,第 1 个 `##` 之前)**写或覆盖** `## Stage 2 report` 段:
 
 ```md
-## Visual review (${today})
-- Viewport: 1440x900   # 或实际使用值
-- Headless: true
-- Dev port: 30137      # 实际随机端口
-- Screenshots: <n>（见 ${project_root}/.worktrees/${slug}/.review-artifacts/${slug}/）
-- Video: walkthrough.webm（<size> MB）/ N/A
-- Console errors: <n>（详见 console.log）
-- 验收标准覆盖: <已截图条目 / 总条目>
-- 备注: <一句>
+## Stage 2 report (${today})
+- 实现自:stage2 cron prompt
+- worktree: ${worktree_path}
+- branch: todo/${slug}
+- commits: <n>
+- 改动文件: <count>(<file 1>, <file 2>, ...)
+- 关键决定: <一句>
+- needs-rework 兜底: <如本次接的是 needs-rework,这里说"按 ## Rework instructions 第 N 条调整了 X">
 ```
 
-**注意**：报告里写**绝对路径**，让 done / 人工 review 时能直接打开本机文件。artifacts **不进 git 历史**。
+更新 frontmatter:
 
-### Step 6：成功路径
+- `status: ready-for-review`
+- `updated: ${today}`
 
-全部 hard gates 通过 + 验收标准全部满足（Step 5.5 不通过不阻塞，仅 console.error 来自改动文件时才阻塞）：
+commit 顺序(**只 commit 代码 + spec,绝不 commit `.review-artifacts/`**):
 
-1. 更新 spec frontmatter：
-   - `status: ready-for-review`
-   - `updated: <today>`
-2. 在 `## Decisions log` 追加：`- **<today>**: 实现完成，<一句重要决定>`
-3. commit 顺序（**只 commit 代码 + spec，绝不 commit `.review-artifacts/`**）：
-   - 先 commit 代码实现（subject 用 `feat:` / `fix:` / 按 spec 性质）
-   - 再 commit spec 更新（subject `chore(todo): mark <slug> ready-for-review`）
-   - `.review-artifacts/<slug>/` 留在 worktree 本地，不进 git 历史；done 时 agent 从本地读
-4. push branch：
+1. 先 commit 代码实现(subject 用 `feat:` / `fix:` / 按 spec 性质)
+2. 再 commit spec 更新(subject `chore(todo): ${slug} → ready-for-review`)
 
-   ```bash
-   git push -u origin "todo/<slug>"
-   ```
+```bash
+git push -u origin "todo/${slug}"
+```
 
-5. 报告成功（见输出格式）
+### Step 7：失败路径(`IMPL_FAIL`)
 
-### Step 7：失败路径
+在 worktree spec **头部** 写或覆盖 `## Stage 2 report` 段(同 Step 6 格式),但额外含失败信息:
 
-任何 hard gate 失败、验收标准对不上、或 Step 4/5 内部 fix-retry **同一类错误 ≥ 3 次仍无进展**：
+```md
+## Stage 2 report (${today})
+- 实现自:stage2 cron prompt
+- VERDICT: failure
+- worktree: ${worktree_path}
+- branch: todo/${slug}
+- 失败原因: <精确错误源 + file:line>
+- 诊断: <agent 已尝试的路径 + 卡住的具体步骤>
+- attempts: <旧值 +1>
+```
 
-1. 在 worktree 里的 spec 末尾追加：
+frontmatter:
 
-   ```md
-   ## Attempt failure (<today> HH:MM Z)
-   - 错误: <精确错误源 + file:line>
-   - 原因: <诊断>
-   - 已尝试: <做过哪些修复>
-   - 卡在哪: <停下的具体步骤>
-   ```
+- `updated: ${today}`
+- `attempts: <旧值 +1>`
+- **不改 `status`**(保持 approved / needs-rework,等下次 cron 或人介入)
+- `attempts >= 3` → 自动 `status: blocked`
 
-2. 更新 frontmatter `updated: <today>`，**不改 `status`**（保持 approved；调用方判断后续）
-3. commit 到 worktree branch：**只** spec（artifacts 留在本地 worktree 不进 commit）；report 里吐 artifacts 绝对路径帮诊断
-4. **仍然 push branch**（让调用方能看到半成品 diff 诊断 + 本地 worktree 还在能看截图）
-5. 报告失败
+commit spec(不 commit 半成品代码),push branch(让调用方能看到 diff 诊断)。
 
 ### Step 8：清洁
 
-不论成功失败：
-- **不**切回 `<default_branch>` / 其它分支
-- **不**删 worktree 或 branch（调用方决定何时清理）
-- **不**强 push / reset hard / 改远程 `<default_branch>`
-- **不**在主仓库目录留下修改
+不论成功失败:
+
+- **不**切回 `${default_branch}` / 其它分支
+- **不**删 worktree 或 branch
+- **不**强 push / reset hard / 改远程 `${default_branch}`
+- 主仓库目录留干净状态
 
 ## 内部 fix-retry 限制
 
-允许的循环：
+允许循环:`write code → 自测语法 → fail → diagnose → fix → 再写`。
 
-```
-write code → run hard gates → fail → diagnose → fix → run again
-```
+**同一类错误**(同一处编译/类型错误 / 同一处找不到的文件)最多 **3 次**。3 次仍不过 → Step 7(`IMPL_FAIL`)。
 
-**同一类错误**（同一个测试名 / 同一处 lint rule / 同一个 build error）最多重试 **3 次**。3 次仍不过 → Step 7。
+## Output Contract(结构化 JSON,给外层工具解析)
 
-## 输出格式
+**唯一输出 = 一个合法 JSON block**(包在 ```json ... ``` 里)。
 
-成功：
+成功(`IMPL_OK`):
 
-```
-✅ Ready for review: ${slug}
-- Project: ${project_root}
-- Branch: todo/${slug} (pushed)
-- Worktree: ${project_root}/.worktrees/${slug}
-- Files changed: <n>
-- Tests: <n> passed
-- Visual review: <skipped | n screenshots / m console-errors / video <size>>（仅 needs_visual_check=true）
-- Artifacts (local, NOT in git): ${project_root}/.worktrees/${slug}/.review-artifacts/${slug}/
-- Spec: docs/spec/${slug}.md (status now ready-for-review)
-- Awaiting review: <list of slugs that are ready-for-review with branch/worktree>
-- Needs cleanup: <list of slugs with approved+残留 worktree/branch — 用户要手动清理>
-- Skipped projects: <dirty / 不是 git 仓库 等>
-- Next: 等 todo-flow done / 下次 cron 接下一条
-```
-
-失败：
-
-```
-❌ Failed: ${slug}
-- Project: ${project_root}
-- Branch: todo/${slug} (pushed for diagnosis)
-- Worktree: ${project_root}/.worktrees/${slug}
-- 卡在: <stage>
-- 失败原因: <one-line>
-- Failure log: 追加在 docs/spec/${slug}.md 末尾
-- Next: 失败的 branch 会阻塞下次循环对该 slug 的重试（设计如此，避免无限循环）。人工介入：删 local + remote `todo/${slug}` branch + 删 `.worktrees/${slug}` + 改 spec 后下次 cron 自然重做
+```json
+{
+  "stage": 2,
+  "verdict": "success",
+  "slug": "<slug>",
+  "project": "<project_root>",
+  "worktree": "<worktree_path>",
+  "branch": "todo/<slug>",
+  "spec_path": "<project_root>/docs/spec/<slug>.md",
+  "commit_shas": ["<code sha>", "<spec sha>"],
+  "pushed": true,
+  "files_changed": <n>,
+  "rework_iteration": <true | false>,  // 是否接的 needs-rework
+  "summary": "✓ stage2: implemented `<slug>` (<n> commits) → ready-for-review",
+  "im_attach": [],
+  "local_artifacts": [
+    {"type": "worktree_dir", "path": "<worktree_path>"}
+  ],
+  "errors": [],
+  "next_action": "等 stage3 跑 verify"
+}
 ```
 
-空跑（Step 0 全跳完）：
+失败(`IMPL_FAIL`):
 
+```json
+{
+  "stage": 2,
+  "verdict": "failure",
+  "slug": "<slug>",
+  "project": "<project_root>",
+  "worktree": "<worktree_path>",
+  "branch": "todo/<slug>",
+  "attempts": <旧值 +1>,
+  "summary": "✗ stage2: failed at impl (<原因摘要>, attempts=<n>)",
+  "im_attach": [],
+  "local_artifacts": [{"type": "worktree_dir", "path": "<worktree_path>"}],
+  "errors": [
+    {"step": "impl", "tail": "<具体错误源 + 卡住步骤>"}
+  ],
+  "next_action": "attempts>=3 → status=blocked 人介入;否则等 cron 重跑或人改 spec"
+}
 ```
-🟰 Nothing to develop
-- Awaiting review: <list — 等 done>
-- Needs cleanup: <list — ⚠️ approved spec 但残留 worktree/branch，要手动清理才能继续>
-- Skipped projects: <list — dirty / 不是仓库等>
-- 下次 cron 触发再扫
+
+空跑/无候选(全 idle):
+
+```json
+{
+  "stage": 2,
+  "verdict": "idle",
+  "slug": null,
+  "project": null,
+  "stale_slugs": [
+    {"slug": "<...>", "category": "needs_cleanup | awaiting_review", "project": "<...>"}
+  ],
+  "summary": "no approved/needs-rework spec available across <n> projects (<n> stale)",
+  "im_attach": [],
+  "errors": [],
+  "next_action": "若 needs_cleanup 反复出现 → 人工 git worktree remove + git branch -D"
+}
 ```
 
-特别注意：如果同一个 slug **连续多次** cron 都出现在 `needs cleanup` 里，意味着流水线被它卡住。按"自愈策略说明"里的命令手动清理。
+## 约束
 
-## 约束（合并自原 "边界"）
-
-- 单次调用最多处理 **1 个 spec**
-- 不 merge 到 `<default_branch>`
-- 不改其他 spec 文件、不改 `TODO.md`
-- 不在主仓库目录留下修改（所有改动只在 worktree 内）
-- 调用方负责后续清理 `.worktrees/<slug>`
-- 如果 spec 验收标准内部矛盾（实现时发现做不到），把矛盾点写进 failure log 让调用方改 spec
+- 一次只处理 1 个 spec
+- 不并发(同 slug 不会被多次拾起,因为 branch/worktree 残留检测)
+- **stage2 不跑 lint/test/build/Playwright**(交给 stage3),只对"实现是否落地"自我判定
+- 处理 `needs-rework` spec 时必须读 `## Rework instructions` 段作为补充约束
+- 飞书发送由外层调用方处理(stage2 只输出 JSON,不调 lark-cli)
+- 不切分支、不删 worktree、不破坏主仓库
 
 ## 工具调用建议
 
-- Read / Glob / Grep：理解 spec + 现状
-- Edit / Write：实现
-- Bash：测试、lint、build、git、启动 dev server
-- TodoWrite：跟踪验收标准
-- `mcp__playwright__*`：仅 Step 5.5 走查时用（navigate / screenshot / click / console_logs / close）
-- WebFetch / WebSearch：**仅**查官方文档解 lib 报错时允许；不要用来抄实现
+- `yq`:读 spec frontmatter
+- `git`:仓库操作
+- `pnpm` / `npm` / `cargo` / `go`:按项目栈(仅用于 install 依赖,不跑 test)
