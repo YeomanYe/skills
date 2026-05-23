@@ -2,6 +2,8 @@
 
 把整篇内容作为 prompt 喂给 agent。**完全无入参**：调用方不需要 cd、不需要传任何参数，本 prompt 自己从仓库状态推断该处理什么。可被 cron / 定时器无参重复调度。
 
+> **EXEC 模式钩子**:本 prompt 默认 cron 模式(遍历工程清单)。若被 `todo-flow exec` 通过 `references/exec-orchestrator-prompt.md` 派工调用,orchestrator 会在 prompt 末尾追加"EXEC 模式附加约束"段(限定单 slug + 60s 写心跳到 `.todo-flow/exec/<slug>/heartbeat.json` + 跳过所有 IM 推送)。附加约束**优先级高于本文默认行为**,被 exec 调用时严格遵守附加约束;cron 模式下附加约束不存在,按本文默认走。
+
 ---
 
 你的任务：在一组工程里挑出"**下一个需要起草 spec 的 TODO**"，为其生成 spec 写到该工程的 `docs/spec/<slug>.md`、commit 到默认分支、push 到远端。**所有 spec 一律自审通过、直接 `status: approved`**，可被 stage2 立即接力——本流程不留人工审核环节。一次调用只产出 **1 个 spec**（处理完一个工程的一个 todo 就停）。

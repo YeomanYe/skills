@@ -420,6 +420,144 @@
 - 输入：用户说"todo-flow"
 - 前置：既没 ready spec，TODO.md 也没新增意图
 - 预期：
-  - AskUserQuestion 让用户二选一：init / done
+  - AskUserQuestion 让用户多选一：init / add / done / exec
   - 用户选 → 进对应流程
   - 用户拒选 → stop
+
+---
+
+## Mode `exec`
+
+### Case 33: 正例触发 — 显式 exec(主流程成功)
+
+- 前置:project `app/` 有 1 个 `status: approved` spec `theme-toggle`,无 worktree 残留;`cc-connect` 可用;`codex` 可用
+- 输入:用户说"todo-flow exec --project app/ --backend codex"
+- 预期:
+  - mode 解析为 `exec`
+  - 读 `references/exec-orchestrator-prompt.md` 全文 + 替换占位符
+  - Step -1 fact-check 通过(`PROJECTS_ARRAY` 1 项,`SUBAGENT_BACKEND=codex`,`IM_ENABLED=true`)
+  - Step 0 queue: `[{project:app, slug:theme-toggle, status:approved}]`,ready_now=`["app:theme-toggle"]`
+  - Step 2 派 stage2 subagent(用 codex exec,写心跳到 `.todo-flow/exec/theme-toggle/heartbeat.json`)
+  - subagent 完成 → JSON verdict=success,status 转 `ready-for-review`
+  - **IM 推 1**:`[theme-toggle] dev done, ready for verify` + 改动统计
+  - Step 2 派 stage3 subagent → JSON verdict=verified
+  - frontmatter `director_audit=last-pass`(默认) + `required_directors=[]` → Step 8 自动嗅 git diff
+  - diff 含 `.tsx` → 自动派 director-design + director-frontend(并行)
+  - 两 director JSON verdict=pass
+  - **IM 推 2**:`[theme-toggle] director-design audit: pass` + comment.md
+  - **IM 推 3**:`[theme-toggle] director-frontend audit: pass` + comment.md
+  - **IM 推 4**:`[theme-toggle] ✓ verified` + 主截图 + verdict.md
+  - 证据移到 `docs/spec/_done/theme-toggle/evidence/`
+  - **不自动调** `todo-flow done`
+  - **IM 推 5**(batch 总结):`todo-flow exec batch done\nverified: 1, blocked: 0, total: 1`
+  - 输出 JSON `mode: exec, verdict: completed, total: 1, verified: 1`
+
+### Case 34: 反例触发 — 用户说"加 TODO"不该进 exec
+
+- 输入:用户说"todo-flow 加个 dark-mode TODO"
+- 预期:
+  - mode 解析为 `add`(短语含"加 TODO" → add)
+  - **不**进 exec
+  - 不读 exec-orchestrator-prompt.md
+  - 走 add Step 1+
+
+### Case 35: 主流程失败回 stage2(verify-failed loop)
+
+- 前置:project 有 1 个 `status: approved` spec `payment-button`,frontmatter `director_audit: never` 跳过 director-* 加快回路
+- 输入:`todo-flow exec --project app/ --max-verify-attempts 3`
+- 预期:
+  - 第 1 轮:派 stage2 → success → 派 stage3 → verify-failed(verify_attempts: 1)
+  - orchestrator 自动写 `## Rework instructions` 到 spec 头部(从 errors 提炼)
+  - **IM 推**:`[payment-button] ✗ verify failed (attempt 1/3): <reason>` + 主截图 + 失败截图 + error-tail.txt + verdict.md
+  - 第 2 轮:派 stage2(stage2 必读 ## Rework instructions) → success → 派 stage3 → verified
+  - **IM 推**:`[payment-button] ✓ verified`
+  - 第 3 轮不触发(已 verified)
+  - 输出 JSON `total:1, verified:1, blocked:0; per_slug 含 stages_run=[{stage:2,attempts:2}, {stage:3,attempts:2}]`
+
+### Case 36: 护栏 — verify_attempts 触顶 → blocked
+
+- 前置:project 有 1 个 `status: approved` spec `flaky-feature`,`--max-verify-attempts 2`,frontmatter `director_audit: never`
+- 输入:`todo-flow exec --project app/ --max-verify-attempts 2`
+- 预期(模拟 stage3 永远 verify-failed):
+  - 第 1 轮:stage2 → stage3 verify-failed(verify_attempts:1) → IM 推 verify-failed
+  - 第 2 轮:stage2 → stage3 verify-failed(verify_attempts:2)
+  - 触发硬护栏 `verify_attempts >= 2`
+  - orchestrator 标 status: blocked,blocked_reason=`verify_attempts >= 2`
+  - **IM 推**:`[flaky-feature] BLOCKED — 原因: verify_attempts >= 2` + spec 文件
+  - 保留 `.todo-flow/exec/flaky-feature/` 不清理
+  - 输出 JSON `total:1, verified:0, blocked:1`
+
+### Case 37: 护栏 — 同模式失败 3 次 signature hash 相同 → blocked
+
+- 前置:project 有 1 个 spec `weird-bug`,`--max-verify-attempts 10`(不触顶),`director_audit: never`
+- 输入:`todo-flow exec --project app/`
+- 预期(模拟 stage3 连续 3 次同样的失败,signature 相同):
+  - 第 1 轮:verify-failed signature=`X`
+  - 第 2 轮:verify-failed signature=`X`(相同)
+  - 第 3 轮:verify-failed signature=`X`(连续 3 次相同)
+  - 触发硬护栏 `stuck on same failure mode 3 times in a row`
+  - status: blocked,blocked_reason=`stuck on same signature: X`
+  - **IM 推**:`[weird-bug] BLOCKED — 同模式失败 3 次` + spec
+  - **不**等 verify_attempts 触顶
+
+### Case 38: 护栏 — IM 推送失败 → orchestrator 立即停下报警
+
+- 前置:`cc-connect` 命令存在但 token 失效,所有 send 调用返回非 0
+- 输入:`todo-flow exec --project app/`
+- 预期:
+  - Step -1 fact-check 不能预知 token 失效,通过
+  - stage2 success 后 orchestrator 调 `cc-connect send` 推 IM → 失败
+  - orchestrator **立即 stop**,写 `.todo-flow/exec/.session-state.json` 记录 in-flight slug
+  - **不**继续派下一 stage,**不**重试 IM
+  - 输出 JSON `verdict: interrupted`,errors 含 `cc-connect send failed: <stderr>`
+  - 提示用户修 cc-connect 后用 `todo-flow exec --resume` 续跑
+
+### Case 39: 多 project 并发 + 跨项目独立
+
+- 前置:project `app/` 和 `site/` 各有 1 spec(`theme-toggle`, `landing-hero`),无依赖关系
+- 输入:`todo-flow exec --project app/ site/ --backend codex`
+- 预期:
+  - Step 0 queue 包含 2 个 slug,跨 project ready_now=`["app:theme-toggle","site:landing-hero"]`
+  - **并发** 派 2 个 stage subagent(不串行)
+  - 各项目独立心跳 + 独立 stage 流转
+  - 一项目 blocked 不影响另一项目继续
+  - batch 总结 IM 含两项目汇总
+
+### Case 40: 不自动调 done(纪律)
+
+- 前置:project 有 1 spec,exec 跑完 verified
+- 输入:`todo-flow exec --project app/`
+- 预期:
+  - 跑到 verified 后 orchestrator **停止**,不调用 `todo-flow done`
+  - 输出 JSON `next_action` 含 "exec 跑完 verified;用户需手工 todo-flow done 完成 merge"
+  - spec 状态保持 `verified`(未变 done)
+  - branch / worktree 未删
+
+### Case 41: backend=claude 主会话退出风险提示
+
+- 输入:用户在 Claude Code 内说 "todo-flow exec --project app/"(未指定 backend)
+- 预期:
+  - 检测主 agent 是 Claude Code 且 `--backend` 未指定
+  - SKILL 提示:"Claude Code Agent 后台仅会话内有效,主会话退出 subagent 也死。要真后台请加 `--backend codex`,或继续按 Claude 模式跑(注意保持会话)"
+  - 用户确认后才进 Step 2
+  - 若用户加 `--backend codex` 但 codex 不可用 → Step -1 fact-check 失败 → idle 退出
+
+### Case 42: --resume 续跑
+
+- 前置:上一次 exec 因 IM 失败被中断,`.todo-flow/exec/.session-state.json` 记录了 in-flight `["app:theme-toggle"]`
+- 输入:`todo-flow exec --resume`
+- 预期:
+  - 检测 `.session-state.json` 存在
+  - 跳过 Step 0 新建 queue,从 state 恢复
+  - 用户必须先 fix 中断原因(如 cc-connect token);否则会再次中断
+  - 续跑完成后删除 `.session-state.json`
+
+### Case 43: 循环依赖死锁
+
+- 前置:spec `a` `depends_on: [b]`,spec `b` `depends_on: [a]`
+- 输入:`todo-flow exec --project app/`
+- 预期:
+  - Step 0 拓扑排序检测到环
+  - 立即标 `a` 和 `b` 都 blocked,blocked_reason=`cyclic dependency: a ↔ b`
+  - **IM 推**:`[a] BLOCKED` + `[b] BLOCKED`
+  - 输出 JSON `verdict: deadlock, blocked: 2`

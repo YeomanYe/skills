@@ -4,27 +4,33 @@ description: >
   Use when interacting with the human-facing endpoints of the TODO Flow pipeline
   (TODO → spec → dev → done): `init` (onboard project), `add` (append slug-tagged
   TODO), `adjust` (open a numbered table panel to reorder/edit TODOs and add hints before stage1 picks them up),
+  `revise` (collect rework instructions and flip to needs-rework after verify),
+  `exec` (foreground orchestrator that drives stage1→2→3 in a self-healing loop across one or more projects until verified or blocked, with per-stage subagents, heartbeat polling, director-* audits and synchronous IM relay),
   `done` (audit ready spec, squash merge, archive as done; legacy alias: `review-merge`).
   TODO Flow 流水线（TODO → spec → dev → done）的人手触发端点。
   触发 init：「初始化 todo-flow」「初始化 todo-driver」「让这个工程支持 todo 流水线」「setup todo-flow」。
   触发 add：「新建 TODO」「加一个待办」「记个带 slug 的 todo」「add todo with slug」。
   触发 adjust：「调整 todo 顺序」「把 X 插到 Y 前」「补 hints」「修改 todo」「panel 模式」「reorder todo」。
+  触发 revise：「修订 spec」「给 spec 写返工指令」「needs-rework」「revise this spec」。
+  触发 exec：「批量执行 todo」「并发跑完所有 spec」「自动循环 stage 直到 verified」「exec 模式」「todo-flow exec」「无人值守跑 todo 流水线」「run all pending specs end-to-end」「foreground orchestrator」「auto-loop until verified」「auto-rework loop」。
   触发 done：「done 这个 todo」「完成 ready spec」「标记完成」「review 这个 todo」；兼容旧说法「review-merge」「合并 ready 的 spec」「审 todo 并 merge」。
   统称：「todo-flow」「todo-flow <mode>」。兼容旧名：「todo-driver」「todo-driver <mode>」。
   Do NOT use for: 改/删 slug（删原 + add 新）/ 不带 slug 的备忘（直接 Edit TODO.md）/
-  通用 PR review（→ requesting-code-review）/ stage 1/2/3 cron prompt 本身（详见 stage prompt 文件）。
+  通用 PR review（→ requesting-code-review）/ stage 1/2/3 cron prompt 本身（详见 stage prompt 文件）/
+  长跑无验收标准的 codex 后台任务（→ flow-codex-goal,exec 要求 spec 已有验收标准）。
 ---
 
 # todo-flow
 
 ## Overview
 
-本 skill 是 TODO Flow 流水线**人手触发**的四个端点：
+本 skill 是 TODO Flow 流水线**人手触发**的六个端点：
 
 - **`init`**：把一个普通工程**初始化**为支持 todo-flow 流水线的工程——创建 `TODO.md` + `docs/spec/` + 改 `.gitignore`。一次性动作，幂等。
 - **`add`**：向项目 `TODO.md` 追加一条带 slug 的待办，让 stage 1 cron 起草 spec。
 - **`adjust`**：进入 TODO panel 模式，用编号表格连续调整**还没起 spec** 的 TODO：改顺序、修改条目内容、追加 hints；直到用户说退出才一次性 commit + push。
 - **`revise`**:在 verify 完(stage3 跑出 `verified` / `verify-failed`)或人审 ready-for-review 觉得要改时,用 panel 模式给 spec 写 rework 指令,改 status 为 `needs-rework`,让 stage 2 下次拾起重做。
+- **`exec`**:**前台 orchestrator**,对一个或多个项目的若干 spec 自闭环驱动 stage1→stage2→stage3 直到 verified 或 blocked。per-stage 派 subagent(支持 codex / Claude Code 两种 backend),心跳轮询防卡死,stage3 verified 前按 spec frontmatter 增派 director-* 做 AND-pass 仲裁,每步通过 cc-connect 同步推 IM(凭证 + 评论)。**完全无人审介入,但不自动 done**(`done` 仍是高风险最后一关,exec 跑完 verified 后用户手工 `todo-flow done`)。详见 `references/exec-orchestrator-prompt.md`。
 - **`done`**：审核 `status: ready-for-review` **或 `verified`**(stage3 通过)的 spec，pass 则 squash merge 到默认分支 + **semver 版本升级**(默认 patch,可 `--version <kind>` 指定) + **写 CHANGELOG.md 条目**(Keep a Changelog 风格) + 归档 spec 到 `_done` + 原子清理 branch/worktree/TODO。`verified` 表示已过 stage3 自动验证,人工 review 时可信度更高。
 
 中间的 stage 1（起草 spec）/ stage 2（开发 + push branch）/ **stage 3（验证 + 飞书回传）**由 cron 喂的 prompt 接管（详见 references 下的 stage1-prompt、stage2-prompt、stage3-verify-prompt 三个文件），不在本 skill 范围。
@@ -41,26 +47,31 @@ description: >
 
 | Mode | 触发场景 | 主要副作用 | 风险等级 |
 |---|---|---|---|
-| `init` | 用户要把一个项目接入 todo-flow 流水线 | 创建 `TODO.md` + `docs/spec/` + 改 `.gitignore` 加 `.worktrees/`；幂等 | 低 |
+| `init` | 用户要把一个项目接入 todo-flow 流水线 | 创建 `TODO.md` + `docs/spec/` + 改 `.gitignore` 加 `.worktrees/` + `.todo-flow/`；幂等 | 低 |
 | `add` | 用户要新建带 slug 的 TODO | 在 `TODO.md` 对应段末追加一行 | 低 |
 | `adjust` | 用户要给**还没起 spec** 的 TODO 改顺序 / 修改内容 / 补思路 | 进入 panel 模式，连续改 `TODO.md`；退出后 commit + push | 低 |
-| `done` | 用户要审核并完成 ready spec | squash merge + 归档 spec 到 `_done` + 删 branch/worktree + push 默认分支 | 高 |
+| `revise` | 用户要给已 verify(失败/通过) 的 spec 写返工指令 | 在 spec 头部插入 `## Rework instructions`,status → `needs-rework`,commit + push | 中 |
+| `exec` | 用户要前台自闭环跑完一批 spec(stage1→2→3 直到 verified) | 派 per-stage subagent + 心跳轮询 + 自动重做 verify-failed + 增派 director-* + 每步同步推 IM；不自动调 done | 中 |
+| `done` | 用户要审核并完成 ready spec | squash merge + 归档 spec 到 `_done` + 删 branch/worktree + push 默认分支 + semver bump + CHANGELOG | 高 |
 
 ## Resolving Mode
 
 按以下顺序判定：
 
-1. **用户显式指定**（如 `todo-flow init` / `todo-flow add` / `todo-flow adjust` / `todo-flow done`；旧 mode `todo-flow review-merge` 与旧 skill 名 `todo-driver <mode>` 同样兼容）→ 用指定的
+1. **用户显式指定**（如 `todo-flow init` / `todo-flow add` / `todo-flow adjust` / `todo-flow revise` / `todo-flow exec` / `todo-flow done`；旧 mode `todo-flow review-merge` 与旧 skill 名 `todo-driver <mode>` 同样兼容）→ 用指定的
 2. **触发短语推断**：
    - 含"初始化"/"接入"/"setup"/"onboard" + "todo-flow"/"todo-driver"/"todo 流水线" → `init`
    - 含"新建"/"加"/"记"/"create"/"add" + "TODO"/"待办" → `add`
    - 含"调整"/"排序"/"插到前/后"/"挪"/"补思路"/"补充 hints"/"修改 todo"/"panel 模式"/"reorder"/"move X before/after"/"add hints" + "todo"/具体 slug → `adjust`
+   - 含"修订"/"revise"/"返工指令"/"rework"/"needs-rework" + "spec"/"todo" → `revise`
+   - 含"批量执行"/"并发跑"/"自动跑完"/"自动循环 stage"/"无人值守"/"exec"/"foreground orchestrator"/"auto-loop until verified" + "todo"/"spec" → `exec`
    - 含"done"/"完成"/"标记完成"/"review"/"审"/"合并"/"merge" + "todo"/"spec"/"ready" → `done`
 3. **状态推断**（兜底）：
    - 项目根**没有** `TODO.md` 也**没有** `docs/spec/` → 倾向 `init`（流水线还没接入）
    - 项目根有 `docs/spec/*.md` 且至少 1 个 `status: ready-for-review` → 倾向 `done`
-   - 否则 → 倾向 `add`（注：`adjust` 不进兜底——它需要明确的目标 slug，不应被状态推断自动选中）
-4. **仍模糊** → 用 AskUserQuestion 二选一（或四选一）
+   - 否则 → 倾向 `add`（注：`adjust` / `revise` / `exec` 不进兜底——它们需要明确的意图,不应被状态推断自动选中）
+4. **模糊但含"跑/执行/批量/自动/无人值守/auto"等动作词** → 用 AskUserQuestion 在 `exec` / `done` 之间二选一(都是"推进流水线"语义,但安全等级差很多);**不要**默认 `add`
+5. **仍模糊** → 用 AskUserQuestion 多选一（init / add / done / exec）
 
 判定后**立即声明**当前 mode（一句话），再开始执行。用户在调用上下文里明确给了 mode 就不要二次确认。
 
@@ -76,8 +87,10 @@ description: >
 - 用户想把一个项目接入 todo-flow 流水线（无 `TODO.md` / `docs/spec/` 的工程）
 - 用户描述了一个想加进 `TODO.md` 的新需求/功能/重构
 - 用户想给一个**还没起 spec** 的 TODO 改顺序 / 修改内容 / 补 hints（关键交互路径 / 核心思路 / 新约束）
+- 用户想给一个已经 stage2/3 跑过的 spec 写返工指令(verify-failed 或不满意 verified)
+- 用户想前台自闭环跑完一批 spec(stage1→2→3 直到 verified 或 blocked,无人审介入)
 - 项目有 `docs/spec/*.md` 文件且其中至少一个 `status: ready-for-review`，用户希望审核并完成该 TODO
-- 用户在 todo-flow 流水线相关的上下文里提及 init / add / adjust / done / review / merge 这类动作
+- 用户在 todo-flow 流水线相关的上下文里提及 init / add / adjust / revise / exec / done / review / merge 这类动作
 
 ## When NOT to Use
 
@@ -1055,6 +1068,96 @@ grep -rE "^  - \[.\] \`<slug>\`" TODO.md
 
 ---
 
+## Mode `exec`
+
+**前台自闭环 orchestrator**:对一个或多个项目的若干 spec 自动驱动 stage1→stage2→stage3 直到每个 slug 进入终态(`verified` 或 `blocked`),不需人审介入。
+
+跟 cron 模式(state-model.md 调用拓扑里的 stage1/2/3)的区别:
+
+- **cron**: 慢节奏后台,每个 stage 独立 cron,一轮只处理 1 个 spec,适合"放着自己跑"
+- **exec**: 前台 orchestrator 进程,**并发** + **per-slug 紧逼到 verified/blocked**,适合"今晚把这批 TODO 推完"
+
+### Required Workflow（exec）
+
+按以下顺序：
+
+0. 解析 CLI 参数(`--project <p1> [<p2> ...]`、可选 `--slug <s1> [<s2> ...]`、`--max-verify-attempts <n>`(默认 5)、`--poll-interval <sec>`(默认 300)、`--stuck-after <sec>`(默认 900)、`--backend codex|claude`、`--resume`、`--no-im`、`--exclude-needs-rework`)
+   - **`--resume` 行为**:跳过 Step 0 队列构建,直接读 `.todo-flow/exec/.session-state.json` 恢复上次中断时的 in-flight + pending queue。续跑过程中按需 re-check 各 spec 当前 status(允许用户在中断期手工改 spec)。续跑成功完成后删除 `.session-state.json`。文件不存在 → idle 退出 + 提示"无可续跑 session"
+1. 校验环境:`cc-connect` 可用(除非 `--no-im`)+ subagent backend 可用 + 各 project 是 git 仓库
+2. 读 `references/exec-orchestrator-prompt.md` 整篇,**字面替换**以下占位符:
+   - `${PROJECTS_ARRAY}` → JSON 数组 `[{name, abs_path, default_branch}, ...]`
+   - `${SLUGS_FILTER}` → 用户指定的 slug 数组(可空)
+   - `${MAX_VERIFY_ATTEMPTS}` → 默认 5
+   - `${POLL_INTERVAL_SEC}` → 默认 300
+   - `${STUCK_AFTER_SEC}` → 默认 900
+   - `${SUBAGENT_BACKEND}` → `codex` 或 `claude`
+   - `${IM_ENABLED}` → `true` 或 `false`
+3. **以替换后的 prompt 作为 agent 自身的工作指令**继续执行(主 agent 本身就是 orchestrator)。**不要再派一层 subagent 当 orchestrator**——orchestrator 由当前 agent 直接扮演,这是为了让用户能 Ctrl+C 中断 + 看实时进度
+4. 主循环跑到队列空 / 死锁 / 用户中断
+5. 输出标准 JSON(详见 exec-orchestrator-prompt.md "输出契约"段)
+
+### 关键设计原则
+
+- **per-stage subagent**:不派一个 subagent 跑完整 slug,而是每次只派一个 subagent 跑一个 stage。stage 返回后 orchestrator 看 spec status 决定下派什么 stage。这样故障粒度最小、状态机最干净
+- **stage1 只跑 1 次**:spec 一旦生成视为给定,exec 模式不允许循环重做 stage1(spec 本身怀疑错 → blocked 求人)
+- **强制 auto-approved**:exec 不看 stage1 self_approved,所有 spec 直接进 stage2
+- **stage3 verify-failed 自动生成 `## Rework instructions`** 写到 spec 头部,stage2 下轮必读。**不调** `revise` 模式
+- **director-* AND-pass**:stage3 Playwright 通过后,按 spec frontmatter `director_audit` + `required_directors` 增派 director-* 并行 audit,**全 pass** 才标 verified
+- **IM 同步阻塞**:cc-connect send 失败 = orchestrator 停下来报警,不重试不静默丢弃
+- **不自动 done**:exec 跑完 verified 后停止,用户手工 `todo-flow done` 完成 merge
+
+### 硬护栏(5 种 blocked 触发,与 state-model.md "Exec 模式 blocked 触发"段完全对齐)
+
+| 触发 | 谁标记 | 说明 |
+|---|---|---|
+| `attempts >= 3`(stage2 内部 IMPL_FAIL 累积) | stage2 prompt 自己标 | 保留现有 cron 模式逻辑,exec 不绕开 |
+| `verify_attempts >= --max-verify-attempts`(默认 5) | exec orchestrator 标 | exec 专属硬上限 |
+| 连续 3 次 stage3 failure signature hash 相同(归一化后) | exec orchestrator 标 | 防"换汤不换药"循环 |
+| `relaunch_count >= 3`(心跳 L3:重派 3 次仍 L2 卡死) | exec orchestrator 标 | 心跳 L1 唤醒 → L2 kill+重派 → 第 3 次重派后仍 L2 → L3 blocked |
+| 循环依赖检测(spec depends_on 形成环) | exec orchestrator 标 | 涉及所有环上 slug 一起 blocked + IM 告知 |
+
+blocked 标完 → IM 通知用户 + 该 slug 移出队列 + 保留 `.todo-flow/exec/<slug>/` 不清理(供人 review)。
+
+### 与其他 mode 的关系
+
+- `add` / `adjust`:可在 exec 跑期间运行,但 adjust **应避免**(状态机可能不一致)
+- `revise`:exec 不会自动调;`revise` 后改 spec 为 needs-rework,**下一次** `todo-flow exec --resume` 才会被纳入(needs-rework 在 exec Step 0 默认过滤;`--include-needs-rework` 可纳入)
+- `done`:exec 跑完 verified 后 **必须** 用户手工 done(squash merge + 版本升级 + CHANGELOG)
+
+### Output Contract（exec）
+
+详见 `references/exec-orchestrator-prompt.md` "输出契约" 段。核心字段:
+
+```json
+{
+  "mode": "exec",
+  "verdict": "completed | interrupted | deadlock | skipped",
+  "total": <n>, "verified": <n>, "blocked": <n>, "interrupted": <n>,
+  "per_slug": [{project, slug, final_status, stages_run, directors, duration_sec, evidence_dir}],
+  "duration_sec": <n>,
+  "summary": "exec <n> verified, <n> blocked across <n> projects",
+  "next_action": "blocked 项需人 review:todo-flow revise 给新指令,或人工修后 todo-flow done"
+}
+```
+
+### Common Failure Modes（exec）
+
+**1. 不读 exec-orchestrator-prompt.md 直接凭脑补跑**:模式定义在 reference 里,SKILL.md 只列 mode 入口。Step 2 必读全文 + 字面替换占位符,**不要** 把占位符当字符串保留。
+
+**2. subagent 自己发 IM 而不通过 orchestrator**:IM 出口必须单一,subagent prompt 里要明确禁止;若发现重复 IM,检查 stage prompt 是否被污染。
+
+**3. cc-connect send 失败后继续派 stage**:IM 是关键反馈通道,失败必须停;后续 IM 漏发等于盲跑。
+
+**4. director-* audit pass 但有 must_fix 被忽略**:AND-pass 的 pass 必须 must_fix 为空;非空一律按 needs-fix 走 verify-failed 路径。
+
+**5. exec 跑完顺手帮用户调 `todo-flow done`**:严禁。done 是高风险动作,保留人审最后关口。
+
+**6. 在 exec 期间用户改了 spec**:每轮 orchestrator 重读 spec status,以最新为准;若变 verified/blocked → 从队列移除。
+
+**7. backend=claude 主会话退出后 subagent 也死**:Claude Code Agent 后台是同会话内有效,**用户要真后台 exec 应用 `--backend codex`**;SKILL 解析 mode 时检测主 agent 是 Claude Code 且未显式 `--backend codex`,提示用户改 backend。
+
+---
+
 ## Templates / Reference Files
 
 要在新项目上启用 TODO Flow 流水线，下列模板存在本 skill 的 `references/` 下，可以直接复制到项目或喂给 cron agent：
@@ -1064,6 +1167,8 @@ grep -rE "^  - \[.\] \`<slug>\`" TODO.md
 | `references/state-model.md` | 完整系统说明：状态机 / TODO.md 格式 / spec.md frontmatter / Worktree 命名 / 调用拓扑 | 用户问"todo-flow 是什么 / 怎么用"时；首次给项目初始化流水线时 |
 | `references/stage1-prompt.md` | Stage 1 cron 喂给 agent 的 prompt：**完全无入参 self-driving**，遍历硬编码工程清单 → 找首个未起 spec 的 TODO → 出 spec（一律 `status: approved`）→ commit + push 到默认分支 | 用户要把 stage 1 接到 cron / 想手动跑一次起草 spec 时 |
 | `references/stage2-prompt.md` | Stage 2 cron 喂给 agent 的 prompt：**完全无入参 self-driving**，遍历工程清单 → 找首个无残留 worktree/branch 的 approved spec → 开 worktree → 实现 + 验证 + 可选 Playwright 走查 → push branch；遇到残留按 `needs_cleanup` / `awaiting_review` 分类报告 | 用户要把 stage 2 接到 cron / 想手动跑一次 dev 时 |
+| `references/stage3-verify-prompt.md` | Stage 3 cron 喂给 agent 的 prompt:**完全无入参 self-driving**,遍历工程清单 → 找首个 `ready-for-review` spec → 跑 hard gates + Playwright 走查 → 写 `## Stage 3 report` + status 改 `verified`/`verify-failed` + 标准 JSON 输出 | 用户要把 stage 3 接到 cron / exec 模式 Step 2 派 stage3 subagent 时 |
+| `references/exec-orchestrator-prompt.md` | **`exec` 模式核心 prompt**:per-stage subagent 调度 + 心跳 + IM + director-* 增派。Pure prompt 设计,任何 agent(Claude Code / codex / 别的)读完都能当 orchestrator | `todo-flow exec` 被触发时,SKILL 必读全文 + 字面替换占位符再执行 |
 
 **怎么给用户**：
 - 用户问"用法"/"怎么部署" → Read `references/state-model.md` 节选关键部分回答
@@ -1108,10 +1213,20 @@ grep -rE "^  - \[.\] \`<slug>\`" TODO.md
 
 判定原则：**结构性字段（字段名 / 枚举 / 标识符）保持英文；叙述性内容（人读的句子）一律中文**。
 
-### Spec frontmatter 字段名（严格对齐 stage 1/2 prompt + cases.md）
+### Spec frontmatter 字段名（严格对齐 stage 1/2/3 prompt + exec-orchestrator-prompt.md + cases.md）
+
+**基础字段**(各 mode 都用):
 `id` / `title` / `status` / `kind` / `epic` / `depends_on` / `attempts` / `project_root` / `needs_visual_check` / `needs_video_check` / `created` / `updated`
 
+**stage3 / done 相关**(可选,按需写):
+`verify_attempts`(stage3 失败计数,独立于 attempts) / `verified_at`(stage3 verified ISO ts) / `verify_failed_at`(stage3 verify-failed ISO ts) / `change_type`(added/changed/fixed,done 写 CHANGELOG 用) / `bump_hint`(patch/minor/major,done 决定 semver 用,优先级低于 `--version`)
+
+**exec 相关**(可选,按需写):
+`director_audit`(`always` / `last-pass`(默认) / `never`) / `required_directors`(数组,如 `[design, frontend]`,空则自动嗅探)
+
 > ⚠️ 旧字段 `self_approved` / `self_approved_reasons` 在 v2 stage1 prompt 中已删除（所有 spec 一律 `status: approved`，无人工审核环节）。如读到老 spec 仍带这两个字段，忽略即可。
+
+> ⚠️ `exec` 模式**忽略** `self_approved` 字段(即便老 spec 留着也无视),强制按 approved 进 stage2。
 
 ### 工程规范源头（三级回退）
 1. `<project-root>/AGENTS.md`

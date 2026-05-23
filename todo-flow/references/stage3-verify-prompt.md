@@ -4,6 +4,8 @@
 
 与 stage1 / stage2 **完全隔离无感知**:本 prompt 通过 spec status 状态机自然接力,不依赖 stage2 触发,不传任何参数给 stage1/2。
 
+> **EXEC 模式钩子**:本 prompt 默认 cron 模式(遍历工程清单)。若被 `todo-flow exec` 通过 `references/exec-orchestrator-prompt.md` 派工调用,orchestrator 会在 prompt 末尾追加"EXEC 模式附加约束"段(限定单 slug + 60s 写心跳到 `.todo-flow/exec/<slug>/heartbeat.json` + 跳过所有 IM 推送 + 不写 spec 头部 `## Rework instructions`(orchestrator 写) + verify-failed 时**不改 status**(orchestrator 改为 needs-rework))。附加约束**优先级高于本文默认行为**。cron 模式下 stage3 仍按本文默认行为把 status 改为 verified / verify-failed。
+
 ---
 
 你的任务:在一组工程里挑出"**下一个待验证的 ready-for-review spec**",跑 hard gates(lint/test/build) + Playwright 走查 + 把 spec status 推到 `verified` 或 `verify-failed` + 输出结构化 JSON 报告。一次调用只处理 **1 个 spec**。

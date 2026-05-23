@@ -2,6 +2,7 @@
 
 把项目 TODO 串成 "draft spec → review → dev → review → done" 流水线。
 **Stage 0/3 走 skill（人触发），Stage 1/2 走 cron + 这里的 prompt**。
+**exec 模式**(`todo-flow exec`)走 `references/exec-orchestrator-prompt.md`,自闭环驱动 stage1→2→3 直到 verified 或 blocked,跟 cron 并存。
 
 ---
 
@@ -75,7 +76,9 @@ kind: implementation | decomposition
 epic: false                  # 仅 decomposition kind 时可能 true
 depends_on: []               # [<slug>, ...] 必须全部 done 后才能进 dev
 attempts: 0                  # stage 2 IMPL_FAIL 累积次数(仅 stage2 +1,不算 stage3 verify-failed),>=3 自动 blocked
-verify_attempts: 0           # stage 3 verify-failed 累积次数(独立计数,不触发 blocked,只供 done mode 评估可信度)
+verify_attempts: 0           # stage 3 verify-failed 累积次数;cron 模式只供 done 评估可信度,exec 模式 >=5 自动 blocked
+director_audit: last-pass    # exec 模式专用:always | last-pass(默认) | never  —— stage3 verified 后是否增派 director-* audit
+required_directors: []       # exec 模式专用:[design,frontend,promote,ops,architect] 子集,空则按 git diff 自动嗅探
 created: 2026-05-20
 updated: 2026-05-20
 ---
@@ -209,12 +212,80 @@ stage 2 失败时不再追加 `## Attempt N failure`,而是把失败信息写进
 
 你（手动）
    ├─ skill `todo-flow add`       新建 TODO（带 slug）
-   ├─ 改 spec status: approved    审通过让 stage 2 拾起
+   ├─ skill `todo-flow adjust`    调整未起 spec 的 TODO
+   ├─ skill `todo-flow revise`    给已 verify 的 spec 写返工指令
+   ├─ skill `todo-flow exec`      前台自闭环跑完一批 spec(stage1→2→3 直到 verified/blocked)
    └─ skill `todo-flow done`      review + squash merge + 归档
 ```
 
 频率建议：
 - stage 1（出 spec）：6 小时一次，单次只处理 1 个 TODO
 - stage 2（开发）：30 分钟一次，单次只处理 1 个 spec
+- stage 3（验证）:30 分钟一次,单次只处理 1 个 spec
 
-两个 prompt 都设计成幂等：扫不到可处理项就清洁退出，重复调用零副作用。
+两个 cron prompt 都设计成幂等：扫不到可处理项就清洁退出，重复调用零副作用。
+
+---
+
+## Exec 模式状态机（exec 跑期间的状态流转,与 cron 并存）
+
+exec 模式是 **前台 orchestrator**,把 spec status 当唯一状态机驱动 per-stage subagent。详细 prompt 见 `references/exec-orchestrator-prompt.md`,本段只列状态流转规则。
+
+### Exec 视角下的 status 转移
+
+```
+draft / approved       ──exec 强制忽略 self_approved──▶  派 stage2
+   │
+   ▼ stage2 success
+ready-for-review       ──派 stage3──▶
+   │
+   ├─ stage3 verified + (director_audit==never OR director-* 全 pass)
+   │       │
+   │       ▼
+   │   verified ──orchestrator 写 verified_at──►  exec 移出队列(不自动 done)
+   │
+   ├─ stage3 verified + 任一 director needs-fix
+   │       │ orchestrator 合并所有 director.must_fix 进 ## Rework instructions
+   │       │ orchestrator 把 status 从 verified 回退到 verify-failed
+   │       ▼ orchestrator 把 verify_attempts +1(stage3 没 +1)
+   │   (走下方 verify-failed 路径)
+   │
+   └─ stage3 verify-failed
+           │ orchestrator 写 ## Rework instructions(从 errors[] + 截图文件名 + (有则)director.must_fix 提炼 ≤7 条 todo)
+           │ orchestrator 把 status 改为 `needs-rework`(下一轮 stage2 看到 needs-rework 自然拾起)
+           │ orchestrator 写 verify_failed_at
+           ▼ verify_attempts +1
+       needs-rework ──下一轮派 stage2(stage2-prompt 原生支持 needs-rework 状态,读 ## Rework instructions 重做)
+```
+
+### Exec 模式 blocked 的 3 种触发
+
+| 触发 | 谁标记 |
+|---|---|
+| `attempts >= 3`(stage2 内部 IMPL_FAIL 累积) | stage2 prompt 自己标 |
+| `verify_attempts >= MAX_VERIFY_ATTEMPTS`(默认 5) | exec orchestrator 标 |
+| 连续 3 次 stage3 failure signature hash 相同(同模式失败) | exec orchestrator 标 |
+| 心跳 L3(重派 3 次仍 L2)| exec orchestrator 标 |
+| 循环依赖检测 | exec orchestrator 标(涉及所有 slug 一起 blocked) |
+
+blocked 标完 → orchestrator IM 通知 + 该 slug 移出队列 + 保留 `.todo-flow/exec/<slug>/` 不清理(供人 review)。
+
+### Exec 与 needs-rework 的关系
+
+- `needs-rework` 由 `revise` 模式(人触发)写
+- exec Step 0 默认 **不纳入** `needs-rework` 的 slug(因为 needs-rework 暗示人介入完了等下一轮)
+- 用户用 `--include-needs-rework` 显式纳入时才会跑
+
+这避免了"用户刚写 revise 指令,exec 立刻又改回去"的死循环。
+
+### Exec vs cron 的边界
+
+| 维度 | cron | exec |
+|---|---|---|
+| 触发 | 自动定时 | 人触发 `todo-flow exec` |
+| 节奏 | 慢(stage1 6h / stage2 30min / stage3 30min) | 快(并发 + 紧逼) |
+| 并发 | 单 stage 单 spec | 多 project 多 slug,per-slug 单 stage |
+| IM | 各 stage prompt 自己负责 | orchestrator 单一入口 |
+| director-* | 不集成 | stage3 verified 前按 frontmatter 增派 |
+| 终态 | 到 verified 后等用户 done | 到 verified/blocked 后停,不自动 done |
+| 中断 | 各 cron 独立,不互相干扰 | Ctrl+C 优雅退出,可 `--resume` 续跑 |

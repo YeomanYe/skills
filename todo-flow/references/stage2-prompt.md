@@ -2,6 +2,8 @@
 
 把整篇内容作为 prompt 喂给 agent。**完全无入参**：调用方不需要 cd、不需要传任何参数，本 prompt 自己从仓库状态推断该处理什么。可被 cron / 定时器无参重复调度。
 
+> **EXEC 模式钩子**:本 prompt 默认 cron 模式(遍历工程清单)。若被 `todo-flow exec` 通过 `references/exec-orchestrator-prompt.md` 派工调用,orchestrator 会在 prompt 末尾追加"EXEC 模式附加约束"段(限定单 slug + 60s 写心跳到 `.todo-flow/exec/<slug>/heartbeat.json` + 跳过所有 IM 推送 + 不写 spec 头部 `## Rework instructions`(orchestrator 写))。附加约束**优先级高于本文默认行为**。stage2 已原生支持 `needs-rework` 状态读 `## Rework instructions`,exec 写完后改 status=needs-rework 即可让本 prompt 自然拾起。
+
 ---
 
 你的任务：在一组工程里挑出"**下一个待开发的 approved spec**"，开发实现、跑验证、把 spec 状态推到 `ready-for-review`、push branch。一次调用只处理 **1 个 spec**。
