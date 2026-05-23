@@ -2,6 +2,22 @@
 
 Claude / Codex / 其他 agent 共用的 skill 集合，**单一事实源**是 GitHub `YeomanYe/skills`。
 
+## 🚀 首次 clone 必做
+
+```bash
+# 1. 启用 skill-doctor pre-commit hook(每次 commit 自动 lint,ERROR 阻断)
+git config core.hooksPath scripts/git-hooks/
+
+# 2. 确保 skill-doctor 已编译(hook 依赖它)
+cd ~/Documents/projects/node-scripts && pnpm install && pnpm run build
+```
+
+之后正常 `git commit`,会自动看到:
+```
+✓ skill-doctor: Errors: 0 · Warnings: N · Info: 0
+```
+有 ERROR 时会阻断 commit 并列出问题。详见下方 [Lint 闸门](#lint-闸门pre-commit-hook) 段。
+
 ## 关键认知
 
 GitHub repo `YeomanYe/skills` 是**唯一的真相**。本地有两个 working copy：
