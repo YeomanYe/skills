@@ -54,7 +54,7 @@ cd ~/Documents/projects/skills
 # 2. 如果改了 _shared/，同步副本到各 skill 的 references/
 bash scripts/sync-shared.sh
 
-# 3. 提交并推到 GitHub（单一事实源）
+# 3. 提交并推到 GitHub（单一事实源）— pre-commit hook 会自动跑 skill-doctor
 git add -A && git commit && git push origin main
 
 # 4. 让 skillshare source 拉取最新（git pull，不是 rsync！）
@@ -65,6 +65,48 @@ cd ~/.config/skillshare/skills && git pull origin main
 # 5. skillshare 把 source 同步到所有 agent target
 skillshare sync --force
 ```
+
+## Lint 闸门(pre-commit hook)
+
+本仓库自带 git pre-commit hook,每次 `git commit` 前自动跑 `skill-doctor` 全规则。**ERROR > 0 阻断 commit**,WARN 只打印不阻断。
+
+### 一次性启用(每个 clone 都要跑一次)
+
+```bash
+cd ~/Documents/projects/skills
+git config core.hooksPath scripts/git-hooks/
+```
+
+启用后,commit 时若 ERROR > 0 会看到:
+
+```
+❌ pre-commit BLOCKED: skill-doctor found 2 error(s)
+ERROR  <skill>  <file>  [<rule>]  <message>
+ERROR  ...
+Fix the errors above, then re-commit.
+```
+
+### 紧急绕过(不推荐)
+
+```bash
+git commit --no-verify    # 跳过 hook,适合 doctor 自己出 bug 时临时绕开
+```
+
+### 依赖
+
+- 依赖 `~/Documents/projects/node-scripts/dist/skill-doctor/index.js`
+- 若 doctor 未编译(dist 缺)→ hook 跳过 lint,不阻断 commit,只打印提示
+- 编译:`cd ~/Documents/projects/node-scripts && pnpm run build`
+
+### 当前阈值
+
+| 规则 | WARN | ERROR |
+|---|---|---|
+| `frontmatter`: description 长度 | > 250 | > 1000 |
+| `frontmatter`: 缺 name / description | — | always |
+| 其他 7 个规则 | 各规则自定 | 各规则自定 |
+
+阈值在 `~/Documents/projects/node-scripts/src/skill-doctor/rules/*.ts` 内,渐进收紧:精简够多 skill 后,可把 WARN 阈值往下调或把 WARN 升 ERROR。
 
 ### ⚠️ 历史踩坑警示
 

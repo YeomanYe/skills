@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# pre-commit — 提交前跑 skill-doctor,有 ERROR 阻断
+#
+# 启用(一次性):
+#   git config core.hooksPath scripts/git-hooks/
+#
+# 行为:
+#   - 跑 node-scripts 的 skill-doctor 全规则
+#   - ERROR > 0 → 阻断 commit
+#   - WARN 只打印不阻断
+#   - skill-doctor 未编译(dist 缺失)→ 跳过 + 提示,不阻断
+#
+# 跳过(紧急 commit):
+#   git commit --no-verify
+
+set -u
+
+DOCTOR_ENTRY="$HOME/Documents/projects/node-scripts/dist/skill-doctor/index.js"
+ROOT="$(git rev-parse --show-toplevel)"
+
+if [[ ! -f "$DOCTOR_ENTRY" ]]; then
+  echo "ℹ skill-doctor not built (run: cd ~/Documents/projects/node-scripts && pnpm run build)" >&2
+  echo "  skipping lint; commit allowed" >&2
+  exit 0
+fi
+
+OUTPUT=$(node "$DOCTOR_ENTRY" --root "$ROOT" 2>&1)
+EXIT=$?
+
+# 提取 summary 行 "Errors: N · Warnings: M · Info: K"
+SUMMARY=$(echo "$OUTPUT" | grep -E "^Errors: [0-9]+ · Warnings: [0-9]+" | tail -1)
+ERRORS=$(echo "$SUMMARY" | sed -E 's/^Errors: ([0-9]+).*/\1/')
+
+if [[ -z "$ERRORS" ]]; then
+  echo "⚠ skill-doctor output unparseable (exit=$EXIT); blocking to be safe:" >&2
+  echo "$OUTPUT" | tail -30 >&2
+  exit 1
+fi
+
+if (( ERRORS > 0 )); then
+  echo "" >&2
+  echo "❌ pre-commit BLOCKED: skill-doctor found $ERRORS error(s)" >&2
+  echo "" >&2
+  echo "$OUTPUT" | grep -E "^ERROR " >&2
+  echo "" >&2
+  echo "Fix the errors above, then re-commit." >&2
+  echo "(Emergency bypass: git commit --no-verify — not recommended)" >&2
+  exit 1
+fi
+
+# 0 errors → 打印 summary(含 warnings 提示)放行
+echo "✓ skill-doctor: $SUMMARY" >&2
+exit 0
