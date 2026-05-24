@@ -242,4 +242,10 @@
 ## Reference 案例
 
 - ✅ 成功案例:Ext Helper Appinn topic 84782 — 满分案例,见 `platforms/appinn.md`
+- ✅ 参考案例:UniMail 多平台宣发 — 从文案准备到最终发布的完整回归案例:
+  - 文案口径必须全平台同步:用户纠正"邮箱扩展"、"支持侧边栏邮件列表展示"、Chrome/Firefox/Edge 支持说法后,所有平台草稿都要重新 QA。
+  - 宣传图含真实 UI 时按截图处理,优先级高于普通截图;有内容丰富的 promo-with-UI 图时,不要额外塞长图。
+  - 预览通过不等于发布完成:X 要 status URL,V2EX 可能卡邮箱验证,Appinn 可能进入待处理审核,Product Hunt 需要 launch 日期,sspai 需要内容就绪后的当前明确发布确认。
+  - Playwriter 断连后必须 reset、按 URL 重新匹配页面、重读状态,不能凭旧页面编号继续点。
+  - 回执格式必须区分 `published` / `scheduled` / `submitted-to-review` / `ready-for-confirmation` / `blocked`。
 - ❌ 反例集:见 `tests/cases.md` 的 bad-* 用例段
