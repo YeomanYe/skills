@@ -108,11 +108,42 @@ description: Use after finishing a real task to triage the lesson/pattern/gotcha
 - CLAUDE.md 控制在 **200 行以内**(超了说明专题流程混进来了,该下沉到 skill)
 - 主文件 100-150 行 + 少量引用文档是更稳的形态
 
-**Q9: 是不是"跨会话的长期个人偏好 / 反复被纠正的经验"?**
+**Q9: 是不是"跨会话长期经验"?**(含两类子出口,**先判 Q9a 跨 agent 通用,未中再判 Q9b 个人偏好**)
 
-例:用户偏好简洁回复、用户拒绝某种代码风格、用户的工作时区。
-是 → **出口: auto memory**(`/Users/falcom/.claude/projects/<project-slug>/memory/`)。
-注意:auto memory 默认由模型自动沉淀,本 skill 只在用户**显式说"记住这个"**时主动写入。
+跨会话长期经验有两类,**unblock-recipes 优先于 auto memory**(通用知识 > 个人偏好):
+
+**Q9a: 是不是"跨 agent 通用的卡壳-解法案例"?**
+
+例:
+- 任何 agent 在 codex sandbox 里跑 sudo apt 都会被 deny + 解决方案是 codex_run --network=enabled
+- 任何 agent 用 Playwright 连 9222 端口前必须先 `chrome --remote-debugging-port=9222` 启动
+- 任何 agent 改 typescript 类型时跑 `tsc --noEmit` 比全编译快 10x
+
+判定信号(**全部满足**才进 Q9a):
+1. 是"卡壳/走不通"型经验(不是单纯偏好)
+2. 解法跨 agent 通用(换 Claude / Codex / Gemini 都适用)
+3. 不依赖特定 user 的工作风格 / 项目结构
+4. 可写成"症状信号 + 错法 + 对法"三段式
+
+是 → **出口: `unblock-recipes`**(agent 错题本,跨 agent 通用案例库)
+- 写入路径:本 skill 输出 recipe 写作模板(参见 unblock-recipes/SKILL.md "Recipe 条目结构"),用户/agent 落盘到 `~/Documents/projects/skills/unblock-recipes/recipes/<slug>.md` + 同步更新 `INDEX.md` 两处
+- 召回路径:agent 卡壳时先读 INDEX 反向索引,匹配关键词后载入命中 recipe(轻载入,禁止全量)
+- 优先级:agent 卡壳时**先**查 unblock-recipes(通用)→ 再查 auto memory(个人)
+
+**Q9b: 是不是"per-user / per-agent 个人偏好 / 反复被纠正的经验"?**(Q9a 未命中时才判)
+
+例:用户偏好简洁回复、用户拒绝某种代码风格、用户的工作时区、用户对某段代码的非通用风格偏好。
+
+判定信号:
+- 跟用户个人风格相关,换 agent / 换用户**不适用**
+- 不是"卡壳-解法"模式
+- 偏 preference 而非 fact
+
+是 → **出口: auto memory**(`/Users/falcom/.claude/projects/<project-slug>/memory/`)
+- 注意:auto memory 默认由模型自动沉淀,本 skill 只在用户**显式说"记住这个"**时主动写入
+- 优先级:unblock-recipes 未命中时才查 memory
+
+**Q9 兜底**: 两个都不是 → 进 Q10。
 
 **Q10(兜底): 都不命中?**
 
@@ -210,7 +241,7 @@ description: Use after finishing a real task to triage the lesson/pattern/gotcha
 
 **handoff 边界**: 【一句话沉淀】是 **human-facing only**,不进 handoff payload。下游 skill(flow-skill-dev / update-config / sync-skills)消费的是【分诊结论 / 推荐位置 / 写作模板】3 段技术契约。这条要写进 SKILL.md 让下游不会误解析叙事行。
 
-## Layer Map(11 个出口速查)
+## Layer Map(12 个出口速查)
 
 | # | 经验类型 | 出口 | 触发问题 |
 |---|---|---|---|
@@ -224,8 +255,11 @@ description: Use after finishing a real task to triage the lesson/pattern/gotcha
 | 6 | 单一专业判断 | `director-*/` | Q6 |
 | 7 | 跨角色编排 | `flow-*/` | Q7 |
 | 8 | 项目级常驻 | `CLAUDE.md` / `AGENTS.md` | Q8 |
-| 9 | 长期个人偏好 | auto memory | Q9 |
+| **9a** | **跨 agent 卡壳-解法** | **`unblock-recipes/recipes/<slug>.md`** | **Q9a(优先于 9b)** |
+| 9b | per-user 个人偏好 | auto memory | Q9b |
 | 10 | 兜底丢弃 | 不沉淀 | Q10 |
+
+**关键变化**: 第 9 层拆分为 9a / 9b,**9a 优先**。原"长期个人偏好 → auto memory"现属 9b;新增 9a"跨 agent 卡壳-解法 → unblock-recipes"是 2026-05-25 增加的目标层。
 
 完整层级说明见 `references/layer-map.md`。每层写作草稿见 `references/templates.md`。
 
@@ -251,7 +285,9 @@ description: Use after finishing a real task to triage the lesson/pattern/gotcha
 | "用户很想沉淀,就别 Q0 拦了" | Q0 是过滤"沉淀冲动"的关键阀门 |
 | "走 flow-skill-dev 太重,直接帮用户写 SKILL.md 落盘" | 跳过 scope/test/sync 三个门 = 引入低质量 skill |
 | "constitution 改起来麻烦,塞 CLAUDE.md 算了" | 跨 skill 通用约束放 CLAUDE.md = 其他 skill 看不到 |
-| "用户说'记住这个',就直接写 auto memory" | 检查 Q1-Q8,是不是其实是 constitution/CLAUDE.md 级 |
+| "用户说'记住这个',就直接写 auto memory" | 检查 Q1-Q8,是不是其实是 constitution/CLAUDE.md 级;Q9 内先判 9a(unblock-recipes),不是个人偏好不要 default memory |
+| "卡壳-解法也是个人经验,丢 memory 就行" | memory 是 per-user 不跨 agent,通用解法该进 unblock-recipes 让任何 agent 受益 |
+| "unblock-recipes 不就是错题本嘛,直接 add 一条" | 写入入口唯一是 experience-summary Q9a 分诊,不允许绕过(防止 catalog 垃圾化) |
 
 ## Self-Reference(自指)
 
@@ -277,6 +313,52 @@ description: Use after finishing a real task to triage the lesson/pattern/gotcha
     4. `skillshare sync --force`(分发到 `~/.claude/skills/` 等 agent 目标)
   - 出口是 skill-doctor 规则 → 切到 `~/Documents/projects/node-scripts/` 项目走 `flow-dev-task`
   - 出口是单个 skill 同步 → `sync-skills`(把单个 skill 目录同步到中心,**不是**用于 _shared 分发)
+  - **出口是 unblock-recipes(L9a)**:
+    1. 本 skill 按下方"L9a 写作模板"输出完整骨架(内嵌,**不要跨文件读 unblock-recipes/SKILL.md 才知道字段**)
+    2. 用户/agent 把模板落盘到 `~/Documents/projects/skills/unblock-recipes/recipes/<slug>.md`
+    3. **必须同步更新** `unblock-recipes/INDEX.md` 两处(按 tag 分类 + 按 symptom 关键词反查)
+    4. commit 到中心 — pre-commit hook 跑 skill-doctor 自动检查 frontmatter 完整性
+
+### L9a 写作模板(内嵌,无需跨文件读取)
+
+experience-summary 路由到 L9a 时,直接输出以下骨架(用户填值后 copy-paste 到 recipes/<slug>.md):
+
+```md
+---
+slug: <kebab-case-3-30-chars>            # 跟文件名一致
+symptoms:                                  # INDEX 索引用关键词(≥3 个,具体到 agent 真会读到的错误信息片段或行为描述)
+  - "<具体症状词1>"
+  - "<具体症状词2>"
+  - "<具体症状词3>"
+first_seen: <today YYYY-MM-DD>
+last_hit: <today YYYY-MM-DD>
+hit_count: 1
+tags: [<tag1>]                            # 至少 1 个,选自 unblock-recipes/INDEX.md "按 tag 分类"段已有词典
+---
+
+## <slug> — <一句话症状,≤30 字>
+
+### 症状信号
+<agent 怎么识别"我在踩这个坑">
+- 错误信息典型片段:
+- 行为模式:
+- 上下文条件:
+
+### 常见错法
+<agent 默认会怎么试,为什么不通>(≤3 行)
+
+### 正确做法
+<实际走得通的路,带具体命令 / 代码 / 配置>(≤80 字 / ≤5 行)
+
+### 出处
+- 首次发现: <today> / 在 <什么场景 / 哪个项目 / 哪个 skill>
+- 复现: 1 次
+```
+
+**INDEX 同步硬约束**(experience-summary 输出时必须同步提示用户):
+- 在 `unblock-recipes/INDEX.md` "按 tag 分类"对应分类下追加 `- <slug>` 一行
+- 在"按 symptom 关键词反查"表为每个 symptom 追加一行(同 slug 可重复)
+- **未同步 INDEX = 等价于没入册**(召回时找不到)
 - **不替代**:
   - `flow-skill-dev`(那是写 skill 本身)
   - `superpowers:brainstorming`(那是发散探索)
