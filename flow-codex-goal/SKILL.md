@@ -18,6 +18,52 @@ type: workflow
 
 # flow-codex-goal
 
+## TL;DR for Orchestrators（30 秒上手）
+
+> 第一次读本 skill？先读这段，再按需 deep-dive 后面 1000+ 行的细则。
+
+**做什么**：把一个长任务派给 Codex `/goal` 跑，加一套"硬隔离 reviewer + snapshot 回滚
++ 人类校准窗口"挡住它跑飞。
+
+**5 个必读 phase**（按顺序）：
+
+| # | 段 | 一句话 |
+|---|---|---|
+| 1 | **Phase 0 契约门** | APPROVAL.md 不签字不开跑，**80% 价值的来源** |
+| 2 | **Run Mode 探测** | CLI-YOLO / TMUX-YOLO / CLI-EXEC / SUBAGENT 四选一，Phase 0 必须先定 |
+| 3 | **Phase 1 执行 + watcher** | watcher 周期 poll，你 idle 等唤醒 |
+| 4 | **Phase 2 final review** | 独立 Reviewer Codex 必须硬隔离（不复用 Goal session / worktree / 凭据）|
+| 5 | **Phase 3 delivery** | 最高分 snapshot 回退 + commit |
+
+**3 个最常翻的车**（详见 Red Flags）：
+
+- Phase 0 跳了 → 跑完用户不认账
+- Reviewer 跟 Goal 同 worktree / 同 session → review 失效，等于裸 `/goal`
+- 3 轮不涨分但 commit 最后一轮 → 必须回 `HIGHEST_TAG`
+
+**3 件 orchestrator 不该做的事**（详见角色信条）：
+
+- 替 Goal 想问题 / 替 Reviewer 解释 / 觉得自己比 watcher 准
+
+**调用方不一定是 Claude**：本 skill 支持 Claude / Codex / Gemini / 任何能调用 Bash 的
+orchestrator agent。Claude 专属机制（cc-connect IM 推送、Agent SUBAGENT 模式）会自动
+降级为"orchestrator 主动 poll"，详见 `references/run-mode.md`。
+
+**References 路由表**（按需深读）：
+
+| 想知道什么 | 读 |
+|---|---|
+| 这次跑哪种 mode | `references/run-mode.md` + `run-mode.sh` |
+| watcher 怎么工作的 | `references/watcher.sh` + 本文 Watcher Exit Code 段 |
+| Reviewer 怎么独立隔离 | 本文 Two-Codex Hard Isolation 段 + `references/reviewer-arbitration.md` |
+| Phase 0 契约长什么样 | `references/goal-template.md` + `references/eval-template.md` |
+| Reviewer prompt | `references/baseline-prompt.md` / `milestone-review-prompt.md` / `review-prompt.md` |
+| 历史踩坑案例 | `references/incident-log.md` |
+| UI 任务专属规则 | `references/ui-review-checklist.md` + `score-rubric-extensions.md` |
+| 出问题手动 rerun | `references/manual-rerun-prompts.md` |
+
+---
+
 ## Overview
 
 编排「Phase 0 契约确认 → 基线评分 → Goal Codex 长跑 + 健康/边界看门狗 → 周期 mini-review + UI 截图即时推送 → 独立 Reviewer Codex（硬隔离）→ 每轮 snapshot + 最高分回退 → 风险分层验证 → 人类签字 → commit」一条流水线。
@@ -37,6 +83,42 @@ type: workflow
 ### 核心信念
 
 > 长任务不依赖对话上下文记忆，依赖**磁盘状态文件**、**事先签字的契约**、**独立 worktree**、**真实运行环境**、**硬隔离的独立 review**、**每轮快照 + 最高分回退**、**周期性人类校准**。
+
+### 角色信条
+
+**我是 orchestrator，不是 executor；我是 Goal Codex 的看门人，不是它的助理。**
+
+**长任务最容易死在"orchestrator 自己也开始动手"**——一旦我开始替 Goal 想问题、
+替 Reviewer 评分、替用户决定 verdict，**整套硬隔离机制立刻坍缩成"两个 Codex
++ 一个特别勤快的人在中间瞎搅和"**。我多醒 1 次 = 长任务多 1 个污染点。
+
+我执行任务时心里只问一个问题：**"如果我现在 sleep 8 小时回来，这个 pipeline
+能不能自己跑完、自己停在该停的地方、自己 ping 我？"** 不能 = 我设计错了，
+跟它跑得多顺、Goal Codex 多聪明、reviewer 多准，**一点关系都没有**。
+
+**idle 是美德**。本 skill 不假设 orchestrator 是 Claude——Codex / Gemini / 任何
+能调用 Bash 的 agent 调用时，IM 推送（cc-connect）、Agent 工具（SUBAGENT 模式）等
+"Claude 专属机制"会自动降级为"orchestrator 主动 poll"。降级映射见
+`references/run-mode.md`。降级 ≠ 多干活——降级后**仍然是 idle 优先**，只是
+poll 周期从"被 watcher 唤醒"变成"自己定时检查 STATUS.md"。
+
+我最容易翻的车——每一条都是"看起来在帮忙，实际在破坏隔离"：
+
+- **替 Goal Codex 想问题** — 看 STATUS.md 觉得它卡了，就去 prompt 它一下 =
+  **把上下文偷喂给 Goal，baseline 之后所有评分都不再可比**。该让 watcher 处理，
+  watcher 处理不了再走 stop condition + 人类裁决，**不要中途自己手贱**。
+- **替 Reviewer 解释 Goal 的意图** — "这个 reviewer 评分不准，我帮 Goal 申辩一下" =
+  **隔离失效**。reviewer 评分就不再独立。reviewer 评错就重派 reviewer，
+  不要"帮它理解" Goal 在干什么。
+- **跳 Phase 0 直接启动** — "这个任务我懂，AC 我心里有数" = 没有 APPROVAL.md
+  就跑 = **3 小时后用户问"你跑的是什么？"我答不上来**。Phase 0 是 80% 价值的来源，
+  跳了就退化成裸 `/goal`。
+- **觉得自己比 watcher 准** — "watcher 又误报 boundary 了，我手动 override 一下" =
+  **绕过看门狗一次 = 下次真出事时也会假定是误报**。watcher 误报就修 watcher，
+  不要在 orchestrator 这边加豁免。
+- **越界做高风险代码** — auth / 支付 / 加密的代码 **我自己写，不派 Codex**。
+  Codex Goal 跑 8 小时改对 7 条但漏第 8 条 = 安全事故。这条没有讨论余地，
+  跟"用户明确指定"也无关——本条是 constitution 级别的硬约束。
 
 ### Codex `/goal` 的硬限制 + 本 skill 的兜底
 
@@ -1003,76 +1085,16 @@ SUBAGENT 模式下 orchestrator 无法持有后台 watcher 进程。此时 orche
 
 ## Output Contract
 
-完成后必须输出：
+Phase 3 delivery 完成后,orchestrator **必须**按 `references/task-report-template.md`
+模板输出 task report——含 Task / Phase 0 Contract / Baseline / Execution /
+Score Trajectory / Review / UI Screenshots(条件) / Delivery / Risks / 结论 9 段。
 
-```md
-## Codex Goal Task Report
+**双通道**:
+- 落盘 `.agent/tasks/$TASK_ID/TASK-REPORT.md`
+- 同时在对话里**完整复述**(IM session 也 push)——只写盘不口播 = 人类裁决无入口
 
-### Task
-- ID:
-- Objective:
-- Worktree path:
-- Run Mode: CLI-YOLO | TMUX-YOLO | CLI-EXEC | SUBAGENT
-- Risk Class: low | medium | high
-- Goal-Attainment Mode: threshold | no-improvement-N | regression-prevention | hybrid
-- Custom Score Dimensions: <list>
-
-### Phase 0 Contract
-- APPROVAL.md timestamp:
-- Approver:
-- BASELINE.md reviewer pid: <verified ≠ orchestrator>
-
-### Baseline (pre-task scoring)
-- Correctness: N/5  Maintainability: N/5  UX: N/5 (or n/a)  Risk: N/5
-- Custom dimensions: <list of N/5>
-- Aggregate: X.X
-
-### Execution
-- Goal Codex started: <ts>  completed: <ts>  duration:
-- Milestones completed: <n>
-- Snapshots created: <n>  HIGHEST_TAG: snapshot-X-Y.Y
-- Token budget used: <est>
-- Health stalls / failures: <n> / <n>
-- Boundary violations: <n>
-- IM milestone reports pushed: <n>
-- Human interrupts received: <n> (continue/pause/abort/adjust)
-
-### Score Trajectory
-- baseline → milestone-1 → ... → final
-- HIGHEST: round X, aggregate Y.Y
-- 每个 milestone 4 维度 + 扩展维度评分
-
-### Review
-- Reviewer rounds: <n>  Final verdict (combined): pass | fail | aborted
-- Arbitration rule: AND-pass | OR-pass | weighted-avg | hard-rule-override
-- **Reviewer roster**:
-  - codex-reviewer (内置): <verdict / aggregate>
-  - <extra-reviewer-1> (如 director-design): <verdict / aggregate> | not invoked
-  - <extra-reviewer-2>: ... | not invoked
-- Overall aggregate (geometric mean): <X.X>
-- Two-Codex Isolation verified: yes (process/session/fs/net all 4 layers)
-- Review audit log: review-audit/round-*.jsonl (N rounds, M overrides)
-- Must Fix accepted / overridden (按 reviewer 区分): <a> / <b>
-- Should Fix recorded: <c>
-- Runtime evidence verified: <list of user-journeys passed>
-
-### UI Screenshots (only if is_ui_task=true)
-- IM messages pushed: <n>  pending review-image audits: <n>  errata sent: <n>
-- HIGHEST_TAG screenshots: <list of paths>
-
-### Delivery
-- Risk-tiered orchestrator self-verification: skipped (low) | partial (medium) | full (high)
-- Commit SHA: (based on HIGHEST_TAG <tag>)
-- Push status: pushed | committed | skipped | n/a
-- Worktree fate: kept | merged | rebased | cleaned
-
-### Risks / 技术债
-- <项>: <说明>
-
-### 结论
-- 可交付: yes | no
-- 需要人类后续: <list>
-```
+字段必填规则 / 触发条件 / `not invoked` 标注规则全部在 template 里,本 SKILL.md
+不重复维护以避免双源漂移。
 
 ---
 
