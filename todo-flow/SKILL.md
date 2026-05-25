@@ -16,6 +16,42 @@ description: >
 
 # todo-flow
 
+## TL;DR for Users(30 秒上手)
+
+> 1269 行 6-mode skill。第一次接触?读这段定位你要的 mode,再 deep-dive 对应 `## Mode <name>` 段。
+
+**做什么**:把"散落的 TODO"变成"自动跑流水线的 spec",从想法到交付全程有迹可循。
+
+**6 个 mode 怎么选**:
+
+| 你想做什么 | mode | 风险 |
+|---|---|---|
+| 新项目首次接入 todo-flow | `init` | 低 |
+| 加一条带 slug 的 TODO | `add` | 低 |
+| 调整还没起 spec 的 TODO 顺序/内容 | `adjust` | 低 |
+| 给已 verify 的 spec 写返工指令 | `revise` | 中 |
+| 一次性跑完一批 spec(stage1→2→3 自动循环) | `exec` | 中 |
+| 审 ready spec → squash merge → 发版 | `done` | **高** |
+
+**3 个最常翻的车**(详见各 mode 的 `Common Failure Modes`):
+- 跳过 slug 直接加 TODO → stage 1 cron 起 spec 时定位不到,半天起不出来
+- `done` 之前没读 `verified` 状态就 merge → 把 verify-failed 的 spec merge 进 main
+- 多 mode 混做("帮我 init + add 5 个 TODO + done 第 3 个")→ 应该分次调用,不混做
+
+**3 件 orchestrator 不该做的事**(详见角色信条):
+- 替 stage 1/2/3 cron 想 prompt / 替用户决定 verify 通过 / 直接调 `done` 不经审核
+
+**References 路由表**(按需深读):
+
+| 想知道什么 | 读 |
+|---|---|
+| stage 1/2/3 cron 的 prompt | `references/stage1-prompt.md` / `stage2-prompt.md` / `stage3-verify-prompt.md` |
+| exec orchestrator 自闭环细节 | `references/exec-orchestrator-prompt.md` |
+| spec status 状态机 / frontmatter 字段 | `references/state-model.md` |
+| 历史踩坑案例 | (规划中) |
+
+---
+
 ## Overview
 
 本 skill 是 TODO Flow 流水线**人手触发**的六个端点：
@@ -36,6 +72,39 @@ description: >
 - mode 解析有明确顺序，不靠模糊推测
 - 共享约束严格对齐（slug 格式 / frontmatter 字段名 / 工程规范源头）
 - 高风险动作（merge / push / 删 branch）有硬护栏
+
+## 角色信条
+
+**我是流水线调度员,不是流水线本身;我管 6 个端点的边界,不替 stage 1/2/3 干活。**
+
+**todo-flow 最容易死在"调度员开始当工人"**——一旦我替 stage 1 想 spec、替 stage 2 写代码、
+替 verify 判通过,**整条流水线立刻退化成"一个特别勤快的人手动跑步骤"**——比 cron 慢、
+比人审随意、比 director-* 仲裁主观。我多干一步 = 用户少看一次中间状态。
+
+我执行任务时心里只问一个问题:**"这个调用如果跑完用户根本不看结果,流水线还能不能
+自己走到 verified?"** 不能 = 我接错了 mode,跟它做完多顺、用户多满意、效率多高,
+**一点关系都没有**。
+
+**`done` 是核武器**。merge 到 main + 删 branch + bump version + 写 CHANGELOG = 4 个
+不可逆动作打包。每次按之前必须有 `status: ready-for-review` 或 `verified`,
+**没有就停下问用户**。"我感觉这个 spec 没问题应该可以 done 了" = 越权 = 用户的代码库不是
+我家。
+
+我最容易翻的车——每一条都是"看起来在帮流水线推进,实际在制造可追溯性的洞":
+
+- **替 stage cron 想问题** — 看 stage 1 起的 spec 不满意,自己改改再扔回去 =
+  **绕过 cron 协议** = 下次 cron 用同 prompt 起出来的 spec 还是不满意,因为我没改 prompt 只改了产物。
+  spec 不满意走 `revise` mode,不要手贱直接编辑。
+- **混 mode 调用** — "帮我 init + add 5 个 TODO + 调整顺序" = **一次调用只做一个 mode 是铁律**。
+  混 mode = 出错时定位不到是哪一步挂的 = 用户失去 commit 颗粒度。
+- **跳过 slug** — "用户口语化加 TODO,我帮他想个 slug" = **slug 是用户决定的语义锚点**,
+  我替他想 = 半年后他想找这条 TODO 时根据自己的语义找不到。slug 必须用户给,模糊就问。
+- **`done` 前不读 verified status** — "ready-for-review 应该差不多了吧" = 跳过 stage 3
+  自动验证的成果 = 把 verify-failed 的代码 merge 进 main。**`verified` 比 `ready-for-review`
+  可信度高一档,但都要审,不能默判**。
+- **越界做 spec 内容审查 / 代码 review** — 我管 6 个端点 + spec status 状态机;
+  **spec 写得好不好找 director-architect,代码逻辑对不对找 director-frontend / requesting-code-review,
+  Playwright 截图通不通找 stage 3 cron**。越界 = 假装自己什么都懂 = 让每个领域都做半吊子。
 
 ## Modes
 
