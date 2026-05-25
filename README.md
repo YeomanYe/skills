@@ -192,6 +192,82 @@ director-* 现状与扩展：
 
 完整列表见各 skill 目录的 `SKILL.md`。
 
+## 路由分诊表(skill 选择灰区)
+
+> 多个 skill 的 description 触发短语有重叠时,**先看这张表**——按"用户说什么 + 上下文"
+> 给出 First Pick 和 Alternatives,挡掉 agent 路由混乱的情况。
+>
+> 每个 skill 的 description 里都有 Do NOT use 自声明,但**跨 skill 选择的决策标准**
+> 集中放在这张表里维护。
+
+### "审一下" / "review"
+
+| 上下文 | First Pick | Alternatives | 决定依据 |
+|---|---|---|---|
+| RULE.md / CONTRIBUTING.md / 规范文件 | `director-architect` | — | 项目规则结构问题 |
+| 截图 / Figma / mockup / 视觉 | `director-design` | huashu-design(只评样例时) | 视觉品味判断 |
+| JSX / React / Vue / Svelte 代码 | `director-frontend` | requesting-code-review(纯 PR review)| 前端代码气味 |
+| 即将"完成声明"前的产物总审 | `delivery-gate` | — | 通用交付闸门 |
+| 推广文案 / 配图 | `director-promote` | — | 平台原生感 / AI 味 |
+| 多个 skill 串起来跑不跑通 | `skill-integration-test` | skill-behavior-test(单 skill)| 路由 + handoff |
+
+### "做一个 X" / "实现 X"
+
+| 上下文 | First Pick | Alternatives | 决定依据 |
+|---|---|---|---|
+| 完整新项目(MVP+规范+设计) | `flow-project-bootstrap` | project-prep(仅 MVP+stack)| 完整 kickoff vs 单阶段 |
+| 单个开发任务(功能/bug) | `flow-dev-task` | flow-codex-goal(≥2h 长跑)| 短/长 + 有无 AC |
+| 一个 prototype / demo / 动画 | `huashu-design` | frontend-design(生产 React)| 探索 vs 生产 |
+| 一张固定尺寸图(海报 / 商店素材) | `web-image` | huashu-design(高保真原型)| 出图 vs 原型 |
+| 写一个新 skill | `flow-skill-dev` | — | 唯一入口 |
+
+### "改 / 重构"
+
+| 上下文 | First Pick | Alternatives | 决定依据 |
+|---|---|---|---|
+| 重构单个 React/JSX 组件 | `director-frontend` | flow-dev-task(完整 task pipeline)| 单一改动 vs commit/test/push |
+| 改项目规范结构 | `director-architect` | — | 规则分域 |
+| 改设计风格 / 出新方向 | `director-design` | huashu-design(新做不改)| 改现有 vs 重新做 |
+| 改一个 skill | `flow-skill-dev` | — | minor-update 走直 Edit / substantial 走 flow |
+| 改 todo-flow 的 spec 让 stage 重做 | `todo-flow revise` | — | spec rework 专用 |
+
+### "提交 / 发布 / 上架"
+
+| 上下文 | First Pick | Alternatives | 决定依据 |
+|---|---|---|---|
+| 把改动整理成一个 git commit | `clean-commit` | — | 唯一入口 |
+| 项目主体做完准备对外露出 | `flow-project-finish` | clean-commit(只想 commit)| 完整收尾 vs 单步 |
+| 浏览器扩展上架 Chrome/Edge/Firefox | `flow-ext-publish` | ext-preflight(只想检查不上架)| 完整流 vs 单步检查 |
+| 发到 v2ex / 少数派 / Appinn / Twitter / Product Hunt | `director-promote` | — | 多平台宣发 |
+| 装/卸软件 | `director-ops` | — | 唯一入口 |
+
+### "测一下"
+
+| 上下文 | First Pick | Alternatives | 决定依据 |
+|---|---|---|---|
+| 测某个 skill 触发条件对不对 | `skill-behavior-test` | — | 单 skill |
+| 测多个 skill 串起来路由通不通 | `skill-integration-test` | — | 跨 skill |
+| 跑项目自己的 unit/integration test | `flow-dev-task`(包含测试步) | — | 项目专属测试在 flow-dev-task 内 |
+| Playwright 走查 UI | `delivery-gate` | agent-browser(自由 dogfood)| 闸门判定 vs 探索 |
+
+### "卡壳了 / 不知道怎么办"
+
+| 上下文 | First Pick | Alternatives | 决定依据 |
+|---|---|---|---|
+| 反复试错没进展 | `unblock-recipes` | brainstorming(发散探索)| 错题本 vs 头脑风暴 |
+| 探索性问题 / 需求模糊 | `brainstorming` | huashu-design(设计方向顾问 fallback)| 需求 vs 设计方向 |
+| 任务跑完想沉淀经验 | `experience-summary` | — | 11 层架构分诊 |
+| 切个心态干活 | `hat` | — | 任务开头默认激活 |
+
+### 决策小抄(实在拿不准)
+
+1. **"我能不能自己干?"** — 能 → 不开 skill,直接做
+2. **"是单 task 还是完整流程?"** — 单 task → flow-dev-task 或对应 director-\* ;完整流程 → flow-\*
+3. **"任务时长?"** — < 2h → flow-dev-task;≥ 2h + 清晰 AC → flow-codex-goal
+4. **"是审视还是创造?"** — 审视 → director-\* audit mode;创造 → huashu-design / frontend-design
+5. **"用户说的话有'审 / review / 看看'?"** — 第一直觉去 director-\*(按上下文挑哪个)
+6. **"涉及多个领域?"** — flow-\* 编排;**单一领域不要用 flow-\***(过度编排)
+
 ## 共享 reference
 
 详见 [`_shared/README.md`](./_shared/README.md)。
