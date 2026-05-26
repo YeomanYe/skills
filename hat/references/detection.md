@@ -56,9 +56,9 @@
 - "怎么设计"
 - "可能性"
 
-### 戴 `严` strict(测试 / 走查 / 上线前)
+### 戴 `严` strict(测试 / 走查 / 上线前 / 修复 / 实现)
 
-**强信号**:
+**强信号**(原):
 - "测试"
 - "走查"
 - "上线前"
@@ -69,10 +69,21 @@
 - "production-ready"
 - "release check"
 
+**强信号**(2026-05 新增 — 修复 / 实现核心研发动作):
+- "修" / "修复" / "fix" / "fix bug" / "改这个 bug" / "解决这个 error"(bug **已定位**,进入修代码 + TDD 阶段)
+- "实现" / "build" / "develop" / "做这个功能" / "加这个 feature" / "ship 这个"
+- "从 0 到提交" / "全流程做完" / "end-to-end"
+
 **弱信号**:
 - "确保..."
 - "万一..."
 - "如果出错..."
+
+**误判防护**(强信号命中但**不该戴 严**):
+- 任务范围 < 3 文件 **且** < 30 行 → 仍 `快`(小改动不值得严纪律 + TDD)
+- 一次性脚本 / demo / hello world / "试试看" → 仍 `快`
+- "fix typo" / 改 1 行错别字 → 仍 `快`
+- "有 bug" / "报错了" / "出问题了"(尚**未定位**)→ 改戴 `钻`(先 systematic-debugging,不要跳过定位)
 
 ### 戴 `挑` critic(review / audit)
 
@@ -107,7 +118,7 @@
 - "我应该..."
 - "你觉得呢"(让 agent 决定 → `问` 反问回去)
 
-### 戴 `钻` deep(research / 真伪验证 / 决策性查证 / fact-check)
+### 戴 `钻` deep(research / 真伪验证 / 决策性查证 / fact-check / bug 早期定位)
 
 **强信号**:
 - "查一下"
@@ -120,6 +131,12 @@
 - "X 库内部怎么实现的"
 - "为什么 X 默认行为是这样"
 - 引文核对 / 文献对照 / 跨多个 source 验证
+
+**强信号**(2026-05 新增 — bug 早期定位 / 找根因):
+- "为啥" / "怎么会" / "why is" / "为什么会"
+- "找根因" / "root cause" / "怀疑" / "排查"
+- "还没定位" / "不知道哪 / 哪里出的"
+- "有 bug" / "报错了" / "出问题了"(尚未定位 → 戴 `钻`,而不是直接戴 `严` 跳到修)
 
 **与 `严` 的边界**:
 - 上线前走查 / 安全审 / 测试 case → `严`(关心广度)
@@ -146,6 +163,21 @@
 | `delivery-gate` | `严` |
 | `flow-skill-dev` Step 1 classify | `问`(让用户讲清楚) |
 | `experience-summary` | `快`(决策本身要快) |
+| `flow-dev-task` 主体阶段(plan → code → test → verify) | `严`(2026-05 新增 — 长链路 + 多 verify gate) |
+| `flow-codex-goal` 长跑主体 | `严`(同上) |
+| `clean-commit` / `delivery-gate` 通过后 | `快`(收尾简洁交付) |
+| `superpowers:systematic-debugging` 早期(找根因阶段) | `钻`(2026-05 改 — 之前是"严或教",现统一 `钻` 取证找因) |
+| `superpowers:systematic-debugging` 后期(已定位 → 修) | `严`(修阶段进入 严) |
+| `unblock-recipes` lookup | `钻`(查证案例库匹配度) |
+
+> **⚡ 优先级 3 切换是"子 skill override 路径"**——本表所有映射(包括 2026-05 新增的 5 条)在 agent **进入对应子 skill 时由该子 skill 主动调 hat override** 触发,**跳过 Step 4b 的 opt-in/opt-out 仲裁机制**(否则严→快/钻→严等弱化切换会被 switching-policy.md 拦成 opt-in,拖慢编排)。
+>
+> 路由仲裁规则(本次明示):
+> - 子 skill 主调用(用户/orchestrator 显式进入 clean-commit / brainstorming / systematic-debugging / unblock-recipes 等)→ **该子 skill 自己 override hat**,跳过 Step 4b
+> - 用户**语言**转向信号(用户说"挑刺一下" / "上线前" 等)→ 走 Step 4b 严格度差仲裁
+> - 子 skill override **不计入** Step 4b "3 次/对话" 频率上限(否则一条 flow-dev-task 链跨 brainstorming→systematic-debugging→clean-commit 必撞限额)
+>
+> **systematic-debugging 切换主动方明示**: "早期→钻 / 后期→严" 的切换由 systematic-debugging 自己在 Phase 转换时调 hat override 触发,不是 hat 主动 Step 4b 探测。hat 这里只是"记录预期映射"。
 
 如果同一 skill 在不同 mode/step 有不同 hat 倾向,以最近一次显式 mode 为准。
 

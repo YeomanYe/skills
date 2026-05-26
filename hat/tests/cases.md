@@ -542,3 +542,76 @@
 - 不能用 `问` 拒绝执行(必要时还是要给答案)
 - **不能用 `钻` 编造 source**(URL 必须真实可访问 / 引文必须真实可查 / file:line 必须真实存在 / 找不到就标"无可靠 source 暂存疑")
 - 不能用 `收` 砍掉用户明确要求的功能
+
+---
+
+## 2026-05 新增: 研发场景自动激活 4 规则
+
+以下 7 个 case 验证"修复 / 实现 / 定位 / 收尾"4 条新自动激活规则 + 3 misroute 反例。
+
+### Case A1: 正例 — "实现" 触发 `严`
+
+- 输入: 用户说"实现一下用户登录页面,要含 OAuth + 邮箱密码两种方式"
+- 预期:
+  - 路由命中: detection.md `严` 段含"实现 / build / develop / 做这个功能"
+  - 任务范围估算 ≥ 3 文件 / ≥ 30 行(登录页 + OAuth handler + 测试)
+  - 戴 `严` strict
+  - 告知行: `[戴帽:「严」(strict) — 长链路实现 + 多 verify gate]`
+
+### Case A2: 正例 — "修复 bug" 触发 `严`(bug 已定位)
+
+- 输入: 用户说"刚定位到 PaymentForm.tsx:128 的 stale closure 问题,修一下"
+- 预期:
+  - 关键词: "修" + "已定位到 file:line" → bug 已定位,进入修阶段
+  - 戴 `严` strict
+  - 告知行: `[戴帽:「严」(strict) — 修复阶段 TDD + verify 纪律]`
+
+### Case A3: 正例 — "找根因 / 排查"(bug 未定位)触发 `钻`
+
+- 输入: 用户说"为啥每次启动后 3s 就卡死,没找根因,你帮我排查下"
+- 预期:
+  - 关键词: "为啥" + "没找根因" + "排查" → bug **未定位**,早期定位阶段
+  - 戴 `钻` deep(**不是** 严 — 防止跳过定位直接修)
+  - 告知行: `[戴帽:「钻」(deep) — 早期定位,取证找根因]`
+  - 可能联动调 `superpowers:systematic-debugging`
+
+### Case A4: 正例 — "commit / 收尾" 触发 `快`
+
+- 输入: 用户说"测试都过了,clean-commit 吧"
+- 预期:
+  - 关键词: "commit" + "测试都过了"(delivery-gate 通过后)
+  - 戴 `快` lean
+  - 告知行: `[戴帽:「快」(lean) — 收尾简洁交付]`
+
+### Case A5: 反例 — "实现 hello world" 不触发 `严`
+
+- 输入: 用户说"写个 hello world demo 试试"
+- 预期:
+  - **不**因含"实现/写"就戴 严
+  - 命中误判防护(SKILL.md "When NOT to auto-route"): 任务 < 3 文件 / < 30 行 / 一次性脚本
+  - 仍戴 `快` lean
+  - 告知行: `[戴帽:「快」(lean) — 一次性 demo,无需严格 TDD]`
+
+### Case A6: 反例 — "fix typo" 不触发 `严`
+
+- 输入: 用户说"fix 一个 typo: README L23 'mananger' → 'manager'"
+- 预期:
+  - **不**因含"fix"就戴 严
+  - 命中误判防护: 1 行小改动
+  - 仍戴 `快` lean
+  - 告知行: `[戴帽:「快」(lean) — 单行 typo 修复]`
+
+### Case A7: 反例 — "有 bug"(未定位)不直接戴 `严`
+
+- 输入: 用户说"启动后报错了"(无任何根因/位置信息)
+- 预期:
+  - **不**因含"bug/报错"就戴 严(那会跳过定位直接修)
+  - 误判防护命中: bug 未定位
+  - 改戴 `钻` deep,先 systematic-debugging
+  - 告知行: `[戴帽:「钻」(deep) — bug 未定位,优先取证找根因]`
+
+### 期望整体效果
+
+- 新规则**只**影响"主体研发阶段"的默认 hat 选择,**不引入中途换帽**机制
+- 现有 brainstorming → `散` / verification → `严` / code review → `挑` 等映射**不变**
+- description 长度: 当前 ~700 字符,远 < 800 soft warn / 1000 hard error 阈值

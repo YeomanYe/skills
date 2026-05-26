@@ -5,8 +5,14 @@ description: >
   末尾输出告知行 `[戴帽:「X」(en) — 说明]`。不明确时兜底 `快`。
   显式触发:"换个性"、"戴上 X"、"严格点"、"发散一下"、"挑刺"、"教我"、"换 hat"、
   "strict mode"、"explore mode"、"switch persona"。
-  自动激活信号:MVP / 风格 / 测试 / review / brainstorm / 学习 / 卡壳 / research /
-  fact-check / 真伪验证 等任务类型 → 自主选 persona,无需用户显式触发。
+  自动激活信号(任务类型 → 自主选 persona,无需用户显式触发):
+  MVP / 风格 / 测试 / review / brainstorm / 学习 / 卡壳 / research / fact-check / 真伪验证;
+  **修复**(修 / fix / 修复 bug / 改这个 error)→ 严;
+  **实现**(实现 / build / develop / 做这个功能 / ship 这个)→ 严;
+  **定位**(为啥 / 找根因 / 排查 / 还没定位 / why is)→ 钻;
+  **收尾**(commit / 提交 / wrap up / 完成了)→ 快。
+  Do NOT auto-route 严: "实现 hello world / fix typo / 一次性脚本"(任务 < 3 文件 / < 30 行 仍 快);
+  "有 bug / 报错了"(未定位 → 先 钻 走 systematic-debugging)。
 ---
 
 > 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
@@ -35,6 +41,47 @@ description: >
 - 在任务**进行中**,agent 已经在某个个性下工作(除非用户打断)
 - 用户只想要"快答一个问题",不需要切个性(默认走 `快`)
 - 用户已经显式指定个性,本 skill 不重复推荐
+
+## When NOT to auto-route(避免过度激活)
+
+某些场景**看起来命中关键词**但**不该自动套用对应严格 hat** — 否则纪律过重伤效率:
+
+| 误判场景 | 看起来命中 | 实际该戴 | 原因 |
+|---|---|---|---|
+| "实现 hello world" / "写个 demo 试试" / 一次性脚本 | 严(因为含"实现") | **快** | 任务 < 3 文件 / < 30 行 → 不值得严纪律 + TDD |
+| "fix typo" / "改个错别字" / 一行小改动 | 严(因为含"fix") | **快** | 同上,改 1 行无 TDD 必要 |
+| "有 bug" / "报错了" / "出问题了"(尚未定位) | 严(因为含"bug") | **钻** | 还没找到根因 → 先 systematic-debugging,不要跳过定位直接戴严修代码 |
+
+**判定补充**: "修复 / 实现" 触发 `严` 的**前置条件**是任务范围 ≥ 3 文件 **或** ≥ 30 行 **或** 含 TDD 信号。
+一次性 / 小改动仍 `快`。
+
+## 设计哲学: 为何不引入"中途换帽"机制
+
+hat 是 **任务级 persona**(一顶帽走完整个任务),不是阶段级切换。原因:
+
+- 频繁切换 hat 自身有 overhead + 用户体验割裂(每次切都要输出告知行)
+- 主体阶段(占任务 70% 时间)的 persona 应该是默认 — flow-dev-task 主体是"实现 + 测试 + 验证",所以默认是 `严`
+- 早期 brainstorm / 定位 阶段若需要不同 persona,**让相关 skill 自己 override hat**:
+  - 调 `superpowers:brainstorming` → 临时切到 `散`
+  - 调 `superpowers:systematic-debugging` → 临时切到 `钻`
+  - 调 `clean-commit` / `delivery-gate` 通过后 → 切回 `快`
+- hat 不应试图穿透感知所有阶段切换 — 那是 orchestrator skill 的职责
+
+→ 本次新增的"修复/实现/定位/收尾"自动激活只覆盖**主体阶段默认选择**,不引入中途自动换帽。
+用户手动换帽(Step 4a)和 detection.md "任务转向信号"(Step 4b)的现有机制保留。
+
+### 路由仲裁表(本次明示,避免新规则与 Step 4b 冲突)
+
+子 skill override 路径 vs Step 4b 主动建议机制何时各走各路:
+
+| 切换触发源 | 路径 | 是否过 Step 4b | 计入 4b 频率上限? |
+|---|---|---|---|
+| **任务开头自动检测**(detection.md 优先级 1-4) | 走 detection.md 路由 | 否 | 否 |
+| **用户语言转向**(detection.md "任务转向信号"段) | 走 Step 4b 严格度差仲裁(opt-in/opt-out) | 是 | 是 |
+| **子 skill 主调用 hat override**(进入 brainstorming/systematic-debugging/clean-commit/unblock-recipes 等) | 该子 skill 自己 override,跳过 4b | **否** | **否** |
+| **用户显式换帽**("/hat strict") | 走 Step 4a 立即生效 | 否 | 否 |
+
+**关键**: 子 skill override 必须**跳过 4b**,否则严→快(-4)/钻→严(-1)等弱化切换会被 switching-policy.md 拦成 opt-in,与"默认推进不默认提问"信条冲突。这条规则在 `detection.md` 优先级 3 段也有冗余明示。
 
 ## 8 顶帽子
 
