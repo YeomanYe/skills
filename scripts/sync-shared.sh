@@ -96,6 +96,7 @@ constitution_target_skills=(
   experience-summary
   hat
   unblock-recipes
+  change-recap
 )
 
 drift_count=0

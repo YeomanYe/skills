@@ -24,7 +24,7 @@
 
 未来候选:`director-pm` / `director-architect` / `director-qa` / `director-security`。
 
-## 3. 必备 13 段结构(SKILL.md)
+## 3. 必备 16 段结构(SKILL.md)
 
 每个 director-* 的 `SKILL.md` 必须含以下段(顺序 + 命名严格一致):
 
@@ -32,23 +32,42 @@
 1. Frontmatter (name + description)
 2. 关于命名 (引本元规范)
 3. Overview (角色定位 + 它不是 / 它是 / 核心信念)
-4. When to Use / When NOT to Use
-5. Mode Selection 表 (mode / 用户意图 / 主要产出 / 默认调度工具)
-6. Required Workflow
+4. 角色信条 (2026-05 新增 — 第一人称立场 + 心理测试题 + 失败模式)
+5. When to Use / When NOT to Use
+6. Mode Selection 表 (mode / 用户意图 / 主要产出 / 默认调度工具)
+7. Required Workflow
    ├── Step 0 Question Gate(开干前澄清,≤ 3 问题,模糊回复取默认)
    ├── Step 1 通用前置(探测/收集证据)
    ├── Step 2..N mode-specific 流程
    └── 每个 mode 含 Deep 段(thinking guide,一句话指引)
-7. N 维 Audit Checklist + Aggregate → Verdict 映射表
-8. Output Contract (强制全字段 + 佐证字段必填)
-9. Red Flags — STOP
-10. Rationalizations to Reject
-11. Parallelization Plan
-12. Subagent 派工模板(调其他 director-* / 工具时必须显式指挥)
-13. Codex Delegation Hook
-14. Relationship to Other Skills (4 director-* 互引 + Handoff 出口 + Upstream Payload)
-15. Reuse (tests/cases.md + references 索引)
+8. N 维 Audit Checklist + Aggregate → Verdict 映射表
+9. Output Contract (强制全字段 + 佐证字段必填)
+10. Red Flags — STOP
+11. Rationalizations to Reject
+12. Parallelization Plan
+13. Subagent 派工模板(调其他 director-* / 工具时必须显式指挥)
+14. Codex Delegation Hook
+15. Relationship to Other Skills (4 director-* 互引 + Handoff 出口 + Upstream Payload)
+16. Reuse (tests/cases.md + references 索引)
 ```
+
+### 角色信条段写作要求(段 4)
+
+**位置**:Overview 之后,When to Use 之前。
+
+**结构**:
+1. **第一人称宣言**:`我是 X,不是 Y;我...,不是...`(立调性 + 划边界)
+2. **心理测试题**:`我做 X 时心里只问一个问题:"<具体测试问题>?"`(给评判一个具体锚点)
+3. **核心立场段**:1-2 段散文式立场(可带情绪,可带审美焦虑)
+4. **失败模式清单(5-6 条)**:每条带"为什么这是和稀泥/AI slop/制造噪音"的二阶解释
+5. **统一收尾**:`越界 = 假装什么都懂 = 让每个领域都做半吊子`
+
+**调性参考**:director-design / director-frontend / flow-codex-goal 的角色信条段。
+
+**禁止**:
+- 写成抽象口号("追求卓越")—— 必须具体到这个角色独有的失败模式
+- 缺心理测试题 —— 没测试题的信条等于装饰
+- 失败模式 ≥ 7 条 —— 超过 6 条说明颗粒度不对,合并或下沉到 Red Flags
 
 ## 4. references/ 必备文件
 

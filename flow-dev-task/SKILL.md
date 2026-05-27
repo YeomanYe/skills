@@ -75,13 +75,15 @@ description: >
 
 根据用户初始 prompt 判定分支：
 
-| 关键词 | 分支 |
-|---|---|
-| bug / 报错 / 错了 / 不对 / fix / 修 / 故障 / 挂了 / 异常 / broken | **修复链** |
-| 实现 / 做一个 / 加一个 / 新功能 / 需求 / feature / build / ship | **功能链** |
-| 同时命中 / 完全模糊 | 停下追问**一句**："这是修现有 bug 还是做新功能？" |
+| 关键词 | 分支 | task_type(给 change-recap 用) |
+|---|---|---|
+| bug / 报错 / 错了 / 不对 / fix / 修 / 故障 / 挂了 / 异常 / broken | **修复链** | `bugfix` |
+| 实现 / 做一个 / 加一个 / 新功能 / 需求 / feature / build / ship | **功能链** | `feature` |
+| 解冲突 / merge conflict / rebase 冲突 / conflict marker / `<<<<<<<` | **修复链** | **`merge-resolve`** |
+| 按 reviewer / 处理 review 意见 / must-fix / 改 review / address feedback / 改 review 反馈 | **修复链** | **`accept-review-feedback`** |
+| 同时命中 / 完全模糊 | 停下追问**一句**："这是修现有 bug 还是做新功能？" | — |
 
-判定结果固定分支，后续流程不再切换。
+判定结果固定分支,后续流程不再切换。**`task_type` 在 Stage 7.5 Auto-Recap Rule 使用,决定是否调 change-recap**。
 
 ## Context Harvest（减问的关键，**并行 Bash 执行**）
 
@@ -157,6 +159,12 @@ Stage 7: delivery-gate（验收）
   ├─ PASS → 推进
   └─ must-fix → 回 Stage 2 或 Stage 5，**禁止**直接到 Stage 8
   ↓
+Stage 7.5: change-recap pre-hook（**条件**, 默认 false 对 feature）
+  └─ task_type ∈ {bugfix, merge-resolve, accept-review-feedback} 且 `--auto-recap=true`
+     → 调 change-recap 生成用户视角 3 段讲解
+     → 推 IM (若 IM 会话) + 拼到 commit body (若 < 800 字)
+     → feature 链 task_type=feature 默认跳过
+  ↓
 Stage 8: clean-commit
   └─ IM 会话下由它自动 push（无需再额外处理）
   ↓
@@ -197,6 +205,10 @@ Stage 6: superpowers:verification-before-completion
   ↓
 Stage 7: delivery-gate
   ↓
+Stage 7.5: change-recap pre-hook（**修复链必跑**, 除非 `--auto-recap=false`）
+  └─ task_type=bugfix 命中 → 调 change-recap 生成用户视角 3 段讲解
+     → 推 IM (若 IM 会话) + 拼到 commit body
+  ↓
 Stage 8: clean-commit
   ↓
 Stage 9: finishing-a-development-branch（条件跳过）
@@ -214,6 +226,27 @@ Output: Flow Dev Task Report
 | 2 | plan 有顺序依赖且 ≥ 3 步 | `superpowers:subagent-driven-development`（当前 session） |
 | 3 | plan 单步 或 纯局部改动 | **直接自己写**，不调 execute skill |
 | 4 | 用户显式说"开新会话跑 / fresh session" | `superpowers:executing-plans` |
+
+### Auto-Recap Rule(Stage 7.5 pre-hook,2026-05 新增)
+
+**触发**: Stage 7 delivery-gate PASS 后,Stage 8 clean-commit **之前**,按下面表决定要不要调 `change-recap`:
+
+| task_type | `--auto-recap` 默认 | 行为 |
+|---|---|---|
+| `bugfix`(修复链) | **true** | 调 change-recap,生成 3 段用户视角讲解 + 推 IM(若 IM 会话) |
+| `merge-resolve`(刚解完合并冲突) | **true** | 同上 |
+| `accept-review-feedback`(按 delivery-gate / reviewer must-fix 改完) | **true** | 同上 |
+| `feature`(功能链) | **false** | 默认不调(新功能用 CHANGELOG / release notes 更合适);用户可 `--auto-recap=true` 强开 |
+| 其他 | **false** | 不调 |
+
+**CLI 参数**:
+- `--auto-recap=true|false`(覆盖默认)
+- `--audience end-user|pm|dev`(默认 `end-user`,透传给 change-recap)
+- `--no-im`(若不想推 IM,只生成本地 markdown 拼 commit body)
+
+**Fallback**:change-recap 生成失败(LLM 错 / token 超 / cc-connect IM 推失败)→ flow-dev-task **不阻断** Stage 8,跳过钩子继续走 commit,但在 Final Report `errors[]` 标记 `change-recap failed: <reason>`。
+
+**clean-commit 纯净**:本 pre-hook 在 flow-dev-task **内部**实现,**不** require clean-commit 调 change-recap(clean-commit 保持单一职责)。
 
 ### TDD Skip Whitelist
 
@@ -387,6 +420,9 @@ Stage 5 写代码完成后，按以下规则决定是否触发 Stage 5.5 UI Audi
 ### 交付
 - verification-before-completion: pass | fail + reason
 - delivery-gate: pass | fail + must-fix list
+- change-recap: done | skipped (reason: feature 链默认跳 / --auto-recap=false / generation failed) | n/a
+- change-recap audience: end-user | pm | dev | n/a
+- change-recap im_pushed: pushed | skipped (no CC_SESSION_KEY) | failed | n/a
 - Commit SHA:
 - Push status: pushed | skipped | failed | n/a
 - Branch handling: merged | PR | cleanup | no-op
@@ -444,7 +480,7 @@ Stage 5 写代码完成后，按以下规则决定是否触发 Stage 5.5 UI Audi
   - `superpowers:using-git-worktrees`
   - `superpowers:dispatching-parallel-agents` / `subagent-driven-development` / `executing-plans`
   - `superpowers:verification-before-completion` / `finishing-a-development-branch`
-  - `delivery-gate` / `clean-commit`
+  - `delivery-gate` / `change-recap`(Stage 7.5 pre-hook,bugfix/merge/accept-review 默认调) / `clean-commit`
 - **下游（仅 Claude 自写路径调用）**：
   - `superpowers:test-driven-development`
   - **Codex 派工路径不调此 skill**，TDD 方法改由 SPEC 强制 + git commit 顺序检查
