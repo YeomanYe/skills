@@ -4,7 +4,7 @@
 > agent 召回流程: 读本文件 → 匹配 symptom 关键词 → 找到 ≤3 条候选 recipe → 只载入这些 recipe 的正文。
 > **禁止 `ls recipes/` 后全量 `cat`**,会炸 token。
 
-**当前状态**: MVP 启动期,recipe 库初始为空。首条 recipe 通过 `experience-summary` 分诊路由后由用户/agent 真实落盘。
+**当前状态**: MVP 启动期。首条 recipe 通过 `experience-summary` 分诊路由后由用户/agent 真实落盘。
 
 ---
 
@@ -45,13 +45,19 @@
 ### skill-development
 - (空)
 
+### meegle
+- lark-project-url-needs-meegle-cli
+
 ---
 
 ## 按 symptom 关键词反查(精确召回)
 
 | symptom 关键词 | recipe slug | tag |
 |---|---|---|
-| (空表,首条 recipe 入册后按 alphabetical 排) | | |
+| 302 Found 重定向到 meegle.com 营销页 | lark-project-url-needs-meegle-cli | meegle |
+| ecommerce-strapi 等 Lark space 链接抓出营销首页 utm_source=in_meegle | lark-project-url-needs-meegle-cli | meegle |
+| Lark Project / Meegle workObjectView / workitem URL 鉴权失败 | lark-project-url-needs-meegle-cli | meegle |
+| project.larksuite.com 链接 WebFetch 拿不到内容 | lark-project-url-needs-meegle-cli | meegle |
 
 ---
 
