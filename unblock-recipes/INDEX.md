@@ -4,8 +4,6 @@
 > agent 召回流程: 读本文件 → 匹配 symptom 关键词 → 找到 ≤3 条候选 recipe → 只载入这些 recipe 的正文。
 > **禁止 `ls recipes/` 后全量 `cat`**,会炸 token。
 
-**当前状态**: MVP 启动期。首条 recipe 通过 `experience-summary` 分诊路由后由用户/agent 真实落盘。
-
 ---
 
 ## 按 tag 分类
@@ -45,6 +43,10 @@
 ### skill-development
 - (空)
 
+### skillshare
+- skillshare-multi-skill-repo-minimal-install
+- skillshare-external-repo-wrong-kind
+
 ### meegle
 - lark-project-url-needs-meegle-cli
 
@@ -58,6 +60,14 @@
 | ecommerce-strapi 等 Lark space 链接抓出营销首页 utm_source=in_meegle | lark-project-url-needs-meegle-cli | meegle |
 | Lark Project / Meegle workObjectView / workitem URL 鉴权失败 | lark-project-url-needs-meegle-cli | meegle |
 | project.larksuite.com 链接 WebFetch 拿不到内容 | lark-project-url-needs-meegle-cli | meegle |
+| skillshare install -s <name> --track 报错 --skill cannot be used with --track | skillshare-multi-skill-repo-minimal-install | skillshare |
+| skillshare target exclude pattern 对带前缀的 slug 不匹配 | skillshare-multi-skill-repo-minimal-install | skillshare |
+| 整 repo 安装后 60+ 子 skill 全进 ~/.claude/skills/ 污染上下文 | skillshare-multi-skill-repo-minimal-install | skillshare |
+| 想极简装 multi-skill repo 里的单个 skill 同时保留 update 追踪 | skillshare-multi-skill-repo-minimal-install | skillshare |
+| skillshare 装外部 repo 后进了 agents/ 而不是 skills/ | skillshare-external-repo-wrong-kind | skillshare |
+| skillshare list 显示装好的 skill 在 agent 段不在 skill 段 | skillshare-external-repo-wrong-kind | skillshare |
+| 期望是 skill 却被自动分类为 agent | skillshare-external-repo-wrong-kind | skillshare |
+| ~/.config/skillshare/agents/_<source>/ 出现意外目录 | skillshare-external-repo-wrong-kind | skillshare |
 
 ---
 
