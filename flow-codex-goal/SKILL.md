@@ -88,37 +88,25 @@ orchestrator agent。Claude 专属机制（cc-connect IM 推送、Agent SUBAGENT
 
 **我是 orchestrator，不是 executor；我是 Goal Codex 的看门人，不是它的助理。**
 
-**长任务最容易死在"orchestrator 自己也开始动手"**——一旦我开始替 Goal 想问题、
-替 Reviewer 评分、替用户决定 verdict，**整套硬隔离机制立刻坍缩成"两个 Codex
-+ 一个特别勤快的人在中间瞎搅和"**。我多醒 1 次 = 长任务多 1 个污染点。
+**长任务最容易死在"orchestrator 自己也开始动手"**——一旦我替 Goal 想问题 /
+替 Reviewer 评分 / 替用户决定 verdict，**硬隔离机制立刻坍缩**。我多醒 1 次 =
+长任务多 1 个污染点。
 
-我执行任务时心里只问一个问题：**"如果我现在 sleep 8 小时回来，这个 pipeline
-能不能自己跑完、自己停在该停的地方、自己 ping 我？"** 不能 = 我设计错了，
-跟它跑得多顺、Goal Codex 多聪明、reviewer 多准，**一点关系都没有**。
+执行时只问一个问题：**"如果我现在 sleep 8 小时回来，pipeline 能不能自己跑完、
+自己停在该停的地方、自己 ping 我？"** 不能 = 我设计错了。**idle 是美德**。
 
-**idle 是美德**。本 skill 不假设 orchestrator 是 Claude——Codex / Gemini / 任何
-能调用 Bash 的 agent 调用时，IM 推送（cc-connect）、Agent 工具（SUBAGENT 模式）等
-"Claude 专属机制"会自动降级为"orchestrator 主动 poll"。降级映射见
-`references/run-mode.md`。降级 ≠ 多干活——降级后**仍然是 idle 优先**，只是
-poll 周期从"被 watcher 唤醒"变成"自己定时检查 STATUS.md"。
+非 Claude orchestrator（Codex / Gemini / 任何能调用 Bash 的 agent）调用时，
+IM 推送 / Agent 工具等 Claude 专属机制自动降级为"orchestrator 主动 poll"，
+仍然 idle 优先。降级映射见 `references/run-mode.md`。
 
-我最容易翻的车——每一条都是"看起来在帮忙，实际在破坏隔离"：
+最容易翻的 5 个车（"看起来在帮忙，实际在破坏隔离"）：
 
-- **替 Goal Codex 想问题** — 看 STATUS.md 觉得它卡了，就去 prompt 它一下 =
-  **把上下文偷喂给 Goal，baseline 之后所有评分都不再可比**。该让 watcher 处理，
-  watcher 处理不了再走 stop condition + 人类裁决，**不要中途自己手贱**。
-- **替 Reviewer 解释 Goal 的意图** — "这个 reviewer 评分不准，我帮 Goal 申辩一下" =
-  **隔离失效**。reviewer 评分就不再独立。reviewer 评错就重派 reviewer，
-  不要"帮它理解" Goal 在干什么。
-- **跳 Phase 0 直接启动** — "这个任务我懂，AC 我心里有数" = 没有 APPROVAL.md
-  就跑 = **3 小时后用户问"你跑的是什么？"我答不上来**。Phase 0 是 80% 价值的来源，
-  跳了就退化成裸 `/goal`。
-- **觉得自己比 watcher 准** — "watcher 又误报 boundary 了，我手动 override 一下" =
-  **绕过看门狗一次 = 下次真出事时也会假定是误报**。watcher 误报就修 watcher，
-  不要在 orchestrator 这边加豁免。
-- **越界做高风险代码** — auth / 支付 / 加密的代码 **我自己写，不派 Codex**。
-  Codex Goal 跑 8 小时改对 7 条但漏第 8 条 = 安全事故。这条没有讨论余地，
-  跟"用户明确指定"也无关——本条是 constitution 级别的硬约束。
+- **替 Goal Codex 想问题** → 上下文偷喂 = baseline 之后评分不可比。让 watcher 处理。
+- **替 Reviewer 解释 Goal 的意图** → 隔离失效。reviewer 评错就重派，不要"帮它理解"。
+- **跳 Phase 0 直接启动** → 没 APPROVAL.md = 3 小时后用户问跑的什么我答不上。
+- **觉得自己比 watcher 准** → boundary 误报就修 watcher，不要在 orchestrator 加豁免。
+- **越界做高风险代码** → auth / 支付 / 加密 **我自己写，不派 Codex**。
+  constitution 级硬约束，与"用户明确指定"无关。
 
 ### Codex `/goal` 的硬限制 + 本 skill 的兜底
 
@@ -445,22 +433,17 @@ echo $! > .agent/tasks/$TASK_ID/codex.pid
 SESSION="codex-job-$TASK_ID"
 tmux new-session -d -s "$SESSION" \
   "cd '$WORKTREE' && codex --dangerously-bypass-approvals-and-sandbox --cd '$WORKTREE'"
-# 完整日志兜底（见 references/tmux-yolo-runtime.md §2.3）
-tmux pipe-pane -o -t "$SESSION" "cat >> .agent/tasks/$TASK_ID/codex-full.log"
+tmux pipe-pane -o -t "$SESSION" "cat >> .agent/tasks/$TASK_ID/codex-full.log"   # §2.3
 echo "$SESSION" > .agent/tasks/$TASK_ID/tmux.session
-# 注：tmux session 在系统层持久存在，跨 Bash 工具调用不死
 
-# 投喂初始 /goal 指令：marker 协议条款见 references/tmux-yolo-runtime.md §1.1
+# 投喂 /goal（marker 协议 §1.1）：phase 结束必须独立行 emit
+#   '# PHASE-<N>-DONE @ <ISO-UTC>' 或 '# PHASE-<N>-ABORTED @ <ts> reason: <stop-id>'
 tmux send-keys -t "$SESSION" "/goal Read .agent/tasks/$TASK_ID/GOAL.md, follow PLAN.md, update STATUS.md after every milestone. Emit '# PHASE-<N>-DONE @ <ISO-UTC>' on its own line at the end of each phase (NOT inside code blocks); emit '# PHASE-<N>-ABORTED @ <ts> reason: <stop-id>' instead if a stop condition fires. Verify per EVAL.md, stop when GOAL_DONE or stop conditions hit." Enter
 
-# orchestrator / watcher 之后通过 capture-pane 抓 buffer 判断进度（完整协议见 references/tmux-yolo-runtime.md §1.2 / §2.2）：
-#   pane=$(tmux capture-pane -t "$SESSION" -J -p -S -2000 | strip_tmux_artifacts)
-#   echo "$pane" | grep -E '^# PHASE-[0-9]+-(DONE|ABORTED) @ '
-# 抓到 DONE marker 触发 snapshot + reviewer + review-audit；
-# 抓到 ABORTED 写 STATUS.md STOPPED 并退出 watcher。
+# watcher 通过 capture-pane | strip_tmux_artifacts | grep marker 判断进度（§1.2 / §2.2）
 ```
 
-完整 3 项协议（marker / ANSI strip / cleanup）落地见 **`references/tmux-yolo-runtime.md`**。
+3 项协议（marker / ANSI strip / cleanup）+ tmux 持久性细节见 **`references/tmux-yolo-runtime.md`**。
 
 ##### CLI-EXEC 模式（每个 Phase 单次启动）
 ```bash
@@ -484,88 +467,51 @@ codex exec --skip-git-repo-check --cd "$WORKTREE" < references/goal-prompt.md
 
 #### Step 1.2：启动 watcher（健康 + 边界 + IM inbox poll）
 
-**两种启动方式**（详见下方「Orchestrator Wake-up Combo」段——决定 watcher 退出时 orchestrator 能不能自动被唤醒）：
+**两种启动方式**（细节见下方「Orchestrator Wake-up Combo」段 + `references/wake-up-combo.md`）：
 
-| 方式 | 谁会收到退出通知 | 何时选 |
+| 方式 | 退出通知 | 何时选 |
 |---|---|---|
-| **A — Bash run_in_background**（**推荐**，Claude Code 主路） | orchestrator 主进程（tool notification fires on exit） | orchestrator 是 Claude Code agent，且支持 `Bash(run_in_background=true)` |
-| **B — nohup detached**（fallback） | 无人；只能靠 watcher 内部 30 min cc-connect cron 安全网 ping orchestrator | 调用方不支持 run_in_background（裸 shell / cron / 其他 agent） |
+| **A — Bash run_in_background**（**推荐**） | orchestrator 主进程（tool notification） | Claude Code agent + 支持 `Bash(run_in_background=true)` |
+| **B — nohup detached**（fallback） | 无；靠 watcher 30 min cc-connect cron 兜底 | 裸 shell / cron / 其他 agent |
 
 ```bash
-# 方式 A（推荐，orchestrator 是 Claude Code）：
-# orchestrator 端调用 Bash 工具时设置 run_in_background=true，watcher 退出会触发 tool notification
+# A（推荐，Claude Code）— BashOutput 自动 surface exit code
 bash references/watcher.sh "$TASK_ID"
-# Claude Code 会在 BashOutput 里看到 exit code，自动按 "Watcher Exit Code → Orchestrator 行为映射" 处理。
 
-# 方式 B（fallback，裸 shell / cron）：
+# B（fallback）— watcher 内部 30 min wake cron 兜底（CC_SESSION_KEY 非空时生效）
 nohup bash references/watcher.sh "$TASK_ID" \
   > .agent/tasks/$TASK_ID/logs/watcher.log 2>&1 &
 echo $! > .agent/tasks/$TASK_ID/watcher.pid
-# 退出后 orchestrator 无主动通知；watcher 内部已注册 30 min cc-connect cron 兜底（仅 CC_SESSION_KEY 非空时生效）。
-
-# watcher 主循环按时间戳节流串行跑 3 个守卫（不是并发，避免 race）：
-#   1. boundary-watch.sh（每 30 秒，检测 codex 是否动了 worktree 外文件 / 主分支 / git remote）
-#   2. cc-connect inbox poll（每 60 秒，把人类 IM 回复落到 STATUS.md Human Feedback 段）
-#   3. health-check.sh（每 INTERVAL 默认 5 分钟，检测 running/milestone/done/stalled/failed/stopped）
-# 如果某次 health-check 卡 30s+，boundary 检查会被推迟到下个 sleep 后；属于已知妥协。
-# 真正需要并发，可在 watcher.sh 内 fork 子 shell（当前不做，避免日志交错）。
 ```
 
-watcher 是 **orchestrator idle 期间的唯一活跃进程**。它接管：
-- 健康判定（running / milestone / done / stalled / failed / stopped）
-- 边界守卫（详见 `references/boundary-watch.sh`）
-- IM inbox poll（**人类 pause/abort/adjust 由 watcher 落盘，不再要 orchestrator poll**）
-- mini-review 触发 + score-diff + snapshot
-- UI 截图即时通过 cc-connect 推送
-- **B 方案 wake cron 自管理**：启动时 `schedule_orchestrator_wake`，所有非 retry 终止分支 `cleanup_orchestrator_wake`（exit 3 / auto-retry 除外，保活穿越 retry）
+watcher 主循环串行跑 3 个守卫（不并发避免 race）：boundary-watch（30s）/
+cc-connect inbox poll（60s）/ health-check（默认 5min）。watcher 是
+**orchestrator idle 期间的唯一活跃进程**，接管：健康判定 / 边界守卫 /
+IM inbox poll（人类 pause/abort/adjust 由 watcher 落盘）/ mini-review 触发 +
+score-diff + snapshot / UI 截图即时 cc-connect 推送 / B 方案 wake cron 自管理
+（exit 3 故意保活穿越 retry）。
 
 #### Step 1.3：watcher milestone 循环（含 UI 截图 + audit + snapshot）
 
-每当 watcher 检测到 `milestone` 状态：
+每当 watcher 检测到 `milestone` 状态，按以下 6 步串行执行：
 
-```bash
-# 1. runtime-evidence.sh 收集证据（含 UI 任务的状态走查截图）
-bash references/runtime-evidence.sh "$TASK_ID" "scores/$milestone"
-
-# 2. 启动 mini-review codex（独立新进程，超时 10 分钟）
-timeout 600 codex exec --skip-git-repo-check < references/milestone-review-prompt.md
-# 输出 .agent/tasks/$TASK_ID/scores/$milestone.json
-# prompt 里**反复强调** "score on 1-5 scale, do NOT rescale to 1-10"
-
-# 3. score-diff.py vs baseline，按 GOAL.md mode 判定
-MODE=$(grep -A1 "^mode:" $TASK_DIR/GOAL.md | head -1 | awk '{print $2}')
-python3 references/score-diff.py \
-  --baseline $TASK_DIR/BASELINE.md \
-  --current  $TASK_DIR/scores/$milestone.json \
-  --mode     "$MODE" \
-  --no-improvement-history $TASK_DIR/scores/aggregate-trend.json
-
-# 4. snapshot：分数创新高 → 立刻 git tag
-CURRENT_AGG=$(jq -r .aggregate $TASK_DIR/scores/$milestone.json)
-HIGHEST=$(cat $TASK_DIR/snapshots/HIGHEST_SCORE 2>/dev/null || echo 0)
-if (( $(echo "$CURRENT_AGG > $HIGHEST" | bc -l) )); then
-  git tag "snapshot-$milestone-${CURRENT_AGG}"
-  echo "$CURRENT_AGG" > $TASK_DIR/snapshots/HIGHEST_SCORE
-  echo "snapshot-$milestone-${CURRENT_AGG}" > $TASK_DIR/snapshots/HIGHEST_TAG
-fi
-
-# 5. 写 review-audit/round-N.jsonl（详见 references/review-audit-schema.md）
-bash references/write-audit.sh "$TASK_ID" "$milestone" mini-review
-
-# 6. UI 截图即时推 IM（如果 is_ui_task=true 且 CC_SESSION_KEY 非空）
-if [[ -n "${CC_SESSION_KEY:-}" ]] && grep -q "is_ui_task: true" $TASK_DIR/GOAL.md; then
-  IMGS=$(find $TASK_DIR/scores/$milestone/screenshots -name "*.png" | head -8)
-  IMG_ARGS=""; for f in $IMGS; do IMG_ARGS="$IMG_ARGS --image $f"; done
-  cc-connect send --message "[$TASK_ID] $milestone score=$CURRENT_AGG (Δ vs baseline)" $IMG_ARGS
-  # 同时写入 pending-review-images.txt 让 orchestrator 后补校验
-  echo "$milestone $IMGS" >> $TASK_DIR/pending-review-images.txt
-fi
-```
+1. **runtime-evidence** — `bash references/runtime-evidence.sh "$TASK_ID" "scores/$milestone"`
+   （含 UI 任务的状态走查截图）
+2. **mini-review codex**（独立新进程，timeout 600）—
+   `codex exec < references/milestone-review-prompt.md` 输出 `scores/$milestone.json`，
+   prompt 反复强调 "score on 1-5 scale, do NOT rescale to 1-10"
+3. **score-diff** — `python3 references/score-diff.py` 按 GOAL.md `mode` 判退化
+4. **snapshot** — 分数创新高 → `git tag "snapshot-$milestone-$CURRENT_AGG"` +
+   写 `snapshots/HIGHEST_SCORE` / `HIGHEST_TAG`
+5. **audit** — `bash references/write-audit.sh "$TASK_ID" "$milestone" mini-review`
+6. **UI 截图即时推 IM**（`is_ui_task=true` + `CC_SESSION_KEY` 非空）—
+   `cc-connect send --image` 多图 + 写 `pending-review-images.txt` 让
+   orchestrator 后补校验
 
 **UI 截图协议**（`is_ui_task: true` 时强制）：
-- ✅ **即时发送**（不批发）
-- ✅ **状态矩阵覆盖**（normal / duplicate / 边缘视口 / 滚动到底等，详见 `references/ui-review-checklist.md`）
-- ✅ orchestrator 下次被人 ping 时**批量补校验**（view_image 看 pending-review-images.txt 中所有图，发现错位发"勘误"消息）
+- ✅ **即时发送**（不批发） + **状态矩阵覆盖**（详见 `references/ui-review-checklist.md`）
+- ✅ orchestrator 下次被人 ping 时**批量补校验**（view_image 看
+  pending-review-images.txt，发现错位发"勘误"消息）
 - ✅ 收尾发"历史最高分轮次"截图（不是最后一轮），明确说明"这是最终采用版本"
 
 #### Step 1.4：orchestrator idle 模型
@@ -698,30 +644,8 @@ wait "${EXTRA_PIDS[@]}"
 - `reviews/round-$ROUND/REVIEW.md`（内置 Reviewer Codex）
 - `reviews/round-$ROUND/extras/<reviewer-name>.md`（如 `extras/director-design.md`）
 
-**派工 prompt 模板**（每个 extra reviewer，遵循 `references/parallelization-template.md` 显式调用 skill 硬规则）：
-
-```
-Slot: extra-reviewer-<name>
-Task: 作为 <reviewer-name> 对当前 Goal 完成状态做专项审计
-
-必须显式调用的 skill:
-  - <reviewer-name>（如 director-design，subagent 默认不会主动用）
-
-输入（只读）:
-  - GOAL.md / EVAL.md / BASELINE.md / review-input/
-  - 当前 round: <N>
-  - **本 reviewer 负责的检查维度**: <从 GOAL.md extra_reviewers[name].checks 注入>
-    —— 只在这些维度上打分，不评其他维度（其他维度由别的 reviewer 负责）
-
-输出: 写到 .agent/tasks/<TASK_ID>/reviews/round-<N>/extras/<reviewer-name>.md
-返回 JSON: {reviewer_name, verdict, aggregate, checked_dimensions, must_fix, should_fix, errors}
-
-约束:
-  - 只审被认领的 checks 维度，不越界评别人的维度
-  - 不读 STATUS.md / ISSUES.md / logs/（与内置 Reviewer Codex 相同隔离原则）
-  - 不修改任何代码
-  - 必须按自己 skill 的 Output Contract 出报告
-```
+**派工 prompt 模板**：完整模板 + 字段注入规则见 `references/extra-reviewer-prompt.md`
+（遵循 `references/dispatcher-template.md` 通用字段集 + `references/parallelization-template.md` 显式 skill 调用硬规则）。
 
 watcher 派工时把该 reviewer 在 GOAL.md `extra_reviewers[].checks` 里声明的维度注入 prompt 的
 "负责的检查维度"段。内置 Reviewer Codex 同理——按 `REVIEWER-PLAN.md` 里它的 checks 行注入 review-prompt。
@@ -730,88 +654,23 @@ watcher 派工时把该 reviewer 在 GOAL.md `extra_reviewers[].checks` 里声�
 
 #### Step 2.4：处理 verdict + 多 reviewer 仲裁 + snapshot + 最高分回退
 
-watcher touch `.review-pending` → orchestrator 唤醒，读 REVIEW.md：
+watcher touch `.review-pending` → orchestrator 唤醒，读 REVIEW.md → 走仲裁逻辑。
 
-```python
-# 伪代码：orchestrator 仲裁逻辑
-review = read("reviews/round-N/REVIEW.md")
-goal = read("GOAL.md")
+**完整伪代码**（单 reviewer 退化路径 + 多 reviewer 主路径）见
+`references/orchestrator-arbitration.md`。本段只列硬规则速查：
 
-if review.verdict == "fail":
-    arbitration = []
-    for must_fix in review.must_fix:
-        # 关键仲裁规则：黑名单优先级 > reviewer Must Fix
-        if must_fix.file in goal.non_goals:
-            arbitration.append({
-                "must_fix_idx": must_fix.idx,
-                "decision": "overridden",
-                "reason": f"file in GOAL.md Non-goals: {must_fix.file}"
-            })
-        else:
-            arbitration.append({"must_fix_idx": must_fix.idx, "decision": "accepted"})
-
-    # 写 review-audit/round-N.jsonl 含完整仲裁记录
-    write_audit(round=N, review=review, arbitration=arbitration)
-
-    if all(a.decision == "overridden" for a in arbitration):
-        # reviewer 提的 Must Fix 全在黑名单 → 视同 pass，进 Phase 3
-        proceed_to_phase_3()
-    else:
-        # 把 accepted Must Fix 写回 STATUS.md "Next Action"
-        # 退回 Goal Codex 修，回 Step 1.1
-        retry()
-
-elif review.verdict == "pass":
-    # snapshot：分数创新高才打 tag
-    if review.aggregate > read_highest_score():
-        git_tag(f"snapshot-final-r{N}-{review.aggregate}")
-    write_audit(round=N, review=review, arbitration=[])
-    proceed_to_phase_3()
-
-# 连续 N 轮（默认 3）不涨分 → 强制回退到最高分 snapshot
-if no_improvement_count() >= 3:
-    highest_tag = read_highest_tag()
-    notify_human(f"3 轮不涨分，最高分在 {highest_tag}，回退？")
-    if human_approves():
-        git_checkout(highest_tag)
-        proceed_to_phase_3()
-```
-
-**关键规则**：
 - **黑名单优先 reviewer Must Fix**：reviewer 要拆 `Non-goals` 文件 → orchestrator 拒，写 audit
-- **3 轮 review fail 上限**：超出 → 强制终止 Goal Codex + alert
+- **3 轮 review fail 上限**：超出 → 强制终止 Goal Codex + alert（watcher exit 2）
 - **3 轮不涨分**：回到历史最高分 snapshot tag（不是最后一轮）
 - **PASS 但低于最高分**：不自动回滚，但保留快照让人类选
-- **多 reviewer 仲裁**：默认 **AND-pass**（所有 reviewer 都 pass 才整体 pass），详见 `references/reviewer-arbitration.md`
+- **多 reviewer 仲裁**：默认 **AND-pass**（所有 reviewer 都 pass 才整体 pass）。
+  4 种规则（AND-pass / OR-pass / weighted-avg / hard-rule-override）详见
+  `references/reviewer-arbitration.md`
+- **几何平均**：multi-reviewer 整体 aggregate = `(r1.agg * r2.agg * ... * rN.agg) ** (1/N)`，
+  强调"两边都好"，避免一边极高一边极低也通过
 
-**多 reviewer 仲裁伪代码**（替代上面的单 reviewer 逻辑）：
-
-```python
-codex_review = read("reviews/round-N/REVIEW.md")
-extra_reviews = [read(f"reviews/round-N/extras/{r}.md")
-                 for r in read_extra_reviewers_from_goal()]
-all_reviews = [codex_review] + extra_reviews
-
-# 1. 仲裁规则（默认 AND-pass）
-arbitration_rule = read_goal_field("arbitration_rule") or "AND-pass"
-
-# 2. 黑名单仲裁（与现有一致，对每个 reviewer 的 must_fix 都过滤）
-for review in all_reviews:
-    for must_fix in review.must_fix:
-        if must_fix.file in goal.non_goals:
-            mark_overridden(review, must_fix, reason="non-goals")
-
-# 3. 合并 verdict
-overall_verdict = apply_arbitration(all_reviews, rule=arbitration_rule)
-# AND-pass: 所有 reviewer 都 pass（含 override 后视同 pass）→ pass
-# 任一 fail → retry（把所有 reviewer 的 must_fix 合并写回 STATUS.md）
-
-# 4. snapshot 用几何平均（强调"两边都好"，避免一边极高一边极低也通过）
-overall_aggregate = geometric_mean([r.aggregate for r in all_reviews if r.aggregate])
-
-# 5. 写 audit 含所有 reviewer
-write_audit(round=N, all_reviews=all_reviews, arbitration=...)
-```
+retry 时把 accepted must_fix（跨 reviewer 合并去重后）写回 `STATUS.md` 的
+`Next Action` 段，watcher 检测新 commit 后触发 round-(N+1)。
 
 ---
 
@@ -967,68 +826,26 @@ watcher 主循环退出时按 verdict 给不同 exit code，orchestrator 必须�
 - 真要人类干预的场景已经明确（fail 满 3 次 + boundary 违规 + budget 耗尽 + 人类主动 ping），其他情况不许问
 - 例外：commit / push / 销毁 worktree 等 destructive ops **必须** user gate（constitution.md 第 6 条 High-Risk Action Gate）
 
-### Orchestrator Wake-up Combo（A + B，**修复 watcher 退出后无人响应的根本问题**）
+### Orchestrator Wake-up Combo（A + B 兜底）
 
-**根问题**：watcher 退出时通过 `cc-connect send` 发的是 **bot → user** 消息，不会反弹回来唤醒 orchestrator session。结果 watcher 写到磁盘的 `.review-pending` / `.retry-needed` / `.stop-signal` 没人读，exit code 3（auto-retry signal）失效。
+**根问题**：watcher `cc-connect send` 是 bot → user 单向，不会反弹唤醒 orchestrator
+session → 磁盘信号文件没人读，exit 3 auto-retry 失效。
 
-**组合解法**：A 主路 + B 兜底，两路独立失效不影响另一路。
+**组合解法**：
+- **A 主路** — Claude Code `Bash(run_in_background=true)`，watcher 退出时 tool
+  notification 自动唤醒 orchestrator，按 exit code 走映射表（0 token、< 1s 延迟）
+- **B 兜底** — watcher 启动时注册 30 min cc-connect cron `wake-orchestrator-${TASK_ID}`，
+  非 retry 终止分支退出前 `cleanup_orchestrator_wake`，exit 3 故意保活穿越 retry
+  （约 $0.5–1 / 4h 任务，< 30 min 延迟）
 
-#### A 方案 — Bash run_in_background（主路，0 token 成本）
-
-orchestrator 用支持后台任务通知的工具启动 watcher（Claude Code 的 `Bash(run_in_background=true)`）。watcher 退出时，宿主 agent 收到 tool notification，自动按 exit code 走"Watcher Exit Code → Orchestrator 行为映射"。
-
-```bash
-# orchestrator 端（伪代码，实际由 Claude Code Bash 工具调用）：
-Bash(command="bash references/watcher.sh $TASK_ID", run_in_background=true)
-# → 返回 shell_id，watcher 在后台跑
-# → watcher 退出时 BashOutput tool 立刻 surface exit code，wake orchestrator
-```
-
-**优点**：响应延迟近 0；无额外 token；exit code 完整保留。
-**失效场景**：orchestrator 不是 Claude Code（裸 shell / cron / 其他 agent）→ 走 B 方案兜底。
-
-#### B 方案 — cc-connect cron 30 min 安全网（fallback，约 $0.5–1 / 4h 任务）
-
-watcher **启动时**自动注册 30 min 周期的 cc-connect cron，每 30 min 把一条 `[watcher-wake-poll]` prompt 注入 **来源 IM 会话**（按 `CC_SESSION_KEY` 路由），强制 orchestrator session 醒来读 STATUS.md。
-
-```bash
-# watcher.sh 主循环开头自动注册（仅在 CC_PROJECT + CC_SESSION_KEY 双双非空时生效）：
-schedule_orchestrator_wake   # → cc-connect cron add --cron "*/30 * * * *" --desc "wake-orchestrator-${TASK_ID}"
-
-# wake prompt 设计成"幂等 + 短回复"：
-#   - 35 min 内 STATUS.md 有更新 → orchestrator 回复 "normal" 一个词即可（cheap）
-#   - 否则读 .review-pending / .retry-needed / .stop-signal / .boundary-violation 决定下一步
-```
-
-**自管理**：watcher 所有非 retry 终止分支（pass / 3-fail STOP / boundary / failed / stopped / unparseable）退出前调 `cleanup_orchestrator_wake` 删除 cron job，**避免任务终止后 cron 永久 ping**。exit 3（auto-retry）**故意不删**——保活穿越 retry 循环，等下个 round 启 watcher 时复用同名 cron（`grep -q "$WAKE_CRON_DESC"` 去重）。
-
-#### Token 成本权衡（为什么选 30 min 而不是 5 min）
-
-| cron 间隔 | 4h 任务唤醒次数 | 估算 token 成本 | 响应延迟（A 失效时） |
-|---|---|---|---|
-| 5 min | 48 次 | $4–5 | < 5 min |
-| 15 min | 16 次 | $1.5–2 | < 15 min |
-| **30 min**（默认）| **8 次** | **$0.5–1** | **< 30 min** |
-| 60 min | 4 次 | $0.3 | < 60 min |
-
-30 min 是"A 方案 99% 都生效，B 兜底偶发用上 → 别太频繁烧钱"的折中。要更敏感可手改 watcher.sh 的 `WAKE_CRON_DESC` 段 cron 表达式。
-
-#### 不可破坏的纪律
-
-- A + B 并存时 orchestrator **不允许两边都响应**：B 触发时先 check `STATUS.md` mtime，35 min 内有更新就只回 `normal`，不重复 A 已经处理的事件
-- A 失效场景（CC_SESSION_KEY 为空 / cc-connect 不可用）watcher 日志会写 `非 IM 会话,跳过 wake cron`——属于已知降级，不当 bug
-- 跨 task 不复用 cron：每个 task 一个 `WAKE_CRON_DESC=wake-orchestrator-${TASK_ID}`，不会互相覆盖
+两路独立失效不影响另一路。完整启动脚本 / cron 表达式 / token 成本权衡表 /
+不可破坏的纪律见 `references/wake-up-combo.md`。
 
 ### "watcher 不可用" 的兜底（SUBAGENT 模式）
 
-SUBAGENT 模式下 orchestrator 无法持有后台 watcher 进程。此时 orchestrator **被迫兼任 watcher**：
-- 派完一个 Phase 的 codex-rescue 后立刻 git diff --stat 自检
-- 区分 "subagent 真完成" vs "agent 转发后台但实际 idle 退出"（Claude 经验文档第 1 条教训）
-- 必须主动跑 mini-review codex-rescue（不能省）
-- 必须主动写 review-audit / snapshot
-- IM 推送由 orchestrator 自己发
-
-但**仍然不破坏**两 Codex 硬隔离原则——subagent 也是新进程，启动方式仍走 `codex exec` + readonly worktree。
+SUBAGENT 模式下 orchestrator **被迫兼任 watcher**：自跑 mini-review / write-audit /
+snapshot / IM 推送，但仍严守两 Codex 硬隔离（subagent 是新进程，仍走
+`codex exec` + readonly worktree）。详见 `references/wake-up-combo.md` 末段。
 
 ---
 
@@ -1098,61 +915,18 @@ Score Trajectory / Review / UI Screenshots(条件) / Delivery / Risks / 结论 9
 
 ---
 
-## Red Flags — STOP
+## Red Flags + Rationalizations
 
-任一命中必须停下：
+完整 Red Flags 清单（按 Phase 0 / 隔离 / Execution / Score / Delivery 分组，约 30 条）
++ Rationalizations to Reject 对照表（17 条说辞 → 现实）见
+**`references/failure-modes.md`**。
 
-- 在主分支裸跑 `/goal` 没开 worktree
-- **APPROVAL.md 不存在**就启动 Goal Codex（Phase 0 没签字）
-- **BASELINE.md 由 orchestrator 自己当 reviewer**（reviewer_pid == orchestrator_pid）
-- **Reviewer Codex 复用 Goal Codex 的 session/thread**（reviewer_pid == goal_pid）
-- **Reviewer 工作在 Goal worktree**（不是独立 readonly worktree）
-- **Reviewer 能读到 STATUS.md / 历史 REVIEW.md**（隔离失效）
-- **Reviewer 启动时未 `env -i`**（凭据泄漏到 reviewer）
-- Reviewer prompt 含实施者解释 / 历史评分 / 上一轮失败原因
-- Goal Codex 报"完成"但 STATUS.md 没写 `GOAL_DONE`
-- watcher 没启动就让 Goal 跑（CLI-YOLO / TMUX-YOLO / CLI-EXEC 模式）
-- review verdict pass 但 risk_class=high 时 orchestrator 没自跑验证
-- 修改文件超 GOAL.md Budget 但继续推进
-- token 用量接近 budget 但不停
-- Goal Codex 修改了 SPEC 范围外文件 / boundary-watch 命中
-- 把 Codex 修改全部 `git add .` 而不是选择性 staging
-- 跳过 Step 0.1（未确认 AC / mode / budget / 自定义维度 / **Reviewer Plan**）就启动 Goal
-- **Reviewer Plan 未经用户确认就启动 Goal**（reviewer 阵容 + 各自检查维度是 Phase 0 合同的一部分）
-- **EVAL.md 有维度无任何 reviewer 的 `checks` 认领**（漏审维度，必须补 reviewer 或重分配）
-- **IM 会话下 Reviewer Plan 没发回来源通道**（飞书等发起的 goal，确认表必须发回该通道）
-- 跳过 Step 0.3 baseline scoring 就启动 Goal
-- 跳过运行时证据收集就裁决 verdict
-- IM 会话下跳过 milestone 推送 / UI 任务不发截图
-- 检测到分数低于 baseline 但继续推进（regression-prevention 模式下）
-- **3 轮不涨分但 commit 最后一轮**（必须回到 HIGHEST_TAG）
-- **mini-review 把 1-5 改成 1-10**（脚本拒绝接受这种 score）
-- **截图文件名 ≠ 内容**但 orchestrator 没 view_image 校验就发出去（UI 任务下）
-- **同分时选了有硬规则风险的版本**（必须按 STOP-CONDITIONS.md 硬规则段裁决）
+主体 SKILL.md 不再展开，新增 / 订正条目在该 reference 内维护。Top 3 翻车点速查
+（与 TL;DR 同源）：
 
----
-
-## Rationalizations to Reject
-
-| 说辞 | 现实 |
-|---|---|
-| "Goal 跑得挺顺，跳过 review 直接 commit 吧" | review 是本 skill 的 50% 价值，跳了就退化成裸 /goal |
-| "Reviewer 也是 Codex，让它复用 thread 省 token" | 复用 = 污染独立性 = review 失效 |
-| "Reviewer 跟 Goal 在同一 worktree 也能跑" | 文件系统不隔离 = reviewer 能瞥见 STATUS / logs，自我评估又回来了 |
-| "watcher 太啰嗦，先不跑了" | 没 watcher = goal silent pause + 烧 quota + 错过人类反馈 |
-| "Goal 说完成了，STATUS.md 应该也写了吧" | 必须 grep `GOAL_DONE` 确认 |
-| "改的就是 main 分支文件，不开 worktree 也行" | --yolo + main + 长跑 = 灾难 |
-| "Verdict pass 应该没问题，不用再跑测试" | 高风险任务必须自跑，低风险才能信 reviewer |
-| "Stalled 3 次了，再等等可能就好了" | 硬阈值，必须 notify 人类 |
-| "AC 已经在 prompt 里了，不用再确认了" | 用户口语化 AC 多半模糊，必须 Phase 0 量化 + APPROVAL 签字 |
-| "Baseline scoring 太花时间，我自己当代理打个分吧" | 你当 reviewer = 后续 mini-review 评分基准漂移 = 退化检测失效 |
-| "Reviewer 看 diff 就够了，不用真跑" | 编译过 ≠ 跑得起来 ≠ 用户旅程能走通 |
-| "milestone 推送太烦人，等 Goal 完成再发结果就行" | 人类校准窗口在中间，结尾发就晚了 |
-| "分数稍微低于 baseline 没关系，整体在涨" | regression-prevention 模式下任一维度低就停 |
-| "最后一轮没创新高，但是 reviewer pass 了，commit 最后一轮吧" | 必须回到 HIGHEST_TAG，最终交付的是历史最高分 |
-| "reviewer 要拆 sanitize.ts，那就拆吧" | 黑名单优先 reviewer Must Fix，必须仲裁拒绝 |
-| "UI 截图 Goal Codex 截过了，reviewer 不用再截" | reviewer 必须自己截，可能 Goal 截的是好看但不工作的状态 |
-| "subagent 跑过测试就够了，我不用复验" | risk_class=high 必须复验；risk_class=low 才允许跳 |
+1. **Phase 0 跳了** → 跑完用户不认账（APPROVAL.md / Reviewer Plan 未签字）
+2. **Reviewer 跟 Goal 同 worktree / 同 session** → review 失效，等于裸 `/goal`
+3. **3 轮不涨分但 commit 最后一轮** → 必须回 `HIGHEST_TAG`
 
 ---
 
@@ -1211,27 +985,8 @@ ROI 判断：
 
 ## Reuse
 
-测试用例保留在 `tests/cases.md`。
-所有模板和脚本在 `references/`，可被任何 orchestrator agent + Goal Codex + Reviewer Codex 直接读取使用。
+测试用例保留在 `tests/cases.md`。所有模板和脚本在 `references/`，可被任何
+orchestrator agent + Goal Codex + Reviewer Codex 直接读取使用。
 
-`references/` 目录结构：
-- `run-mode.sh` / `run-mode.md` — 三种运行模式探测脚本 + 说明
-- `codex-goal-setup.md` — pre-flight 脚本
-- `goal-template.md` — GOAL.md 模板（含 is_ui_task / risk_class / 扩展维度段）
-- `plan-template.md` — PLAN.md 模板
-- `eval-template.md` — EVAL.md 模板（含基础 4 维 + 扩展维度）
-- `stop-conditions.md` — 停止条件清单（独立成文件）
-- `goal-prompt.md` — Goal Codex 启动 prompt
-- `baseline-prompt.md` — Baseline 评分 Reviewer prompt
-- `milestone-review-prompt.md` — Milestone 轻量评分 Reviewer prompt
-- `review-prompt.md` — Final Reviewer prompt（含运行时验证 + 硬隔离要求）
-- `runtime-evidence.sh` — 启动项目 + 跑用户旅程 + 截图
-- `score-diff.py` — baseline vs current 评分对比 + 退化判定
-- `health-check.sh` — 6 维度健康检查（已修 SIGPIPE bug）
-- `boundary-watch.sh` — worktree 边界守卫
-- `snapshot.sh` — 分数创新高时打 snapshot tag
-- `write-audit.sh` — 写 review-audit/round-N.jsonl
-- `watcher.sh` — 看门狗主进程（health + boundary + inbox-poll + milestone 触发）
-- `review-audit-schema.md` — 审计日志 JSONL schema
-- `ui-review-checklist.md` — UI 任务的状态走查 / 截图三件套 / 同分硬规则
-- `score-rubric-extensions.md` — 扩展评分维度库（Layout Stability / Small Popup Density 等）
+按需查找 reference：参见上方 TL;DR 的 "References 路由表" + `references/` 自身
+目录结构（`ls references/`），不在主体重复维护清单以避免与新增 reference 失同步。

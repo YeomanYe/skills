@@ -312,101 +312,47 @@ director 根据用户输入信号自动选内部路径，**不需要用户先挑
 
 ## Output Contract
 
-### research 输出（**所有 mode 都必须输出，强制全字段**）
+按 `references/output-contract-schema.md` 基线 JSON 字段返回 + 本 skill 扩展字段:
 
-```md
-## Director-Architect Research Report
-
-### 任务理解
-- 用户原话:
-- 内部路径判定: research-only | research+approval+land | research+mirror+approval+land | land-only
-- 触发信号: "审一下" | "梳理" | "按 X 项目" | "已经定好了" | 其他: <原文>
-
-### 项目规则现状（**带证据 [file:line]**）
-- 入口文件: <CONTRIBUTING.md / RULE.md / AGENTS.md / ... 列路径 + 行数>
-- docs/ 树: <实际目录结构>
-- 重复内容: <具体片段 + 出现位置>
-- 放错层内容: <对照分类模型说明>
-- 缺失领域: <list>
-
-### 识别到的技术栈
-- 自动识别: <stack list + 元信息来源>
-- 用户指定: <list 或 "无">
-- 最终栈清单: <merged>
-
-### 参与联合评估的 skill 清单
-- <skill-name> (<来源路径>) — 结论: <一句话>
-- <skill-name> (<来源路径>) — 结论: ...
-- **未覆盖的栈**: <list 或 "无">
-
-### 联合评估结果（按四类问题分）
-- 规范缺失: <list>
-- 规范偏差: <list>
-- 规范冗余: <list>
-- 规范放错层: <list>
-
-### 参考项目对齐（**仅当 Step 5 跑了**）
-- 参考项目路径: <path 或 URL>
-- 借鉴的模式: <list>
-- 不适用的部分 + 理由: <list>
-
-### 决策记录（**自决必须留痕，缺失 = Red Flag**）
-- 冲突点 1: <best-practice skill A 说 X，B 说 Y>
-  - 备选方案: <list>
-  - 选定方案: <which>
-  - 理由: <why>
-- 冲突点 2: ...
-- 内部权衡 1: <例如 "testing 单独分域 vs 合入 coding">
-  - 备选方案 / 选定 / 理由
-
-### 目标结构
-- 总入口: <path>
-- 分域目录:
-  - <domain>/
-    - index.md（导航职责: ...）
-    - rules.md（总纲职责: ...）
-    - <二级文件 1>: <职责>
-    - ...
-- 阅读优先级 / AI 路由: <说明 AI 先读什么、再读什么>
-
-### 文件级变更清单（diff 预览）
-- 新增: <path>
-- 修改: <path + 摘要>
-- 迁移: <from → to + 是否真搬正文>
-- 合并: <多个 → 一个>
-- 删除: <path>
-
-### 风险与权衡
-- 风险 1: <如 "迁移后大量历史引用需修">
-- 权衡 1: <如 "选了 strict mode tsconfig 会增加现存 type errors">
-
-### Next Step
-- 若 research-only: 等用户决定是否进入落地
-- 若 research+approval+land: **Approval Gate** — 等用户明确 yes
-- 若 land-only: 已回放 plan，等用户确认这是最终方案
-
-### 明确不在职责内（告知 orchestrator）
-- README / CHANGELOG → flow-project-finish
-- 视觉 token 具体取值 → director-design
-- 单 skill 自身写法 → skill-creator / writing-skills
-- 写生产代码 → director-frontend
+```json
+{
+  "verdict": "ready-to-land | ready-with-refinement | needs-refinement | blocked",
+  "aggregate": 4.5,
+  "must_fix": [],
+  "should_fix": [],
+  "artifact_path": ".agent/jobs/director-architect-<task-slug>/research.md",
+  "rules_structure_diff": "<新增/修改/迁移/合并/删除文件清单 摘要>",
+  "affected_domains": ["architecture", "coding", "ui", "ai-guide"],
+  "migration_count": 0,
+  "phase": "research | land"
+}
 ```
 
-## 7 维 Quality Audit（research 输出前必跑，对齐其他 director-*）
+完整 research / land markdown 报告模板见 `references/output-contract-template.md`
+(主流程要展示给用户或 handoff 给下游时再 Read;subagent 不要在 stdout 复述全文)。
 
-| # | 维度 | 1/3/5 锚点 |
-|---|---|---|
-| 1 | **研究充分性** | 1=只看主入口 1 文件 / 3=核心 3-5 文件 / 5=全规则体系扫齐 + 引用 ≥ 10 处 [file:line] |
-| 2 | **联合评估广度** | 1=未调任何 best-practice skill / 3=调 1-2 个 / 5=覆盖目标栈所有相关 skill,有冲突仲裁 |
-| 3 | **决策证据强度** | 1=无 [file:line] 引用 / 3=部分有 / 5=每个决策都含具体引用 + 反例 |
-| 4 | **风险识别完整性** | 1=只列功能风险 / 3=含迁移/兼容 / 5=覆盖短期+长期+迁移+回滚+人员熟悉度 |
-| 5 | **文件级变更清单可执行性** | 1=只方向描述 / 3=列文件 / 5=每个 add/modify/delete 含理由 + diff 预览 |
-| 6 | **参考项目对齐度** | 1=未对照 mirroring-checklist / 3=部分对照 / 5=完整对照 + 偏离项有明示理由 |
-| 7 | **与现有规则一致性** | 1=与现规则冲突未识别 / 3=识别但未解决 / 5=识别 + 给出迁移/合并方案 |
+## N 维 Audit Checklist
 
-每维 1-5 分,所有维度必须 [✓] 或 [n/a],跳过 = 盲区。<4 分必出修正建议。
+按 `references/audit-rubric.md` §2 跑 7 维基线评分。本 skill 1/3/5 锚点重定义(基线之外的领域特化):
 
-### Aggregate → Verdict 映射（research 输出 verdict 时必用）
+- 维度 1(基线: scope/探测充分性)→ 本 skill: 1=只看主入口 1 文件 / 3=核心 3-5 文件 / 5=全规则体系扫齐 + 引用 ≥ 10 处 [file:line]
+- 维度 3(基线: 决策证据强度)→ 本 skill: 1=无 [file:line] 引用 / 3=部分有 / 5=每个决策都含具体引用 + 反例
+- 维度 4(基线: 方案可执行性)→ 本 skill: 1=只方向描述 / 3=列文件 / 5=每个 add/modify/delete 含理由 + diff 预览
+- 其余维度沿用基线
+
+### 本 skill 自定义增维度(基线 7 维 + 以下):
+
+- 维度 8 — **联合评估广度**: 1=未调任何 best-practice skill / 3=调 1-2 个 / 5=覆盖目标栈所有相关 skill,有冲突仲裁
+- 维度 9 — **参考项目对齐度**: 1=未对照 mirroring-checklist / 3=部分对照 / 5=完整对照 + 偏离项有明示理由
+- 维度 10 — **与现有规则一致性**: 1=与现规则冲突未识别 / 3=识别但未解决 / 5=识别 + 给出迁移/合并方案
+
+### 本 skill 红线触发(§3 通用之外):
+
+- 维度 3(决策证据)= 1 且关键决策无 [file:line] 引用 → `blocked`
+- 维度 8(联合评估)= 1(完全未调任一 best-practice skill 且未显式标"未覆盖") → `blocked`
+- 维度 10(与现规则一致)= 1 且与现规则有未解决冲突 → `blocked`
+
+### Aggregate → Verdict 映射(本 skill 自命名标签)
 
 | Aggregate | Verdict | 行动 |
 |---|---|---|
@@ -415,111 +361,18 @@ director 根据用户输入信号自动选内部路径，**不需要用户先挑
 | 3.0-3.9 | `needs-refinement` | must-fix 列清单,Approval Gate 会拦,必须补研究 |
 | < 3.0 | `blocked` | 方案整体不可行,回 Research Phase 从头跑 |
 
-**特殊触发**(任一直接降级为 `blocked`,不看 aggregate):
-- 维度 3(决策证据)= 1 分 **且** 关键决策无 [file:line] 引用
-- 维度 7(与现有规则一致)= 1 分 **且** 与现规则有未解决冲突
+## Red Flags / Rationalizations / Common Mistakes / Delivery Check
 
-详细 rubric 见 `references/skill-matching-rules.md` 与 `references/mirroring-checklist.md`。
+完整失败模式清单(Red Flags STOP 列表 + Rationalizations 反驳表 + Common Mistakes
+易踩坑 + 三阶段 Delivery Check)统一下沉到 `references/failure-modes.md`。
 
-### land 输出（**仅当 Land Phase 执行后**）
-
-```md
-## Director-Architect Land Report
-
-### 批准证据引用
-- 用户原话: <quote 不含糊的批准表态>
-- 时间戳:
-
-### 改了哪些文件
-- 新增: <path>
-- 修改: <path>
-- 迁移: <from → to>
-- 合并: <多个 → 一个>
-- 删除: <path>
-
-### 委派情况（哪些子任务调了哪些 skill）
-- clean-commit: <invoked / not invoked>
-- 其他: <如调了某 best-practice skill 出具体规则文本>
-- 自做: <list>
-
-### 遗留
-- 待处理的历史引用: <list>
-- 未覆盖的栈: <list>
-
-### Delivery Check
-- [ ] CONTRIBUTING.md 只做总入口（无正文堆积）
-- [ ] 每个领域目录同时存在 index.md + rules.md
-- [ ] 无两套同时有效的规则体系
-- [ ] 项目实际栈都被某个规则域覆盖（或显式标"未覆盖"）
-- [ ] 决策记录已在 research 报告留痕
-
-### 下一步建议
-```
-
-## Red Flags — STOP
-
-任一命中必须停下：
-
-- **用户没明确 yes 就 land**（含糊回应、"嗯嗯"、"看着办"都不是 yes）
-- **没跑联合评估就给 plan**（Step 4 是强制环节）
-- **plan 内容变更后用旧的 yes 当批准**（必须重新征求）
-- **把 best-practice skill 列表写死**（必须按当前栈动态匹配，写死 = 漏栈或硬塞）
-- **自决冲突时不在 Output Contract 留决策记录**（缺记录 = 黑箱）
-- **"按 X 项目"直接 cp 参考项目目录结构**（必须先跑 Step 5 兼容性检查）
-- **跳过 Step 1 项目证据采集，凭印象设计结构**
-- **机械改文件名而不重写内容边界**
-- **保留双轨规则体系**（新旧同时有效）
-- **没看到项目证据就断言"规范已完善 / 已对齐"**
-- **混入 README / CHANGELOG / 上架文案重写**（越界，归 flow-project-finish / flow-ext-publish）
-
-## Rationalizations to Reject
-
-| 说辞 | 现实 |
-|---|---|
-| "用户输入已经很清楚了，跳过联合评估直接给结构" | 联合评估是 research 的**强制环节**，不是"看情况"；跳过 = 漏栈风险 |
-| "这个项目没什么栈相关 skill 可匹配，跳过 evaluate" | 至少要显式说"未匹配到栈相关 skill"+ 自己跑结构评估；不能省略输出 |
-| "用户说了'按 X 项目做'，直接镜像就行" | 仍要先对齐当前项目栈是否兼容（Step 5），不然把不适用的规则硬塞过来 |
-| "冲突太微小，不用写决策记录" | 自决就必须留痕，**无例外**；微小冲突也要写"自决了 + 理由：不重要" |
-| "用户口头 OK 了就开始 land" | "OK" / "嗯" / "看着办" 都不是明确 yes，必须显式问到"可以落地"级别表态 |
-| "plan 没大改，沿用上次的 yes" | 内容变更后任何级别都要重新征求；只有完全没改才能沿用 |
-| "顺便把 README 也整理了" | 越界。README → flow-project-finish |
-| "顺便把 commit 也帮 ta 提交了" | clean-commit 的职责，转交它，不要自己 git add |
-| "AI 没读 stack-checklist 也能凭经验给规则" | 必须查清单，避免漂移；项目实际栈未覆盖时必须显式标"未覆盖" |
-| "用户已经走过 project-prep 了，跳过 Step 1 盘点" | project-prep 不读项目规则文档；本 skill 的 Step 1 是独立证据源 |
-
-## Common Mistakes
-
-- 把"梳理"信号当成"审一下"（漏了 Land Phase 询问）
-- Step 4 联合评估只读 skill 名，不真消费其 description / SKILL.md 中的判断逻辑
-- 决策记录只写"选了 A"，不写备选 / 理由（**等于没写**）
-- 把 `index.md` 写成总纲（堆正文）或把 `rules.md` 写成导航（只列链接）
-- 迁移内容时只 `mv` 文件，不重写内容边界，结果旧分类还残留在文本里
-- Approval Gate 后立即开干，不再做最后一次 `git status` 校验
-- 把未覆盖的栈静默吞掉，不在报告里显式列出
-
-## Delivery Check
-
-宣称工作完成前，核对：
-
-### research 阶段
-- [ ] Step 1 盘点项目规则现状（带 `[file:line]` 证据）
-- [ ] Step 2 识别技术栈（自动 + 用户指定）
-- [ ] Step 3 动态匹配 best-practice skill（写出来源路径）
-- [ ] Step 4 联合评估（每个 skill 出一句话结论）
-- [ ] Step 5 仅当用户给参考项目时执行
-- [ ] Step 6 结构设计 + **决策记录**完整
-
-### Approval Gate（若进入 land）
-- [ ] 显式向用户提问"是否可以落地"
-- [ ] 收到明确同意表态（不是"嗯"或"看着办"）
-- [ ] plan 变更后重新征求过
-
-### land 阶段
-- [ ] 落地前 `git status` 干净
-- [ ] 文件变更与批准的 diff 一致
-- [ ] 无双轨规则体系
-- [ ] 历史引用已更新或在报告显式列遗留
-- [ ] 项目实际栈都有规则覆盖（或显式标"未覆盖"）
+主线高优先级提醒(从下沉文件 cherry-pick,**任一命中立即停**):
+- 用户没明确 yes 就 land
+- 没跑联合评估就给 plan(Step 4 强制)
+- plan 变更后沿用旧 yes
+- 自决冲突无决策记录
+- "按 X 项目"直接 cp 不跑 Step 5 兼容检查
+- 保留双轨规则体系(新旧同时有效)
 
 ## Parallelization Plan
 
@@ -546,33 +399,23 @@ director 根据用户输入信号自动选内部路径，**不需要用户先挑
 
 参考项目 clone 慢（网络）会拖累，可设 30s 超时；超时则降级为"只评估本项目"分支。
 
-## Subagent 派工模板（如调用其他 skill）
+## Subagent 派工
 
-本 skill 主要**自己跑**联合评估（读匹配到的 best-practice skill 的 description + SKILL.md 后
-自己代入判断），通常**不派 subagent**。
+派 subagent 时按 `references/dispatcher-template.md` 完整模板填字段。
 
-特殊情况（用户要求"让某个 best-practice skill 真跑一遍 review"）派工模板：
+本 skill 主要**自己跑**联合评估(读匹配到的 best-practice skill 的 description + SKILL.md
+后自己代入判断),通常**不派 subagent**。仅当用户明示"让某个 best-practice skill 真跑一遍
+review"才派,本 skill 特定字段:
 
-```
-Task: 让 <best-practice-skill> 在 <当前项目> 上跑一次规则 review
-
-必须调用的 skill:
-  - **<best-practice-skill>**(自身默认 mode)
-    subagent 默认不会主动 use skill，本指令明确要求你 invoke <best-practice-skill>
-
-输入（只读）:
-  - 项目根: <path>
-  - 现有规则文件清单: <list>
-  - 识别到的技术栈: <stack list>
-
-输出目录: .agent/jobs/architect-review-<skill-name>/
-返回 JSON: {skill, status, findings: [...], suggestions: [...], errors}
-
-约束:
-  - 只看当前项目实际证据，不发明结论
-  - 输出严格按 findings + suggestions 结构
-  - **不**直接改文件（落地由本 skill 在 Land Phase 统一做）
-```
+- 必须调用的下游 skill: `<best-practice-skill>`(自身默认 mode)
+- 必填扩展字段(在基线 JSON 之上):
+  - `findings`: list[string] — 该 skill 在当前项目上发现的问题
+  - `suggestions`: list[string] — 该 skill 给出的修复建议
+- read_only scope: 项目根 + 现有规则文件清单 + 识别到的技术栈
+- write_to: `.agent/jobs/architect-review-<skill-name>/`
+- 失败处理: `failed_continue_main`(单个 skill 失败不影响其他评估)
+- 超时: 5 分钟
+- **不**直接改文件(落地由本 skill 在 Land Phase 统一做,subagent 仅返回 findings/suggestions)
 
 ## Codex Delegation Hook
 

@@ -252,25 +252,20 @@ uninstall 计划必须额外列出：需备份的路径、需保留的数据、�
   - 🔻 **只有验证通过后**，才执行 Step 5 计划里的"删除残留数据"。删除前再次区分：可删（缓存/日志/
     明确属于该软件的 support files）、默认保留（用户项目/导出文件/未知用途目录）。验证异常则不删，保留备份并报告。
 
-### Step 6.5 — 7 维 Quality Audit + Verdict 映射(**新增,对齐其他 director-***)
+### Step 6.5 — 7 维 Quality Audit + Verdict 映射
 
-执行 + 验证后,出 verdict 前做 7 维质量自审(每维 [✓] / [n/a] + 简短佐证):
+按 `references/audit-rubric.md` §2 跑 7 维基线评分。本 skill install/uninstall 锚点重定义:
 
-| # | 维度 | 1/3/5 锚点 |
-|---|---|---|
-| 1 | **环境探测充分性** | 1=只跑了 1 命令 / 3=核心 3 项 / 5=系统+包管理器+冲突全查 |
-| 2 | **资料来源可信** | 1=单一来源 / 3=本地+网络 / 5=本地+用户提供+官方,有适用性判断 |
-| 3 | **计划可执行性** | 1=步骤模糊 / 3=命令明确 / 5=每步含类型+风险+来源 |
-| 4 | **用户确认清晰度** | 1=模糊确认 / 3=用户明确同意 / 5=用户明确同意+理解 sudo/破坏影响 |
-| 5 | **执行成功率** | 1=失败重试无错排 / 3=有失败但停下报告 / 5=全成功或失败定位精准 |
-| 6 | **验证完整性** | 1=只验 1 项 / 3=主命令+PATH / 5=主命令+PATH+残留扫描+功能 smoke |
-| 7 | **知识库记录质量** | 1=没记 / 3=填了模板 / 5=含日期+版本+踩坑+反推可执行 |
+- 维度 1(scope)→ 环境探测充分性: 1=只跑 1 命令 / 3=核心 3 项 / 5=系统+包管理器+冲突全查
+- 维度 4(可执行性)→ 用户确认清晰度: 1=模糊确认 / 3=用户明确同意 / 5=明确同意+理解 sudo/破坏影响
+- 维度 6(验证完整性)→ install: 主命令+PATH+残留扫描+功能 smoke;uninstall: 主命令移除+包管理器无列+LaunchAgent/login items 已清
+- 其余维度沿用基线
 
-特殊触发(任一直接降级):
+**红线触发**(§3 通用之外):
 - 维度 4 = 1 → `failed`(没用户确认就破坏性操作)
 - 维度 6 = 1 → `partial`(没验证就宣告完成)
 
-**Aggregate → Verdict 映射**:
+**Aggregate → Verdict 映射**(本 skill 自命名标签):
 
 | Aggregate | Verdict | 行动 |
 |---|---|---|
@@ -290,147 +285,42 @@ uninstall 计划必须额外列出：需备份的路径、需保留的数据、�
 
 ## Output Contract
 
-每次完成必须输出（**强制全字段**）：
+按 `references/output-contract-schema.md` 基线 JSON 字段返回 + 本 skill 扩展字段:
 
-```md
-## Director-Ops Report
-
-### 任务理解
-- 用户原话:
-- mode 判定: install | uninstall
-- 目标软件:
-
-### 环境
-- OS / 版本 / 架构:
-- 包管理器: <可用列表>
-- 目标软件当前状态: 已装 v<x> | 未装
-
-### Question Gate
-- 问题数: 0 | 1 | 2 | 3
-- 问题清单:
-  - Q1: ...(默认值: ...)
-- 用户回复: <quote 或 "用默认值">
-- 影响的执行决策: <list>
-
-### 证据采集(对照 references/evidence-discovery.md)
-- 探测命令: <list 用了哪些 which / brew list / rg 知识库>
-- 命中: <list 知识库路径 + 命令输出摘要>
-- 缺失: <list 没找到的证据 + 影响>
-- 适用性判断: <list 资料平台/版本/路径是否匹配当前系统>
-- 降级: <若资料只覆盖部分平台,明示降级原因>
-
-### 资料来源
-- 本地知识库: hit <path> | miss
-- 用户提供: yes <link> | no
-- 网络搜索: 用了 <URL> | 没用
-- install 候选方式: <方式 1/2/3... + 可信度/适配性/升级卸载方式摘要> | n/a
-- 推荐方式: <method + why> | n/a
-- 适用性判断（uninstall）: <资料与当前系统是否匹配 / 推断说明> | n/a
-
-### 计划
-- 步骤数: <n>
-- 自动 / 半自动 / 手动: <a>/<b>/<c>
-- install 候选方式对比: <已列出 | 未列出 + 原因> | n/a
-- 破坏性环节（uninstall）: 备份路径 <...> / 拟删数据 <...> | n/a
-
-### 用户确认
-- 时间: <ts>
-- 确认方式: <quote of user reply>
-
-### 执行结果
-- 完成步骤: <n>/<total>
-- 失败步骤: <list with errors>
-- 备份完成（uninstall）: yes <path> | n/a
-
-### 验证
-- install: 版本 <pass + version | fail> / 基本功能 <pass | fail>
-- uninstall: 主命令已移除 <pass | fail> / 包管理器已不列出 <pass | fail> / 残留已清理 <yes | 保留原因>
-
-### 7 维 Quality Audit(**每维必须含 `[command 输出摘要 / 知识库路径]` 佐证**)
-- [✓] 环境探测充分性 — N/5 — `[Step 1 命令清单 + 关键输出]`
-- [✓] 资料来源可信 — N/5 — `[本地 + 网络来源 + install 候选方式枚举 / uninstall 适用性判断]`
-- [✓] 计划可执行性 — N/5 — `[每步类型/命令/风险标注情况]`
-- [✓] 用户确认清晰度 — N/5 — `[用户原话 quote + sudo 项是否明示]`
-- [✓] 执行成功率 — N/5 — `[完成/失败步骤数 + 失败定位]`
-- [✓] 验证完整性 — N/5 — `[验证命令清单 + 覆盖项]`
-- [✓] 知识库记录质量 — N/5 — `[知识库路径 + 是否含日期/版本/踩坑]`
-- **aggregate**: X.X / 5
-- **verdict**: installed-clean | installed-with-warnings | partial | failed
-
-### 知识库
-- 路径: ~/Documents/knowledge/<tool>-{install|uninstall}.md
-- 状态: 新建 | 更新
-
-### 结论
-- install: 可用 yes | no
-- uninstall: 已卸载且系统正常 yes | no
-- 剩余问题 / 手动步骤:
+```json
+{
+  "verdict": "installed-clean | installed-with-warnings | partial | failed",
+  "aggregate": 4.5,
+  "must_fix": [],
+  "artifact_path": ".agent/jobs/director-ops-<tool>-<mode>/output.md",
+  "tool": "<software-name>",
+  "mode": "install | uninstall",
+  "version_installed": "<x.y.z | null>",
+  "verify_pass": true,
+  "knowledge_path": "~/Documents/knowledge/<tool>-{install|uninstall}.md"
+}
 ```
 
-如有失败或手动步骤，明确列出，**不夸大**。
+完整 markdown 报告模板见 `references/output-contract-template.md`
+(主流程要展示给用户 / 移交下游时再 `Read`;subagent 不要在 stdout 复述全文)。
 
-## Red Flags — STOP
+## Red Flags / Rationalizations / Common Failure Modes
 
-任一命中必须停下：
+三段合一详见 `references/failure-modes.md`。本 skill 高频红线提示(完整清单见该文件):
 
-- **未做环境检查就开始装 / 卸**（可能已装、冲突，或目标根本不存在）
-- **install：只找到一种安装方式就推荐执行**（必须尽可能枚举候选方式并说明推荐理由）
-- **跳过用户确认直接 sudo / 改 PATH / 写全局配置 / 删数据**
-- **失败一步就重试 3 次**（第一次失败必须停下报告，不盲重试）
-- **`curl ... | bash` 来路不明的脚本**（必须给用户看 URL + 内容摘要让其判断）
-- **安装路径含敏感目录**（`/usr/bin/` / `/etc/` 不该直接写）
-- **覆盖已存在的二进制文件**（先 `mv` 备份）
-- **uninstall：没备份就删配置/数据**
-- **uninstall：没验证通过就清理残留数据**
-- **uninstall：把"安装文档推测"写成"已验证可执行的卸载方案"**
-- **uninstall：只删二进制而留后台服务 / LaunchAgent / 登录项**
-- **跳过验证就宣告完成**
-- **没写知识库就 commit / 收尾**
+- 未做环境检查就开始装/卸
+- install: 只找到一种安装方式就推荐执行
+- 跳过用户确认直接 sudo / 改 PATH / 写全局配置 / 删数据
+- 失败一步就重试 3 次(必须停下报告)
+- uninstall: 没备份就删配置/数据 / 没验证通过就清理残留 / 只删二进制留后台服务
+- 跳过验证就宣告完成 / 没写知识库就收尾
 
-对 `pkg`、内核扩展、系统扩展、登录项、LaunchAgent、网络代理类软件，卸载时要额外提醒影响范围。
+对 `pkg`、内核扩展、系统扩展、登录项、LaunchAgent、网络代理类软件,
+卸载时要额外提醒影响范围。
 
-## Rationalizations to Reject
-
-| 说辞 | 现实 |
-|---|---|
-| "用户都说装/卸 X 了，不用再确认了" | 必须展示计划让用户看清 sudo / 改 PATH / 删数据 / 重启等影响项 |
-| "`brew install` 一行就够了，不用记知识库" | 一年后忘了用啥版本 / 啥注意事项还是要查；记知识库是核心价值 |
-| "失败可能是网络问题，再试一次" | 第一次失败必须停，看错误信息再决定，不是盲重试 |
-| "环境检查跳过吧，已经知道装没装" | 还有依赖 / 包管理器可用性 / conflicting binary / 目标是否真存在要查 |
-| "官方文档写了 npm，那就不用查 Homebrew 了" | install mode 必须尽可能收集候选方式；包管理器、官方 tap、脚本、binary 的升级/卸载/PATH 风险不同 |
-| "知识库已经有了不用更新" | 操作日期 / 当前系统版本 / 这次踩的新坑要 append |
-| "PATH 不生效让用户 source 一下就行" | 必须告诉用户该 source 哪个 rc 文件 + 建议加到 ~/.zshrc |
-| "用户说不用备份，那就直接删" | uninstall 的备份是硬 gate，不能因用户图快就跳过；最多给安全计划不执行破坏性删除 |
-| "本地有安装文档，照着反推删就行" | 安装记录只证明"可能如何安装"，平台/版本/路径不匹配时不能据此删用户数据 |
-| "残留数据先删了，验证肯定没问题" | 删残留必须在验证通过之后；验证异常要保留备份并报告 |
-
-## Common Failure Modes
-
-### 1. install：已装但版本不够
-处理：先看版本，询问用户是升级（→ 退出本 skill 走 `brew upgrade`）还是覆盖装。
-
-### 2. install：多安装方式并存或包管理器搜不到
-处理：先列候选方式（brew / 官方 tap / npm / pipx / cargo / binary / 官方脚本等）和利弊。
-如果本机 `brew search <tool>` 搜不到，先查官方文档是否需要额外 tap/source，再判断 Homebrew 不可用。
-给出推荐方式和理由；只有多个候选取舍明显依赖用户偏好时才进入 Question Gate 让用户选。
-
-### 3. 需要 sudo 但用户没给
-处理：明确告诉用户哪一步要 sudo + 为什么，让用户主动跑。**不要**自己尝试 `sudo -S`。
-
-### 4. 知识库已有同名 .md
-处理：读旧文件，更新操作日期 + 当前系统版本，append 新注意事项；不覆盖旧内容。
-
-### 5. install：安装过程要交互（登录 / 选项）
-处理：提前在计划里告知，执行到该步时**暂停**，让用户操作完再继续。
-
-### 6. uninstall：无法确认目标软件是否存在
-处理：不生成删除步骤，先给定位方法（`command -v` / `brew list` / 检查 `/Applications`）。
-
-### 7. uninstall：目录可能同时含用户数据和程序状态
-处理：默认不删，除非用户再次确认。宁可多保留少误删。
-
-### 8. 非 macOS 但本地资料只有 macOS
-处理：明确指出资料不适用，**不编造** Linux/Windows 步骤，说明缺口与需补充的资料。
+常见故障(install: 已装版本不够 / 多安装方式并存 / 需 sudo / 知识库已有同名 .md / 安装要交互;
+uninstall: 无法确认目标存在 / 目录含用户数据 / 非 macOS 资料只有 macOS)的处理 playbook
+详见 `references/failure-modes.md` §3。
 
 ## Parallelization Plan
 
@@ -450,31 +340,21 @@ uninstall 计划必须额外列出：需备份的路径、需保留的数据、�
 
 7 个 Step 严格顺序,**不并行**(理由:每步输出是下一步输入,Step 4 用户确认是 gate)。
 
-## Subagent 派工模板(**必须显式指挥**)
+## Subagent 派工
 
-当并行装多工具,或调 director-design 出错误提示截图时,派 subagent 必须用显式模板:
+派 subagent 时按 `references/dispatcher-template.md` 完整模板填字段。
 
-```
-Task: 装 <tool-name>(并行 install)
-
-必须调用的 skill:
-  - **director-ops**(mode=install)
-    subagent 默认不会主动 use skill,本指令明确要求你 invoke director-ops
-
-输入(只读):
-  - 目标工具: <name>
-  - 已探测环境: <OS / 包管理器清单>
-  - 用户允许 sudo: yes | no
-  - 是否需要加 PATH: yes | no
-
-输出目录: .agent/jobs/install-<tool>/
-返回 JSON: {tool, status, version_installed, verify_pass, knowledge_path, errors}
-
-约束:
-  - 失败一步即停,不盲重试
-  - 不主动 sudo,需 sudo 时暂停等用户输入
-  - 写知识库到 ~/Documents/knowledge/<tool>-install.md
-```
+本 skill 特定(install-multi-tool 并行场景):
+- 必须调用的下游 skill: `director-ops`(mode=`install`)
+- 必填扩展字段(随 Output Contract):
+  - `tool`: 目标软件名
+  - `version_installed`: 装完探测到的版本(`<x.y.z>` 或 `null`)
+  - `verify_pass`: 验证命令是否全过(`true|false`)
+  - `knowledge_path`: 写入的本地知识库路径
+- 输入(只读): 目标工具名 / 已探测环境(OS + 包管理器清单)/ 用户允许 sudo 与否 / 是否需要加 PATH
+- 失败处理: `failed_stop`(任一步即停,不盲重试;不主动 sudo,需 sudo 时暂停等用户输入)
+- 超时: 短任务 5 分钟,无 heartbeat
+- 并行度: install 多工具时 `max_parallel=3`(同时跑 3 个独立工具),uninstall 始终串行
 
 ## Codex Delegation Hook
 

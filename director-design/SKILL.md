@@ -172,21 +172,15 @@ variants 路数(2 vs 3)/ 是否调外援 ui-ux-pro-max。
 
 ## 9 维度 Audit Checklist
 
-**核心 9 维度**（详细 1/3/5 锚点见 `references/design-principles.md`）：
+按 `references/audit-rubric.md` §2 跑 7 维基线评分,本 skill 在基线之上扩展为 **9 维设计专用**:
 
-1. **信息层级（Hierarchy）** — 用户第一眼是否知道这是什么 / 要做什么
-2. **布局密度（Density）** — 是否过挤 / 过空 / 对齐混乱 / 卡片滥用
-3. **字体系统（Typography）** — 字号 / 行高 / 字重 / 按钮文字是否稳定
-4. **色彩与对比（Color & Contrast）** — 是否单色过重 / 语义色混乱 / 可读性不足
-5. **组件一致性（Component Consistency）** — 按钮 / 输入 / 卡片 / 标签 / 图标是否同一体系
-6. **交互状态（Interaction States）** — hover / focus / disabled / loading / empty / error 是否完整
-7. **响应式（Responsive）** — 移动端溢出 / 遮挡 / 换行失控
-8. **产品气质（Product Tone）** — 是否符合目标场景（工具型应克制 / 营销页应明确首屏信号）
-9. **完成度（Polish）** — 是否有 demo 感 / AI slop / 无意义装饰 / 临时占位
+1. 信息层级 / 2. 布局密度 / 3. 字体系统 / 4. 色彩与对比 / 5. 组件一致性 /
+6. 交互状态 / 7. 响应式 / 8. 产品气质 / 9. 完成度
 
-每个维度 1-5 分，<4 分必出修正建议。
+每维 1-5 分,<4 分必出修正建议。详细 1/3/5 锚点 + 同分裁决优先级 + n/a 规则
+见 `references/design-principles.md`。
 
-### Aggregate → Verdict 映射（audit mode 必用）
+### Aggregate → Verdict 映射(audit mode 必用,本 skill 自命名标签)
 
 | Aggregate | Verdict | 行动 |
 |---|---|---|
@@ -195,11 +189,10 @@ variants 路数(2 vs 3)/ 是否调外援 ui-ux-pro-max。
 | 3.0-3.9 | `needs-redesign` | must-fix 列清单,必须修后才可交付 |
 | < 3.0 | `blocked` | 整体不达标,回 direction / variants 重出方向 |
 
-**特殊触发**(任一直接降级为 `blocked`):
-- 维度 9(完成度)= 1 分 **且** AI slop 信号 ≥ 3 项(无意义装饰 + 临时占位 + demo 感)
-- 维度 6(交互状态)= 1 分 **且** 关键状态(disabled/loading/error)≥ 2 个缺失
-
-详细 1/3/5 锚点 + 各 verdict 的下一步行动见 `references/design-principles.md`。
+**本 skill 红线触发**(任一直接降级为 `blocked`,§通用红线见 audit-rubric §3):
+- 维度 9(完成度)= 1 **且** AI slop 信号 ≥ 3 项(无意义装饰 + 临时占位 + demo 感)
+- 维度 6(交互状态)= 1 **且** 关键状态(disabled/loading/error)≥ 2 个缺失
+- **任一维度 ≤ 2/5** → 即使 aggregate 高,降级 `needs-redesign`(局部塌方)
 
 ## Variants vs Mockup（不要混淆）
 
@@ -312,105 +305,42 @@ Task: 截图 <mockup URL> 在 <viewport>×<height> 视口
 
 ## Output Contract
 
-每次完成必须输出（**强制全字段**）：
+按 `references/output-contract-schema.md` 基线 JSON 字段返回 + 本 skill 扩展字段:
 
-```md
-## Director-Design Report
-
-### 任务理解
-- 用户原话:
-- mode 判定: audit | direction | variants | mockup | handoff
-- evidence: <screenshot path / url / code-only / missing + viewport>
-- product type: extension popup | SaaS dashboard | landing page | mobile app | other
-
-### 项目设计系统探测
-- design tokens 源: <path | none>
-- UI 框架: <stack | none>
-- 已有 Storybook: yes | no
-
-### Question Gate
-- 问题数: 0 | 1 | 2 | 3
-- 问题清单:
-  - Q1: ...(默认值: ...)
-- 用户回复: <quote 或 "用默认值">
-- 影响的执行决策: <list>
-
-### 证据采集(对照 references/evidence-discovery.md)
-- 探测命令: <list 用了哪些 ls / Playwright 截图 / find>
-- 命中: <list 截图路径 + 视口尺寸>
-- 缺失: <list 没找到的证据 + 影响>
-- 适用性判断: <list 截图是否最新版 / 视口是否覆盖目标设备>
-- 降级: <若 evidence: missing,明示降级原因 + 不下视觉结论>
-
-### 委派情况（哪些 skill 被调度）
-- huashu-design: <做了什么 / 产出路径 / 调用 ts> | not invoked
-- web-image: <做了什么 / 输出图> | not invoked
-- ui-ux-pro-max: <咨询了什么> | not invoked
-- 自做（不派工）: <自己跑了哪些步骤>
-
-### 遵循的设计原则（9 维度）(**每维必须含 `[截图:坐标 + 视口]` 佐证**)
-- [✓] 信息层级 — N/5 — `[hero.png:中央偏左,1440×900]` <具体观察 + 对照锚点>
-- [✓] 布局密度 — N/5 — `[文件 + 坐标 + 密度数据]`
-- [n/a] 字体系统 — 无证据，跳过(说明原因,不省略)
-- [✓] 色彩对比 — N/5 — `[截图 + WCAG 对比度计算]`
-- [✓] 组件一致性 — N/5 — `[对比 <项目内同类组件截图>]`
-- [✓] 交互状态 — N/5 — `[hover/focus/disabled 截图 ≥ 3 张]`
-- [✓] 响应式 — N/5 — `[3-4 视口截图齐]`
-- [✓] 产品气质 — N/5 — `[对照 <产品类型典型案例>]`
-- [✓] 完成度 — N/5 — `[demo 信号清单 + 截图位置]`
-- **aggregate**: X.X / 5
-
-> 禁止用 "<证据 / 结论>" 等空泛占位符。详见 references/evidence-discovery.md 第 5 段。
-
-### 设计判断
-- verdict: pass | pass-with-fixes | needs-redesign | needs-direction
-- diagnosis: <最大问题 1-2 句>
-- findings:
-  - [must-fix] <位置/元素>: <问题>。影响: <为什么重要>。建议: <怎么改>
-  - [should-fix] ...
-
-### 产出物
-- 报告 / mockup / variants / handoff spec 路径:
-- 关键截图:
-
-### Next Step
-- 继续 audit / 出 variants / 做 mockup / handoff 给 director-frontend
-- 推荐下一个 mode 和理由
-
-### 明确不在职责内（告知 orchestrator）
-- 工程实现 → director-frontend
-- a11y/WCAG 合规 → web-design-guidelines
-- 代码约定 → director-frontend
-- 写生产代码 → frontend-design
+```json
+{
+  "verdict": "pass | pass-with-fixes | needs-redesign | blocked",
+  "aggregate": 4.2,
+  "must_fix": ["<finding 1>", "..."],
+  "should_fix": ["<finding 1>", "..."],
+  "evidence_paths": ["<screenshot path>", "..."],
+  "artifact_path": ".agent/jobs/director-design-<task-slug>/output.md",
+  "mode": "audit | direction | variants | mockup | handoff",
+  "design_tokens_source": "<path | none>",
+  "viewport_covered": ["375", "768", "1024", "1440"],
+  "mockup_path": "<path | null>",
+  "handoff_spec_path": "<.agent/design-handoff/<task-id>/spec.md | null>"
+}
 ```
 
-## Red Flags — STOP
+完整 markdown 报告模板(任务理解 / 证据采集 / 委派情况 / 9 维度评分 / 设计判断 /
+产出物 / Next Step / 不在职责内)见 `references/output-contract-template.md`,
+subagent 落盘到 `artifact_path`,**不要在 stdout 复述全文**;
+主流程要展示给用户 / 移交下游时再 `Read artifact_path`。
 
-任一命中必须停下：
+## Red Flags
 
-- **无视觉证据下断言"设计通过 / 好看 / 专业"** —— 必须 evidence: missing/code-only
-- **9 维度有维度未应用但不标 n/a** —— 必须显式说明为什么跳过
-- **跳过 variants 直接 mockup**（除非用户明确方向）
-- **handoff 不写 spec 文件**（必须落盘 + 回路径）
-- **调用 frontend-design / director-frontend / director-frontend 写生产代码**（越界，这些是工程，不是设计）
-- **替项目擅自换设计系统**（必须先用项目已有 tokens，外部推荐要明示理由）
-- **只说"更高级 / 更现代 / 更干净"**（必须指出具体元素 + 具体动作）
-- **把 landing page 规则套到 dashboard / popup / 工具型产品**
-- **3 个 variants 之间没有真正的差异化**（不能只换配色）
-- **Output Contract 委派情况 / 遵循原则段写"无"**（必须真实记录，避免 AI slop）
+详细清单(红线 STOP 信号 / 自我合理化话术 / 常见执行错误 / 触发后恢复路径)全部下沉到
+`references/failure-modes.md`(含 Red Flags + Rationalizations + Common Errors)。**进入任何 mode 前必读一遍**。
 
-## Rationalizations to Reject
-
-| 说辞 | 现实 |
-|---|---|
-| "看代码就能判断设计了，不用截图" | 编译过 ≠ 视觉好看，code-only 必须标记 evidence: code-only 不下视觉结论 |
-| "9 维度太多，重点看 1-2 个" | 每个维度必须 [✓] 或 [n/a]，跳过维度等于盲区 |
-| "直接出 mockup，不用 variants" | 没明确方向就跳 variants = 把"选择"逼给用户的眼睛，应该先收敛方向 |
-| "用 ui-ux-pro-max 推荐的 161 色板覆盖项目 tokens" | 项目设计系统永远优先；外部推荐只在项目 tokens 缺失或明显落后时引入 |
-| "我作为设计师顺手把代码也写了" | 写代码不在职责内，handoff 给 director-frontend |
-| "委派情况段直接写 not invoked 全部" | 必须真实——如果全自跑也要说"自做：所有 9 维度 audit 由自己跑" |
-| "评分凭直觉给" | 必须对照 references/design-principles.md 的 1/3/5 锚点 |
-| "找不到设计原则参考时编一个" | 9 维度是封闭集合，加新维度必须先改 references/design-principles.md |
+**高频红线速记**(全清单见 failure-modes.md §1):
+- 无视觉证据不下"设计通过"结论(必须标 `evidence: missing/code-only`)
+- 9 维度任一未应用必须标 `[n/a]` + 理由(否则按 1 分计)
+- 跳过 variants 直接 mockup(除非用户明确方向)
+- handoff 必须落盘 spec 文件 + 回路径
+- 不写生产代码 / 不擅自换设计系统 / 不只说"更现代"虚词
+- variants 必须 ≥ 2 维度真差异化(不能只换主色)
+- Output Contract 委派情况禁止全写 "not invoked"(自跑也要写"自做")
 
 ## Codex Delegation Hook
 

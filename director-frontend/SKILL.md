@@ -263,21 +263,16 @@ mode 判定 + Step 1 探测完成后,进入执行前必经 Q gate。详见 `refe
 
 ## 9 维 Frontend Audit Checklist
 
-**核心 9 维**(详细 1/3/5 锚点见 `references/frontend-principles.md`):
+按 `references/audit-rubric.md` §2 跑 7 维基线评分(基线沿用,锚点按前端领域重定义)。本 skill 在基线之上**加 2 维前端特化**(基线 7 + 自定义 2 = 9 维):
 
-1. **组件边界清晰度(Boundary Clarity)** — 最小抽取单元是否成立,有无视觉/交互/状态/语义完整边界
-2. **组件层级归属(Layer Placement)** — primitive/shared/business/page-local 4 层归属是否正确
-3. **本地规范遵循度(Local Convention Fit)** — 命名 / API / 样式 / 目录是否沿用项目模式
-4. **API 命名一致性(API Consistency)** — props 命名 / 事件命名 / 受控边界跟项目其他组件一致
-5. **状态管理合理性(State Design)** — hooks 滥用 / 状态提升 / Context 滥用 / 全局 store 边界
-6. **样式组织(Style Organization)** — className 组织(cn/cva)/ variant 设计 / 不绕过项目工具
-7. **props 设计(Props Design)** — props 爆炸 / 万能配置器 / 业务逻辑误塞 primitive
-8. **复用证据(Reuse Evidence)** — 抽 shared 前必须有真实跨页面复用证据,无证据保留 page-local/business
-9. **AI slop(AI Slop)** — 纯 Fragment 包裹 / 仅返回 null / 命名冗余前缀 / over-engineering
+- 维度 8 — **复用证据(Reuse Evidence)**: 1=无证据就抽 shared / 3=声称跨页面但未列路径 / 5=列 ≥ 2 处真实使用路径
+- 维度 9 — **AI slop**: 1=≥ 3 项 slop 信号(纯 Fragment / 仅 null / 冗余前缀 / over-engineering)/ 3=有 1 项但已 fix / 5=零 slop 信号
 
-每维 1-5 分,<4 分必出修正建议(must-fix / should-fix 取决于严重度)。
+本 skill 红线触发(`audit-rubric.md` §3 通用之外):
+- 维度 8 = 1 分 且 业务组件塞 `components/ui/` → `needs-rewrite`
+- 维度 9 = 1 分 且 含 ≥ 3 项 AI slop 信号 → `needs-rewrite`
 
-### Aggregate → Verdict 映射(audit mode 必用)
+### Aggregate → Verdict 映射(本 skill 自命名标签)
 
 | Aggregate | Verdict | 行动 |
 |---|---|---|
@@ -286,22 +281,11 @@ mode 判定 + Step 1 探测完成后,进入执行前必经 Q gate。详见 `refe
 | 3.0-3.9 | `needs-revision` | must-fix 列清单,必须修后才可交付 |
 | < 3.0 | `needs-rewrite` | 整体不达标,回 implement / extract 重写 |
 
-**特殊触发**(任一直接降级为 `needs-rewrite`):
-- 维度 2(层级归属)= 1 分 且 业务组件被塞进 `components/ui/`
-- 维度 9(AI slop)= 1 分 且 含 ≥ 3 项 AI slop 信号
+详细 1/3/5 锚点 + 9 维清单见 `references/frontend-principles.md`;通用基线 + 报告格式 + 特殊降级规则见 `references/audit-rubric.md`。
 
-详细 rubric 见 `references/frontend-principles.md`。
+## 组件写法红线
 
-## 组件写法红线(implement / audit mode 都检查)
-
-除 9 维外,以下是对组件代码本身的**硬性约束**:
-
-- **不要写只返回 `null` 的组件** — 改写为工具函数 / 自定义 hook / 内联到调用点
-- **避免只用 Fragment 包裹的组件** — 多处复用 / memo / 错误边界才保留;否则并入调用方
-- **组件命名优先用最简单的词** — `Input` / `Button` / `Modal`,不要 `BaseInput` / `CommonButton` / `CustomModal`(除非项目里多层封装并存)
-- **业务组件不进 `components/ui/`** — `PricingCard` / `SignupForm` 等带业务语义的组件归 `features/<domain>/components/`
-- **不为复用创造万能组件** — 配置 props > 5 时停下,可能是抽错了边界
-- **不绕过项目现有样式工具** — 项目用 `cn` + `cva`,不要写 inline style 或额外 className 拼接
+除 9 维外,有 6 条对组件代码本身的硬性约束(null 组件 / Fragment-only / 命名前缀 / 业务组件位置 / props 爆炸 / 绕过样式工具)。详见 `references/failure-modes.md`「组件写法红线」段。implement / audit mode 都必须检查。
 
 ## Boundary Discovery 简述(详见 references/boundary-discovery.md)
 
@@ -422,93 +406,30 @@ orchestrator 派 subagent 后**进入 idle**,subagent 返回后把图片路径�
 
 ## Output Contract
 
-每次完成必须输出(**强制全字段**):
+按 `references/output-contract-schema.md` 基线 JSON 字段返回 + 本 skill 扩展字段:
 
-```md
-## Director-Frontend Report
-
-### 任务理解
-- 用户原话:
-- mode 判定: audit | boundaries | implement | extract | handoff
-- 目标文件 / 范围: <path 或 component 名>
-- 框架: React | Preact | Fresh | Solid | other
-
-### 项目规范探测
-- 项目规范强度: strong | medium | weak
-- 现有相似实现: <path 或 none>
-- 状态管理: <useState / Context / store>
-- 样式工具: <cn / cva / clsx / 原生>
-- 已用 UI 库: <antd / shadcn / radix / headless-ui / 无>
-- design tokens 源: <path 或 none>
-
-### Question Gate
-- 问题数: 0 | 1 | 2 | 3
-- 问题清单:
-  - Q1: ...(默认值: ...)
-  - Q2: ...
-- 用户回复: <quote 或 "用默认值">
-- 影响的执行决策: <list>
-
-### 证据采集(对照 references/evidence-discovery.md)
-- 探测命令: <list 用了哪些 rg / find / ls>
-- 命中: <list 找到的文件/相似实现>
-- 缺失: <list 没找到的证据 + 影响>
-- 适用性判断: <list 现有相似实现是否真的适用本次任务>
-- 降级: <若有,明示降级原因>
-
-### 委派情况(哪些 skill 被调度)
-- director-design: <为何调 / 拿到了什么> | not invoked
-- web-image: <为何调 / 拿到了什么> | not invoked
-- delivery-gate: <handoff 路径> | not invoked
-- 自做(不派工): <自跑了哪些步骤>
-
-### 遵循的 9 维 audit(**每维必须含 `[文件:行号 + 引用]` 佐证**)
-- [✓] 组件边界清晰度 — N/5 — `[文件:行号]` <具体观察 + 对照锚点>
-- [✓] 组件层级归属 — N/5 — `[文件路径 / 层级判定信号]`
-- [✓] 本地规范遵循度 — N/5 — `[对比 <项目内文件:行号>]`
-- [✓] API 命名一致性 — N/5 — `[对比 <项目内同类组件 props>]`
-- [✓] 状态管理合理性 — N/5 — `[文件:行号 + 状态边界证据]`
-- [✓] 样式组织 — N/5 — `[文件:行号 + cn/cva 用法]`
-- [✓] props 设计 — N/5 — `[props 清单 + 是否含业务语义]`
-- [✓] 复用证据 — N/5 — `[≥ 2 处使用路径 或 仅 1 处 → 不该 shared]`
-- [✓] AI slop — N/5 — `[具体 slop 信号:仅 null / Fragment-only / 冗余前缀 + 文件:行号]`
-- **aggregate**: X.X / 5
-
-> 禁止用 "<证据 / 结论>" 等空泛占位符。详见 references/evidence-discovery.md 第 5 段佐证格式。
-
-### 前端判断
-- verdict: ready | ready-with-fixes | needs-revision | needs-rewrite
-- diagnosis: <最大问题 1-2 句>
-- findings:
-  - [must-fix] <位置>: <问题>。影响: <为什么重要>。建议: <怎么改>
-  - [should-fix] ...
-
-### 实际修改(implement / extract mode)
-- 修改文件清单: <list>
-- 新增组件: <list 含层级归属>
-- 移动组件: <from → to>
-- 删除组件: <list>
-- 自跑复查 audit 结果: pass / 仍有 N must-fix
-
-### Boundary 候选(boundaries / extract mode)
-- 候选组件: <list>
-- 4 层归类: primitive=N / shared=N / business=N / page-local=N
-- 不进 shared 的候选 + 理由: <list>
-
-### 产出物
-- 报告 / handoff spec / 实际代码 diff 路径:
-
-### Next Step
-- 继续 implement / 用户决定是否抽 X / handoff 给 director-design 视觉复审
-- 推荐下一个 mode 和理由
-
-### 明确不在职责内(告知 orchestrator)
-- 视觉设计判断 → director-design
-- 文案/宣传发布 → director-promote
-- a11y/WCAG → web-design-guidelines
-- 固定尺寸出图 → web-image
-- 后端/API → 非前端范畴
+```json
+{
+  "verdict": "ready | ready-with-fixes | needs-revision | needs-rewrite",
+  "aggregate": 0.0,
+  "must_fix": [],
+  "should_fix": [],
+  "evidence_paths": [],
+  "artifact_path": ".agent/jobs/director-frontend-<task-slug>/output.md",
+  "mode": "audit | boundaries | implement | extract | handoff",
+  "files_touched": [],
+  "boundaries_extracted": [],
+  "handoff_spec_path": "<path 或 null>"
+}
 ```
+
+扩展字段语义:
+- `mode`: 本次执行的 mode
+- `files_touched`: implement / extract 真实改的文件清单
+- `boundaries_extracted`: boundaries / extract 抽出的组件名清单
+- `handoff_spec_path`: handoff mode 写盘的 spec 绝对路径
+
+完整 markdown 报告模板见 `references/output-contract-template.md`,subagent 落盘到 `artifact_path`,主流程要展示给用户 / 移交下游时再 `Read`(不要在 stdout 复述全文)。
 
 ## Red Flags — STOP
 

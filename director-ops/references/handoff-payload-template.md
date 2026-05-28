@@ -68,3 +68,88 @@
 - `director-frontend`（上游：flow-dev-task / flow-project-finish / 用户直接触发；调用：director-design / web-image；handoff 出口：frontend-design plugin / delivery-gate）
 - `director-promote`（上游：flow-project-finish / 用户直接触发；调用：director-design / web-image；内置 5 平台子模块 twitter/v2ex/appinn/sspai/producthunt；handoff 出口：flow-ext-publish）
 - `director-ops`（上游：flow-dev-task / 用户直接触发；不调用其他 director-*；不可越界）
+
+---
+
+## Path-Based Payload Convention(2026-05 强制约束)
+
+**问题**: 直接把 spec / diff / evidence / 大段文本内联进 payload → 上游主上下文污染 + 下游 prompt 体积爆炸。
+
+**规则**: 所有"大内容"字段(估算 > 200 字符 / > 5 行)必须改用 path 引用,不内联。
+
+### 字段命名约定
+
+| 内联字段(❌) | path 替代(✅) | 说明 |
+|---|---|---|
+| `spec` | `spec_path` | spec 内容文件路径 |
+| `diff` | `diff_path` | git diff 文件路径(`git diff > .agent/jobs/<job>/diffs.patch`) |
+| `evidence` | `evidence_paths: []` | 截图/录屏/log 路径数组 |
+| `goal` | `goal_path` | 目标说明文件 |
+| `plan` | `plan_path` | 实现计划文件 |
+| `code` | `code_paths: []` | 相关源码文件路径数组 |
+| `logs` | `log_path` | 执行日志路径 |
+| `report` | `report_path` 或 `artifact_path` | 完整 markdown 报告路径(对齐 output-contract-schema.md) |
+
+### 例外(可保持内联)
+
+以下小字段可继续内联,无需 path:
+- `task_id` / `objective`(短句目标)
+- `risk_class`(enum)
+- 数字 / boolean / 短 enum
+- `must_fix: []` / `should_fix: []` 数组(每项 < 100 字)
+- 任何明显短小且 inline 更易读的字段
+
+判定标准:**字段值如果 > 200 字符或 > 5 行 → 强制 path-based**;否则按可读性自由。
+
+### path 文件存放规范
+
+约定:
+- 临时 handoff 文件落到 `.agent/jobs/<job-slug>/` 目录
+- spec 文件落到 `.agent/specs/<slug>.md`(若是 todo-flow 等带 slug 的)
+- 长期保存的 evidence 落到 `.agent/evidence/<date>/`
+- `.agent/` 应已加入项目 `.gitignore`(若否,提醒调用方加)
+
+### 上下游协议
+
+- **上游写入**:把大内容写到约定 path,handoff payload 只填 `<name>_path` 字段
+- **下游读取**:按 path 字段 `Read` 文件;只在真正需要时 read,不要 prefetch
+- **subagent 派工**:遵循上述约定,prompt 里只放 path,subagent 自己 read
+
+### 反例
+
+```yaml
+# ❌ 错: 内联 spec 全文
+handoff:
+  task_id: abc123
+  spec: |
+    # Implementation Spec
+    
+    ## Goal
+    Implement feature X with the following requirements:
+    1. Step one with detailed description
+    2. Step two ...
+    (continues for 200 lines)
+  evidence:
+    screenshot_data: <base64 1MB blob>
+    diff: |
+      diff --git a/foo.ts ...
+      (300 lines of diff)
+```
+
+```yaml
+# ✅ 对: path-based
+handoff:
+  task_id: abc123
+  spec_path: .agent/specs/abc123.md
+  evidence_paths:
+    - .agent/evidence/2026-05-28/screenshot.png
+  diff_path: .agent/jobs/abc123/diffs.patch
+```
+
+### 与 dispatcher-template.md / output-contract-schema.md 的关系
+
+- 本 addendum 规定 **handoff payload** 字段层(上下游 skill 之间)
+- `dispatcher-template.md`(若存在)规定 **subagent 派工 prompt** 层(prompt 字段名 + invoke directive)
+- `output-contract-schema.md`(若存在)规定 **回流** 层(JSON 结果 + artifact_path)
+
+三者协同:**path-based 是统一精神**——任何大内容都不应在 token 流(prompt / payload / output)里内联。

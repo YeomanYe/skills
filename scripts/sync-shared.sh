@@ -29,6 +29,9 @@ declare -a SHARED_FILES=(
   "evidence-discovery.md"
   "question-gate.md"
   "constitution.md"
+  "audit-rubric.md"
+  "output-contract-schema.md"
+  "dispatcher-template.md"
 )
 
 # 各 _shared 文件的目标 skill（基于 grep 实际引用）
@@ -96,6 +99,55 @@ constitution_target_skills=(
   experience-summary
   hat
   unblock-recipes
+  change-recap
+)
+
+# audit-rubric.md 给 5 director-* + experience-summary (7 维质量评分共用)
+audit_rubric_target_skills=(
+  director-design
+  director-frontend
+  director-promote
+  director-ops
+  director-architect
+  experience-summary
+)
+
+# output-contract-schema.md 给所有输出报告类 skill (16 个,含 director-* / flow-* / 单体 skill)
+output_contract_schema_target_skills=(
+  director-design
+  director-frontend
+  director-promote
+  director-ops
+  director-architect
+  flow-dev-task
+  flow-codex-goal
+  flow-project-finish
+  flow-project-bootstrap
+  flow-ext-publish
+  flow-skill-dev
+  flow-skill-research
+  experience-summary
+  change-recap
+  hat
+  todo-flow
+)
+
+# dispatcher-template.md 给所有 orchestrator / dispatcher 类 skill (15 个)
+dispatcher_template_target_skills=(
+  flow-codex-goal
+  flow-dev-task
+  flow-project-finish
+  flow-project-bootstrap
+  flow-ext-publish
+  flow-skill-dev
+  flow-skill-research
+  todo-flow
+  director-design
+  director-frontend
+  director-promote
+  director-ops
+  director-architect
+  experience-summary
   change-recap
 )
 
@@ -170,6 +222,18 @@ echo ""
 
 echo "[constitution.md]"
 sync_one "constitution.md" "${constitution_target_skills[@]}"
+echo ""
+
+echo "[audit-rubric.md]"
+sync_one "audit-rubric.md" "${audit_rubric_target_skills[@]}"
+echo ""
+
+echo "[output-contract-schema.md]"
+sync_one "output-contract-schema.md" "${output_contract_schema_target_skills[@]}"
+echo ""
+
+echo "[dispatcher-template.md]"
+sync_one "dispatcher-template.md" "${dispatcher_template_target_skills[@]}"
 echo ""
 
 if [[ $CHECK_ONLY -eq 1 ]]; then

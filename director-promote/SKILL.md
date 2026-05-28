@@ -183,22 +183,21 @@ playwriter 扩展。
 
 ## 9 维 Promote Audit Checklist
 
-**核心 9 维**(详细 1/3/5 锚点见 `references/promote-principles.md`):
+按 `references/audit-rubric.md` §2 跑 7 维基线评分(scope / 来源可信 / 决策证据 / 可执行 / 产出成功 / 验证 / 沉淀)。本 skill 在基线上**加 2 维宣发专属**,共 9 维。详细 1/3/5 锚点 + 每维 must-fix 触发条件见 `references/promote-principles.md`。
 
-1. **标题钩子(Hook)** — 第一眼能不能让目标平台用户点开
-2. **一句话价值(Value Prop)** — 是否清晰说清"解决什么问题/给谁用"
-3. **受众匹配(Audience Fit)** — 是否符合目标平台调性(twitter 短钩子 / v2ex 实用主义 / sspai 长文体 / Appinn "推荐一个")
-4. **Hero 视觉冲击(Hero Image)** — 配图是否抓眼(不是模糊截屏/纯白/加载中/logo 占位)
-5. **图片内容合规(Image Safety)** — 是否含敏感信息(IP/邮箱/钱包/密码/真实姓名/未脱敏数据)
-6. **图片尺寸适配(Image Dimensions)** — 是否符合各平台尺寸(twitter 16:9 / sspai 1600×1200 / 商店 1280×800...)
-7. **长短文齐备(Content Coverage)** — 目标平台清单中,长短文是否都有(twitter 280 短 / sspai 6-8 H2 长)
-8. **CTA 引导(Call to Action)** — 是否含明确可点击动作(商店链接/GitHub URL/反馈渠道)
-9. **平台原生感(Native Feel)** — 是否避免 AI slop(避用"神器""黑科技""碾压"等过度营销词,
-   避免"我搓了个/周末做了个"自降身价用语,避免堆 emoji/超链接)
+**本 skill 自定义增维度**(基线 7 维 + 以下):
 
-每个维度 1-5 分,<4 分必出修正建议(must-fix 或 should-fix 取决于平台和严重度)。
+- 维度 8 — **平台原生感 / Native Feel**:1=堆"神器/碾压"等 AI slop 词 / 3=避开主要营销词但开头仍像营销 / 5=完全像目标平台原生帖,过去 1 个月热帖语气对得上
+- 维度 9 — **图片内容合规 + 尺寸适配 / Image Safety & Dimensions**:1=含 IP/邮箱/钱包/密码 等未脱敏 或 尺寸严重不符 / 3=已脱敏但尺寸偏差 / 5=零敏感信息 + 严格匹配各平台 spec
 
-### Aggregate → Verdict 映射(audit / variants 必用)
+(基线维度在宣发语境下的具体含义:维度 1 探测 = 材料覆盖度;维度 3 决策证据 = 标题钩子 + 一句话价值 + 受众匹配 + CTA 链接;维度 4 可执行 = Hero 视觉冲击 + 长短文齐备。)
+
+**本 skill 红线触发**(§3 通用之外):
+
+- 维度 9 = 1 且图片含敏感信息 → `blocked`(图片内容合规)
+- 维度 4 < 3 且无 hero 图 → `blocked`(Hero 视觉缺位)
+
+### Aggregate → Verdict 映射(本 skill 自命名标签)
 
 | Aggregate | Verdict | 行动 |
 |---|---|---|
@@ -206,12 +205,6 @@ playwriter 扩展。
 | 4.0-4.4 | `ready-with-fixes` | should-fix 列清单,用户决定是否修后再发 |
 | 3.0-3.9 | `needs-revision` | must-fix 列清单,必须修后才能 dispatch |
 | < 3.0 | `blocked` | 材料整体不达标,回 draft 或 variants |
-
-**特殊触发**(任一直接降级为 `blocked`,不看 aggregate):
-- 维度 5(图片内容合规)= 1 分
-- 维度 4(Hero 视觉冲击)< 3 且无 hero 图
-
-详细 rubric 见 `references/promote-principles.md`。
 
 ## Audit vs Draft vs Variants(不要混淆)
 
@@ -385,90 +378,26 @@ orchestrator 派多路 subagent 后**进入 idle**,collect-all 收齐后把各�
 
 ## Output Contract
 
-每次完成必须输出(**强制全字段**):
+按 `references/output-contract-schema.md` 基线 JSON 字段返回 + 本 skill 扩展字段:
 
-```md
-## Director-Promote Report
-
-### 任务理解
-- 用户原话:
-- mode 判定: audit | draft | variants | dispatch | recap
-- 目标项目: <path / repo URL>
-- 目标平台清单: [twitter, v2ex, appinn, sspai, producthunt, chrome-store-assets] 或 not applicable
-
-### 材料探测
-- 项目 README / package.json: 命中 / 缺失
-- 已有 hero 图: <path> 或 missing
-- git remote / version: <info>
-- 各平台登录态: twitter=? / v2ex=? / appinn=? / sspai=? / producthunt=?
-- playwriter 可用: yes / no
-
-### Question Gate
-- 问题数: 0 | 1 | 2 | 3
-- 问题清单:
-  - Q1: ...(默认值: ...)
-- 用户回复: <quote 或 "用默认值">
-- 影响的执行决策: <list>
-
-### 证据采集(对照 references/evidence-discovery.md)
-- 探测命令: <list curl 200 校验 / find hero 图 / 登录态 check>
-- 命中: <list 材料路径 + 平台登录验证结果>
-- 缺失: <list 没找到的材料 + 影响>
-- 适用性判断: <list 文案是否符合各平台调性 / 链接是否仍 200>
-- 降级: <若 materials: missing,明示降级原因>
-
-### 委派情况(哪些 skill 被调度)
-- director-design: <做了什么 / 产出路径> | not invoked
-- platforms/twitter: <做了什么 / 结果 URL> | not invoked
-- platforms/v2ex: <...> | not invoked
-- platforms/appinn: <...> | not invoked
-- platforms/sspai: <...> | not invoked
-- platforms/producthunt: <...> | not invoked
-- flow-ext-publish handoff: <素材路径> | not applicable
-- 自做(不派工): <自己跑了哪些步骤>
-
-### 遵循的 9 维 audit(**每维必须含 `[平台 URL / 字符数 / 配图路径 / 原文引用]` 佐证**)
-- [✓] 标题钩子 — N/5 — `[平台 + 字符数 + 原文]` <对照锚点>
-- [✓] 一句话价值 — N/5 — `[原文段引用]`
-- [✓] 受众匹配 — N/5 — `[对比 <平台过去 1 个月热帖>]`
-- [✓] Hero 视觉冲击 — N/5 — `[配图路径 + 缩略图模拟尺寸]`
-- [✓] 图片内容合规 — N/5 — `[扫描清单结果:IP/邮箱/钱包/...]`
-- [✓] 图片尺寸适配 — N/5 — `[实际尺寸 vs 平台规范 vs 配图路径]`
-- [✓] 长短文齐备 — N/5 — `[各平台版本字数清单]`
-- [✓] CTA 引导 — N/5 — `[主链接 + curl 200 校验]`
-- [✓] 平台原生感 — N/5 — `[AI slop 词清单扫描结果]`
-- **aggregate**: X.X / 5
-
-> 禁止用 "<证据 / 结论>" 等空泛占位符。详见 references/evidence-discovery.md 第 5 段。
-
-### 宣发判断
-- verdict: ready | ready-with-fixes | needs-revision | blocked
-- diagnosis: <最大问题 1-2 句>
-- findings:
-  - [must-fix] <平台/材料>: <问题>。影响: <为什么重要>。建议: <怎么改>
-  - [should-fix] ...
-
-### Dispatch 结果(仅 dispatch 模式)
-- twitter: <URL / draft / failed reason> / 预览截图路径
-- v2ex: <URL / preview-pending / failed> / 预览截图路径
-- appinn: <topic URL / enqueued + pending_id / failed> / 状态说明
-- sspai: <published URL / 编辑器待发布 / failed> / 发布确认状态
-- producthunt: <draft URL / scheduled / published / failed> / Launch Checklist 状态
-
-### 产出物
-- 文案 / variants / handoff / 预览截图 路径:
-- Chrome Store 素材路径(若有):
-
-### Next Step
-- 继续 dispatch 下一个平台 / 等用户确认平台 N / 修 must-fix 后重新 audit
-- 推荐下一个 mode 和理由
-
-### 明确不在职责内(告知 orchestrator)
-- 产品上架应用商店执行(安装包提交) → flow-ext-publish
-- 视觉设计判断/出图 → director-design
-- a11y/WCAG → web-design-guidelines
-- 写生产代码 → director-frontend
+```json
+{
+  "verdict": "ready | ready-with-fixes | needs-revision | blocked",
+  "aggregate": 4.3,
+  "must_fix": [],
+  "should_fix": [],
+  "artifact_path": ".agent/jobs/director-promote-<task-slug>/output.md",
+  "platforms": ["twitter", "v2ex", "appinn", "sspai", "producthunt", "chrome-store-assets"],
+  "variants_count": 0,
+  "dispatch_receipts": [
+    {"platform": "...", "status": "preview-pending | published | failed", "url": "...", "preview_screenshot": "..."}
+  ]
+}
 ```
+
+完整 markdown 报告模板见 `references/output-contract-template.md`(含任务理解 / 材料探测 / Q gate / 证据采集 / 委派情况 / 9 维 audit / 宣发判断 / Dispatch 结果 / 产出物 / Next Step / 不在职责内 全字段骨架)。
+
+主流程要展示给用户 / handoff 给下游(尤其 flow-ext-publish)时再 `Read artifact_path`;**subagent 不要在 stdout 复述完整 markdown**。
 
 ## Red Flags — STOP
 
