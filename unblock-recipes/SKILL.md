@@ -184,6 +184,7 @@ agent / orchestrator 检测到卡壳信号后:
 4. **载入候选 recipe**: `cat recipes/<slug>.md`,逐条读"症状信号"段判定是否真命中
 5. **应用解法**:
    - 真命中 → 按"正确做法"段执行 + 该 recipe 的 `last_hit` 更新为今天 + `hit_count + 1`
+     - ⚠️ 这笔 bump **必须改在 skills 中心源仓库**(`sync-skills` 推 GitHub 的单一事实源,通常 `~/Documents/projects/skills/<skill>/`)并 **commit**。**禁止**改 skillshare 下游 clone(`~/.config/skillshare/skills/...`)或 AI 工具同步目标(`~/.claude/skills/` 等,多为软链)后留未提交游离改动——下游副本会被下次 `skillshare sync` 覆盖,改动丢失且不回流 GitHub。agent 经 `~/.claude/skills/` 召回时载入的就是下游副本,bump 前先切到中心源仓库。
    - 看似命中实际不是 → 不更新计数,继续 lookup 下一候选
    - 全 3 条都不命中 → 退出 lookup,回到默认调试流程;若解决后是新坑 → 走 experience-summary 路由考虑入册
 
