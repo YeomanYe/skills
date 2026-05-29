@@ -50,6 +50,9 @@
 ### meegle
 - lark-project-url-needs-meegle-cli
 
+### lark
+- lark-wiki-docs-use-lark-cli
+
 ---
 
 ## 按 symptom 关键词反查(精确召回)
@@ -60,6 +63,10 @@
 | ecommerce-strapi 等 Lark space 链接抓出营销首页 utm_source=in_meegle | lark-project-url-needs-meegle-cli | meegle |
 | Lark Project / Meegle workObjectView / workitem URL 鉴权失败 | lark-project-url-needs-meegle-cli | meegle |
 | project.larksuite.com 链接 WebFetch 拿不到内容 | lark-project-url-needs-meegle-cli | meegle |
+| Lark wiki 链接跳到 accounts.larksuite.com 登录页 | lark-wiki-docs-use-lark-cli | lark |
+| ajx34x51402.sg.larksuite.com/wiki 文档编辑任务 | lark-wiki-docs-use-lark-cli | lark |
+| 需要读取/写入 Lark Wiki 文档但 WebFetch/Playwright 拿不到正文 | lark-wiki-docs-use-lark-cli | lark |
+| lark-cli docs +update 报 --command is required（v1/v2 参数不同） | lark-wiki-docs-use-lark-cli | lark |
 | skillshare install -s <name> --track 报错 --skill cannot be used with --track | skillshare-multi-skill-repo-minimal-install | skillshare |
 | skillshare target exclude pattern 对带前缀的 slug 不匹配 | skillshare-multi-skill-repo-minimal-install | skillshare |
 | 整 repo 安装后 60+ 子 skill 全进 ~/.claude/skills/ 污染上下文 | skillshare-multi-skill-repo-minimal-install | skillshare |
