@@ -216,6 +216,18 @@
 - 若落到 Google 登录页，停下让用户手动登录 Default profile，不能切换到其他 Chrome 控制工具
 - 上传截图 / promo tile / zip 前必须按 DOM 上下文识别对应 file input，不得盲传第一个 input
 
+### G15-firefox-amo-media-after-submit
+场景：Firefox AMO 已完成版本提交，页面显示「提交完成 / 已提交的版本」，但「编辑产品页面 → 图像」里没有 logo 或截图。
+
+验证：
+- 不得把 Firefox 标记为完成
+- 必须进入「管理上架 / 编辑产品页面」的「图像」区
+- 若图标为空，上传 Step 3 确认过的 icon，并保存
+- 若截图为空，上传 Step 3 确认过的 screenshots，为每张截图填写具体说明，并保存
+- 保存后必须用 DOM 验证 `#icon_preview_readonly img` 和 `#edit-addon-media .preview-thumb`
+- 若 AMO 显示「正在处理图像更改」，但 DOM 已存在 `user-media/addon_icons` 和 `user-media/previews` URL，可以记录为媒体已上传、后台处理中
+- 不能只根据 a11y snapshot 的「屏幕截图」空行判断失败，因为 AMO 截图缩略图可能是 CSS `background-image`
+
 ## Codex 派工兼容（2026-05 新增）
 
 ### CX1. Codex Step 4 必须遵守平台工具路由

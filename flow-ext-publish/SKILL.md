@@ -331,6 +331,7 @@ Step 3 用户明确确认后，直接进入本步骤，不需要再次征询授�
 1. **导航**：用对应工具打开该平台的开发者后台
 2. **填写商店信息**：
    - name、short description（从 manifest / README 抽取，不得凭空编造）
+   - icon / logo（路径来自 Step 2/3 确认的素材清单）
    - screenshots（路径来自 Step 2/3 确认的素材清单）
    - promo tiles / marquee（同上）
    - category、privacy policy URL
@@ -340,6 +341,19 @@ Step 3 用户明确确认后，直接进入本步骤，不需要再次征询授�
 5. **记录结果**：保存审核 ID / 提交 URL，供最终报告使用
 
 ### 平台特定要点
+
+#### Firefox AMO
+
+- AMO 的初次提交向导通常只覆盖分发方式、zip 上传、描述、隐私、许可、审核备注和源码附件；它可能**不会**在同一向导里要求 icon / screenshots
+- 版本提交完成后，不要立刻把 Firefox 标记为完成；必须进入「管理上架 / 编辑产品页面」并检查「图像」区
+- 若「附加组件图标」或「屏幕截图」为空，点击「图像」区的「编辑」，上传 Step 3 确认过的 icon / screenshots，再保存
+- 截图上传后必须给每张截图填写说明；说明可以从截图用途生成，保持具体，例如 pause screen / options page / classic layout
+- 保存后不要只看 a11y snapshot 的行文字；AMO 的截图缩略图常用 CSS `background-image`，快照可能只显示空行
+- 必须用 DOM 验证：
+  - icon: `#icon_preview_readonly img` 至少包含 `128/64/32` 三个 AMO 生成图标
+  - screenshots: `#edit-addon-media .preview-thumb` 数量与已确认截图数量一致，且 `data-url` 指向 `user-media/previews`
+- 若页面显示「正在处理图像更改」，记录为「媒体已上传，AMO 后台处理中」；但必须已经看到 icon URL 和 screenshot preview URL，才能把 Firefox 记为已补齐媒体
+- 使用源码构建工具（WXT / Vite / TypeScript / bundler / minifier）时，AMO 源码步骤必须选「是」并上传 source archive；不要把未公开仓库链接填为公开源码 URL
 
 #### Chrome Web Store
 
@@ -445,6 +459,7 @@ Step 3 用户明确确认后，直接进入本步骤，不需要再次征询授�
 - 在用户只要求某一个平台时顺带把其它平台也发了
 - 重复追问 preflight 报告 / `manifest.json` / `package.json` / README 中已明确存在的信息（name、version、description、permissions 等）
 - 在 Firefox / Edge 路径上使用 Playwright MCP（`mcp__playwright__*`）或任何新开 chromium 实例的工具操作 Partner Center / AMO（必须接管用户已登录浏览器）
+- Firefox AMO 显示「提交完成」后不回到「编辑产品页面 → 图像」检查并补齐 icon / screenshots
 - 在 Edge Store listing 按 `nth(0..3)` 假设 4 个 file input 槽位顺序（必须按父级 label 识别）
 - 把 Edge 截图 input 当作 multiple 一次性传 3 张（必须拆 3 次 `setInputFiles`）
 - 一次 Playwriter `-e "..."` 中 `await page.waitForTimeout(...)` 超过 ~2.5s 触发 10s 总超时（应拆调用并把等待放到 Bash `sleep`）
@@ -458,6 +473,7 @@ Step 3 用户明确确认后，直接进入本步骤，不需要再次征询授�
 - 已分流缺失项并生成 / 整理所需素材
 - 已收到用户对 Step 3 素材和缺口的明确确认
 - 已按顺序（Firefox → Edge → Chrome）对所有目标平台执行填写 + 提交，或记录了跳过原因
+- Firefox AMO 若在目标平台内，已验证「图像」区存在 icon 和已确认截图，或明确记录为用户手动补齐项
 - 已输出最终报告（含各平台审核 ID 或手动跳过说明）
 
 若用户在 Step 3 或 Step 4 暂停任务，报告中如实记录停在哪一步。
