@@ -76,10 +76,10 @@ Chrome 最宽松放最后,前面踩的坑这边已经修了。**不要按"用户
 
 ## Codex Delegation Hook
 
-Codex 是对等 agent，**也能跑 Playwriter / cdp-browser-control**（对等机器，对等工具）。是否派工取决于 **ROI**（净收益 = 省 Claude token + 并行性 - SPEC 成本 - 协调成本 - review 成本 - 质量风险）。
+Codex 是对等 agent，**也能跑 Playwriter / agent-browser**（对等机器，对等工具）。是否派工取决于 **ROI**（净收益 = 省 Claude token + 并行性 - SPEC 成本 - 协调成本 - review 成本 - 质量风险）。
 
 ### 🟡 中 ROI 视情况派
-- **Step 4 各平台上架**：Codex 能跑 Playwriter / cdp 操作浏览器，但每平台之间需用户确认（"这张图可以吗？"、"是否要发 Edge？"），Codex 不能等用户回话——只能跑完一段就退出。**协调成本通常 > 节省**。仅在用户明确"全自动化提交，不要中途确认"时值得派工
+- **Step 4 各平台上架**：Codex 能跑 Playwriter / agent-browser 操作浏览器，但每平台之间需用户确认（"这张图可以吗？"、"是否要发 Edge？"），Codex 不能等用户回话——只能跑完一段就退出。**协调成本通常 > 节省**。仅在用户明确"全自动化提交，不要中途确认"时值得派工
 - **Step 1 preflight**：能派，但 ext-preflight 自己就一条命令，Claude 自跑更快
 
 ### 🔴 低 / 负 ROI 不建议派
@@ -92,7 +92,7 @@ Codex 是对等 agent，**也能跑 Playwriter / cdp-browser-control**（对等�
 ### 工具路由约束（不可绕过，与派工正交）
 即使派 Codex，**Step 4 工具路由仍是硬约束**：
 - Firefox AMO / Edge → 必须 `Playwriter`（接管用户已登录浏览器）
-- Chrome Web Store → 必须 `cdp-browser-control`（Google 拦截 Playwriter）
+- Chrome Web Store → 必须 `agent-browser --profile Default`（复用真实 Chrome profile）
 
 **派工时必须把这些工具约束写进 SPEC**，否则 Codex 可能改用其他工具导致登录态丢失。
 
@@ -111,7 +111,7 @@ Codex 是对等 agent，**也能跑 Playwriter / cdp-browser-control**（对等�
 1. 运行 `ext-preflight`
 2. 分类缺失项 → 可补齐的位图交给 `web-image` / 素材不足项列入 user-must-provide / 非图片列入 checklist
 3. 输出已生成素材 + 缺口清单 → 等待用户明确确认「生成结果可用且全部就绪」
-4. 执行上架：填写信息 + 提交，顺序为 **Firefox AMO（Playwriter）→ Edge（Playwriter）→ Chrome（cdp-browser-control）**
+4. 执行上架：填写信息 + 提交，顺序为 **Firefox AMO（Playwriter）→ Edge（Playwriter）→ Chrome（agent-browser --profile Default）**
 5. 输出最终报告
 
 Step 3 前不得进入 Step 4。不允许「看起来都 OK」就自己补全再提交。
@@ -302,10 +302,10 @@ Step 3 用户明确确认后，直接进入本步骤，不需要再次征询授�
 |------|------|
 | Firefox AMO | `Playwriter`（接管用户已登录的浏览器） |
 | Microsoft Edge | `Playwriter`（接管用户已登录的浏览器） |
-| Chrome Web Store | `cdp-browser-control` |
+| Chrome Web Store | `agent-browser --profile Default`（复用真实 Chrome profile） |
 
 **禁止**用 Playwriter 操作 Chrome Web Store（Google 会拦截自动化导航）。
-**禁止**用 cdp-browser-control 操作 Firefox AMO 或 Edge。
+**禁止**用 agent-browser 操作 Firefox AMO 或 Edge（本流程 Firefox / Edge 固定走 Playwriter）。
 **禁止**在 Firefox / Edge 路径上使用 Playwright MCP（`mcp__playwright__*`）或任何新开 chromium 实例的工具 — 那种方式拿不到用户已登录的 Partner Center / AMO 会话，必须通过 `npx playwriter@latest -s <session-id> -e "..."` 接管用户当前浏览器。
 
 #### Playwriter 执行约束
@@ -314,6 +314,15 @@ Step 3 用户明确确认后，直接进入本步骤，不需要再次征询授�
 - 一次 `-e` 内的 `await page.waitForTimeout(...)` 不要超过 ~2.5s
 - 长等待必须拆成多次短调用，等待逻辑放在 Bash 端的 `sleep`，不要在 `-e` 内做长 polling
 - 切忌为了绕开超时改回 Playwright MCP 新开浏览器，那会丢失登录态
+
+#### agent-browser 执行约束（Chrome Web Store）
+
+- Chrome Web Store 必须优先且唯一使用 `npx agent-browser --profile Default ...`
+- 若 agent-browser daemon 已运行并提示 `--profile ignored`，先执行 `npx agent-browser close --all`，再用 `--profile Default` 重开
+- 打开入口：`npx agent-browser --profile Default open https://chrome.google.com/webstore/devconsole/`
+- 若落到 Google 登录页，说明 Default profile 未登录或未复用；停下让用户手动登录这个 profile，不要切换到其他 Chrome 控制工具
+- 若 snapshot 命中 Gemini / 侧栏 / 错误 tab，用 `npx agent-browser tab` 列出 tabs，再 `npx agent-browser tab t<N>` 切回 Chrome Web Store Dev Console
+- 每次页面变化后刷新 snapshot refs，按最新 refs 点击和上传，不复用旧 ref
 
 ### 各平台上架步骤
 
@@ -331,6 +340,17 @@ Step 3 用户明确确认后，直接进入本步骤，不需要再次征询授�
 5. **记录结果**：保存审核 ID / 提交 URL，供最终报告使用
 
 ### 平台特定要点
+
+#### Chrome Web Store
+
+- 入口：`https://chrome.google.com/webstore/devconsole/`
+- 列表页进入目标扩展后，先确认当前 published / draft version，避免把素材上传到错误条目
+- 文件包上传：在 Package / 软件包区域上传本次 build zip；若 button 上传失败，查找 `input[type=file][accept*=".zip"], input[type=file][accept*=".crx"]`，确认上下文后再上传
+- Store listing 截图 / 宣传图上传：查找 `input[type=file][accept*=".png"], input[type=file][accept*=".jpg"], input[type=file][accept*=".jpeg"]`，必须读取父级区域文字识别槽位，不要盲传第一个 input
+- 当前页面常见槽位顺序可能包含 icon / screenshots / small promo / marquee，但顺序不是契约；每次都按 DOM 上下文和尺寸说明确认
+- 需要时可用 eval 给已确认的正确 input 临时加 id，然后用 agent-browser upload 对准该 id
+- 保存草稿后再提交审核；最终弹窗若出现 auto publish checkbox，按用户要求保留或切换
+- 成功信号：出现“已将您的扩展程序提交送审”或状态进入“待审核 / In review”，记录提交 URL 和状态
 
 #### Microsoft Edge Add-ons
 
@@ -405,7 +425,7 @@ Step 3 用户明确确认后，直接进入本步骤，不需要再次征询授�
 - manifest 与 package.json 版本不一致 → 停在 Step 2，先让用户对齐版本，再继续
 - 用户只发一个平台 → 只提交该平台，不操作其它平台
 - `Playwriter` 无法访问目标平台登录态 → 记录为「需用户手动完成」，继续下一平台；不要降级为 Playwright MCP 新开浏览器
-- `cdp-browser-control` 无法访问 Chrome Web Store → 记录为「需用户手动完成」，输出需填字段清单
+- `agent-browser --profile Default` 无法访问 Chrome Web Store → 记录为「需用户手动完成」，输出需填字段清单；不要切换到其他 Chrome 控制工具
 - Edge 计划未注册 → 不要继续提交 Edge，先把注册入口给用户手动完成，再回到 Step 4
 - Playwriter 单次 `-e` 触达 10s 总超时 → 拆成多次短调用 + Bash `sleep` 等待，不要在 `-e` 内做长 polling，也不要改用新开浏览器的工具
 
@@ -414,7 +434,7 @@ Step 3 用户明确确认后，直接进入本步骤，不需要再次征询授�
 - 跳过 Step 3 的用户确认直接进入 Step 4
 - 把含糊回应（嗯 / ok 吧 / 随便）当作 Step 3 确认
 - 用 Playwriter 提交 Chrome Web Store（Google 拦截自动化）
-- 用 cdp-browser-control 提交 Firefox AMO 或 Edge
+- 用 agent-browser 提交 Firefox AMO 或 Edge（Firefox / Edge 固定走 Playwriter）
 - 颠倒提交顺序（必须 Firefox → Edge → Chrome）
 - 用占位图 / 截图蒙混缺失的真实截图
 - 在 A 路径里调用 `huashu-design`、`ai-image-generation` 或其他外部设计 / 文生图方式绕过项目资产约束

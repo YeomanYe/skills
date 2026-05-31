@@ -206,16 +206,27 @@
 - 把注册入口 `https://partner.microsoft.com/en-us/dashboard/registration?stage=1&accountProgram=MicrosoftEdge` 交给用户手动完成
 - 用户完成后再回到 Step 4 的 Edge 提交
 
+### G14-chrome-must-use-agent-browser-default-profile
+场景：进入 Step 4 的 Chrome Web Store 上架阶段。
+
+验证：
+- 必须使用 `npx agent-browser --profile Default ...` 复用真实 Chrome profile
+- 不得用 Playwriter 操作 Chrome Web Store
+- 若 agent-browser daemon 已运行并提示 `--profile ignored`，先 `npx agent-browser close --all` 再重开
+- 若落到 Google 登录页，停下让用户手动登录 Default profile，不能切换到其他 Chrome 控制工具
+- 上传截图 / promo tile / zip 前必须按 DOM 上下文识别对应 file input，不得盲传第一个 input
+
 ## Codex 派工兼容（2026-05 新增）
 
-### CX1. 本 skill 不接受 Codex 路由
+### CX1. Codex Step 4 必须遵守平台工具路由
 
-场景：上层 agent 试图把 Step 4 浏览器自动化改派 Codex（误以为 Codex 也能操作浏览器）。
+场景：上层 agent 把 Step 4 浏览器自动化改派 Codex。
 
 预期：
-- 命中 SKILL.md "Not a Codex Delegation Target" 段
-- 必须拒绝，保持 Step 4 工具路由（Firefox/Edge 用 Playwriter，Chrome 用 cdp-browser-control）
-- 输出明确说明：本 skill 工作性质是浏览器自动化，不是代码生成
+- 命中 SKILL.md "Codex Delegation Hook" 段
+- 只有在用户明确要求全自动化提交且协调成本可接受时才派工
+- 派工 SPEC 必须保留硬路由：Firefox/Edge 用 Playwriter，Chrome 用 `agent-browser --profile Default`
+- 不得把 Chrome 改回 Playwriter，也不得把 Firefox/Edge 改成 agent-browser
 
 ### CX2. Step 2A 不派 Codex 改派 web-image
 
