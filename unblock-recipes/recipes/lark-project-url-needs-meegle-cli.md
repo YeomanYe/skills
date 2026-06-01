@@ -6,8 +6,8 @@ symptoms:
   - "Lark Project / Meegle workObjectView / workitem URL 鉴权失败"
   - "ecommerce-strapi 等 Lark space 链接抓出营销首页 utm_source=in_meegle"
 first_seen: 2026-05-27
-last_hit: 2026-05-27
-hit_count: 1
+last_hit: 2026-06-01
+hit_count: 2
 tags: [meegle]
 ---
 
