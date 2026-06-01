@@ -41,8 +41,16 @@ description: >
 | 场景 | 触发信号 |
 |---|---|
 | 自动召回 | agent 自身或上游 orchestrator(flow-dev-task / flow-codex-goal)检测到关键词:`stuck` / `blocked` / `loop` / `反复` / `卡` / `走不通` / `hit a wall` / `can't figure out` / `试了 N 次都不行` / `死循环` / `同样错 N 次` |
+| **症状信号(强制)** | **工具输出出现"死路签名":重定向到营销/登录页(`302` / `redirect` / `utm_source` / `accounts.*/login`)、登录墙、鉴权失败(`401` / `403` / `unauthorized`)、连接重置(`Connection reset` / `ECONNREFUSED`)、`WebFetch` 拿不到正文。这些是 blocked 信号,不是"流程的正常一步"** |
+| **进外部/鉴权系统** | **任务触及外部 SaaS / 鉴权后台 / 陌生域名(如 `*.larksuite.com` / `project.*` / 内网 GitLab)时,在选工具或动手之前先 lookup** |
 | 显式查阅 | 用户说"查下错题本" / "这个之前踩过吗" / "lookup pitfalls" / "看下 unblock-recipes" |
 | 主动预防 | agent 开新任务前(如重大重构 / 跨模块改动)主动 lookup 相关 tag |
+
+### 触发硬规则(symptom-triggered, 不是 branch-triggered)
+
+1. **症状触发,不是分支触发**:用"动作失败 / 输出异常 / 进外部鉴权系统"这类**罕见高信号症状**拉起 lookup,**不要**每个 `if` / 分支 / 决策点都查(那是高频低信噪比,会把机制刷成噪音被略过)。
+2. **选工具之前查,不是撞墙之后查**:任务一旦触及外部/鉴权系统或陌生域名,**在挑 WebFetch / 浏览器 / CLI 之前**先读 `INDEX.md` 做一次 lookup。错的顺序是"先选浏览器 → 撞重定向 → 才想起查";对的顺序是"先查 → INDEX 告诉你该用哪个工具"。
+3. **异常≠正常前置**:看到重定向/登录墙/鉴权失败时,默认它是 blocked 信号要查错题本,**不要**自行合理化成"哦没登录而已,登录就行"然后继续原路——那正是漏召回的典型死法。
 
 ### 写入场景(写入侧)
 
@@ -247,6 +255,9 @@ agent 召回后向调用方(用户或 orchestrator)给:
 
 命中任一**停止并修正**:
 
+- 把 **redirect / 登录墙 / 鉴权失败(401/403) / 连接重置(ECONNREFUSED)** 当成"流程的正常一步"继续往下走,而不是当成 blocked 信号触发 lookup(本次漏召回的根因:重定向到 meegle.com 被合理化成"没登录而已")
+- 任务触及**外部/鉴权系统或陌生域名**,却**先选了工具(浏览器/WebFetch)再撞墙**,而不是动手前先 lookup
+- 把 lookup 触发器绑到**控制流/每个分支**而非**症状**(高频低信噪比,会让机制沦为噪音被略过)
 - agent 卡壳但**没读 INDEX.md** 就直接 grep recipes/(违反轻载入约束)
 - 全量 `cat recipes/*.md`(token 爆炸)
 - 不经 experience-summary 直接写 `recipes/<slug>.md`(绕过分诊,垃圾入册)
@@ -262,6 +273,9 @@ agent 召回后向调用方(用户或 orchestrator)给:
 
 | 说辞 | 现实 |
 |---|---|
+| "重定向到登录页而已,没登录嘛,登录就行" | 这正是漏召回的死法。redirect/登录墙是 blocked 信号,先查 INDEX 再说——错题本可能已经记了"这个系统要用 X CLI 而不是浏览器" |
+| "先用浏览器试试,不行再查错题本" | 顺序反了。触及外部/鉴权系统时**选工具之前**先 lookup,INDEX 会告诉你该用哪个工具,省掉撞墙的整轮浪费 |
+| "为保险每个分支都查一下错题本" | 过度触发,信噪比极低,机制会被当噪音略过。只在症状(失败/异常/进外部系统)出现时查 |
 | "agent 卡了就直接 cat recipes/*,反正不多" | 早晚会多;一开始就守轻载入纪律,后期才不会被迫重构 |
 | "这条 recipe 我自己就解决了,直接写盘吧" | 跳过 experience-summary = 跳过分诊 = 可能本该进 memory / CLAUDE.md |
 | "symptoms 写'各种报错'吧,反正以后再细化" | 召回时一个都匹配不上 = 等于没写 |

@@ -37,6 +37,23 @@
   - mode 解析为查询(对 todo-flow skill)
   - 不召 unblock-recipes(没有卡壳信号)
 
+### Case 16: 正例触发 — 症状信号 / 选工具前 lookup(本次漏召回回归)
+
+- 输入: agent 要处理 `project.larksuite.com` 的页面,准备开浏览器;工具输出重定向到 `www.meegle.com/?utm_source=in_meegle`
+- 预期:
+  - **进外部/鉴权系统**(`*.larksuite.com`)即触发:在选浏览器/WebFetch **之前**先读 INDEX.md
+  - 即便已经开了浏览器,看到"重定向到营销页/登录页"这个**死路签名**也必须当 blocked 信号,立刻 lookup,而**不是**合理化成"没登录而已,登录就行"继续原路
+  - INDEX 命中 `lark-project-url-needs-meegle-cli` → 改用 meegle CLI
+  - 反模式(Red Flags 命中): 先选浏览器→撞重定向→才想起查;把重定向当流程正常一步
+
+### Case 17: 反例触发 — 不在每个分支查
+
+- 输入: agent 在正常写代码,函数里有多个 `if` 分支判断,无任何失败/异常/外部系统信号
+- 预期:
+  - **不**在每个分支/决策点触发 lookup(symptom-triggered 不是 branch-triggered)
+  - 只有出现症状(动作失败 / 输出异常 / 进外部鉴权系统)才查
+  - 验证硬规则第 1 条不被误读成"处处查"
+
 ---
 
 ## Writing Path Tests
