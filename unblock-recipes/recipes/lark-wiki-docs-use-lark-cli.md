@@ -6,8 +6,8 @@ symptoms:
   - "ajx34x51402.sg.larksuite.com/wiki 文档编辑任务"
   - "lark-cli docs +update 报 --command is required"
 first_seen: 2026-05-28
-last_hit: 2026-05-29
-hit_count: 4
+last_hit: 2026-06-01
+hit_count: 5
 tags: [lark]
 ---
 
@@ -27,4 +27,4 @@ Lark Wiki / Docs 链接用网页抓取只看到登录页。
 
 ### 出处
 - 首次发现: 2026-05-28 / payment-landing-page 部署文档写入 Lark Wiki
-- 复现: 4 次
+- 复现: 5 次（含 2026-06-01 按参照格式写冒烟测试报告到目标 wiki）
