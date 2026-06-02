@@ -4,6 +4,7 @@ description: Use when a user wants the **full multi-stage** project kickoff chai
 ---
 
 > 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
+> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。Codex Delegation Hook 引 `../_shared/codex-delegation-template.md`
 
 # Orchestrating Project Bootstrap
 
@@ -134,7 +135,9 @@ Stage 2 不得自动启动。必须显式问用户：
 
 ## Output Contract
 
-最终交付（两阶段累计）必须包含 7 项产物 + Delivery Check 清单，全文见 `references/output-contract-template.md`：
+**基线 JSON / markdown 分流** 见 `references/output-contract-schema.md`(sync from `_shared/output-contract-schema.md`,跨 skill 通用)。本 skill 在基线之上的扩展:两阶段累计 7 项产物 + Delivery Check 清单。
+
+最终交付(两阶段累计)必须包含 7 项产物 + Delivery Check 清单,全文见 `references/output-contract-template.md`:
 
 - Stage 1：总设计文档（8 节） + ASCII 流程图（如要求）+ 3 路 mockup 全量保留
 - Stage 2：工程规范脚手架 + ≥2 logo 方向 + 可访问 preview 页（已部署）+ 双向链接已建立
@@ -149,22 +152,24 @@ Stage 2 不得自动启动。必须显式问用户：
 
 ## Codex Delegation Hook
 
-Codex 是对等 agent，能做本 skill 的所有执行工作。是否派工取决于 **ROI**（净收益 = 省 Claude token + 并行性 - SPEC 成本 - 协调成本 - review 成本 - 质量风险）。
+派工 ROI 判定遵循 `../_shared/codex-delegation-template.md` 通用规范。
 
-### 🟢 高 ROI 推荐派
-- **Stage 2.1 工程脚手架配置文件**（tsconfig / eslint / prettier / commitlint 等，≥ 30 行 / ≥ 2 文件）
-- **Stage 2.4 部署接线 YAML/config**（GitHub Actions workflow / Cloudflare config，≥ 30 行）
+本 skill 的特殊考量:
 
-### 🟡 中 ROI 视情况派
-- **Stage 2.3 preview 页实现**：handoff 给 frontend-design 后由其判断（通常 ≥ 200 行落地页才划算）
-- **Stage 2.1 规则文档**（CONTRIBUTING / AGENTS.md）：仅当模板化结构 + 规则项 ≥ 20 条时；写决定权在 Claude
+### 🟢 高 ROI(本 skill 内适合派)
+- **Stage 2.1 工程脚手架配置文件**(tsconfig / eslint / prettier / commitlint 等,≥ 30 行 / ≥ 2 文件)
+- **Stage 2.4 部署接线 YAML/config**(GitHub Actions workflow / Cloudflare config,≥ 30 行)
 
-### 🔴 低 / 负 ROI 不建议派
-- **Stage 1 全部**：设计决策类（MVP 切片 / 流程图 / 设计系统候选 / 部署目标），无执行单元，需要 Claude 推断
-- **Stage 2.2 logo 设计**：视觉工作走 `huashu-design`，Codex 调它和 Claude 调它没差别
-- **User gate 之间的决策同步**：依赖会话上下文，Codex 起新进程拿不到
+### 🟡 中 ROI(视情况)
+- **Stage 2.3 preview 页实现**:handoff 给 frontend-design 后由其判断(通常 ≥ 200 行落地页才划算)
+- **Stage 2.1 规则文档**(CONTRIBUTING / AGENTS.md):仅当模板化结构 + 规则项 ≥ 20 条时;写决定权在 Claude
 
-派工细则（SPEC 模板、prompt 模板、review checklist、错误分类、Red Flags）**全部以 `flow-dev-task` 的 "Codex Delegation Hook" 为唯一规范**，不在本 skill 重复。
+### 🔴 低 / 负 ROI(不派)
+- **Stage 1 全部**:设计决策类(MVP 切片 / 流程图 / 设计系统候选 / 部署目标),无执行单元,需要 Claude 推断
+- **Stage 2.2 logo 设计**:视觉工作走 `huashu-design`
+- **User gate 之间的决策同步**:依赖会话上下文,Codex 起新进程拿不到
+
+派工 SPEC 模板 / prompt 模板 / review checklist / 错误分类细则,跟 `flow-dev-task` 一致 — 不在本 skill 重复。
 
 ## Reuse
 

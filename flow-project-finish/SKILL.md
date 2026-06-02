@@ -4,6 +4,7 @@ description: Use when a project's main implementation is done and the user wants
 ---
 
 > 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
+> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。Codex Delegation Hook 引 `../_shared/codex-delegation-template.md`
 
 # Orchestrating Project Finish
 
@@ -232,6 +233,8 @@ Step 0 的完成判定不是"看了一眼",而是已经写下:
 
 ## Output Contract
 
+**基线 JSON / markdown 分流** 见 `references/output-contract-schema.md`(sync from `_shared/output-contract-schema.md`,跨 skill 通用)。本 skill 扩展:6 段最终交付 + Delivery Check 清单。
+
 最终交付按以下顺序必须包含:Step 0 快照 → Step 1 文档同步明细(含"未发现") → Step 2 README 状态与变更 → Step 3 落地页结果或跳过原因 → Step 4 delivery-gate 判定与 must-fix 回流 → Step 5 clean-commit hash 与 message(或跳过原因) → 风险与开放决策清单。**任一缺失即视为未完成**。完整 markdown skeleton + Delivery Check 自查清单见 `references/output-contract-template.md`。
 
 ## Failure Modes
@@ -249,25 +252,27 @@ Step 0 的完成判定不是"看了一眼",而是已经写下:
 
 ## Codex Delegation Hook
 
-Codex 是对等 agent，能做本 skill 的所有执行工作。是否派工取决于 **ROI**（净收益 = 省 Claude token + 并行性 - SPEC 成本 - 协调成本 - review 成本 - 质量风险）。
+派工 ROI 判定遵循 `../_shared/codex-delegation-template.md` 通用规范。
 
-### 🟢 高 ROI 推荐派
-- **Step 3.3 落地页实现**（含 5+ Section，预估 ≥ 200 行 / ≥ 4 文件）：Claude 把 huashu-design 选定的方向 + 内容契约写进 SPEC，Codex 实施，Claude 跑 agent-browser 截图验收
+本 skill 的特殊考量:
 
-### 🟡 中 ROI 视情况派
-- **Step 1 文档同步**（≥ 20 处 patch 或跨 ≥ 5 个文档）：Claude 把每处 from→to + voice 约束写进 SPEC，Codex 应用 patch，Claude 验收风格未漂移
-- **Step 2 README 从零生成**（≥ 80 行）：Claude 列真实命令清单 + 大纲，Codex 生成 markdown，Claude 验收命令真实性
-- **Step 3.4 响应式截图**：跨 4 断点截图本质是 4 次独立任务，可派 Codex 跑 agent-browser；但单 skill 调用启动成本 < 派工开销，多数时候 Claude 自跑更快
+### 🟢 高 ROI(本 skill 内适合派)
+- **Step 3.3 落地页实现**(含 5+ Section,预估 ≥ 200 行 / ≥ 4 文件):Claude 把 huashu-design 选定的方向 + 内容契约写进 SPEC,Codex 实施,Claude 跑 agent-browser 截图验收
 
-### 🔴 低 / 负 ROI 不建议派
-- **Step 0 项目探测**：全是短 Bash 命令，Claude 自跑 1 秒完成
-- **Step 1 小规模 patch**（< 10 处）：SPEC 撰写成本 ≈ 直接写
-- **Step 2 README 增量更新**：每处只改几行，需要保留原结构和 voice，SPEC > 输出
-- **Step 3.1 收集输入 / Step 3.2 设计方向**：决策类，依赖 Claude 推断
-- **Step 4 delivery-gate**：独立 gate skill，自己有完整工作流
-- **Step 5 clean-commit**：commit message + scope 选择依赖会话上下文，Codex 拿不到
+### 🟡 中 ROI(视情况)
+- **Step 1 文档同步**(≥ 20 处 patch 或跨 ≥ 5 个文档):Claude 把每处 from→to + voice 约束写进 SPEC,Codex 应用 patch,Claude 验收风格未漂移
+- **Step 2 README 从零生成**(≥ 80 行):Claude 列真实命令清单 + 大纲,Codex 生成 markdown,Claude 验收命令真实性
+- **Step 3.4 响应式截图**:多数时候 Claude 自跑更快
 
-派工细则（SPEC 模板、prompt 模板、review checklist、错误分类、Red Flags）全部以 `flow-dev-task` 的 "Codex Delegation Hook" 为唯一规范，不在本 skill 重复。
+### 🔴 低 / 负 ROI(不派)
+- **Step 0 项目探测**:全是短 Bash 命令,Claude 自跑 1 秒完成
+- **Step 1 小规模 patch**(< 10 处):SPEC ≈ 直接写
+- **Step 2 README 增量更新**:SPEC > 输出
+- **Step 3.1 收集输入 / Step 3.2 设计方向**:决策类
+- **Step 4 delivery-gate**:独立 gate skill
+- **Step 5 clean-commit**:依赖会话上下文
+
+派工 SPEC 模板 / prompt 模板 / review checklist / 错误分类细则,跟 `flow-dev-task` 一致 — 不在本 skill 重复。
 
 ## Reuse
 

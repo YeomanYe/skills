@@ -4,6 +4,7 @@ description: Use when researching existing agent skills for a domain, technology
 ---
 
 > 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
+> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。Codex Delegation Hook 引 `../_shared/codex-delegation-template.md`。Output Contract 引 `references/output-contract-schema.md`(sync from `_shared/`)
 
 # Skill 调研编排
 
@@ -215,7 +216,9 @@ handoff 内容至少包含：
 
 ## Codex Delegation Hook
 
-Codex 是对等 agent，能做本 skill 的所有执行工作（包括跑 `npx skills find` / 读 SKILL.md / 格式化结果）。是否派工取决于 **ROI**（净收益 = 省 Claude token + 并行性 - SPEC 成本 - 协调成本 - review 成本 - 质量风险）。
+派工 ROI 判定遵循 `../_shared/codex-delegation-template.md` 通用规范。
+
+本 skill 的特殊考量(Codex 也能跑 `npx skills find` / 读 SKILL.md / 格式化结果):
 
 ### 🟡 中 ROI 视情况派
 - **Step 3-5 批量搜索 + 读取**（候选 ≥ 20 时）：Claude 列搜索词 + 读取要点清单，Codex 跑 npx + 读 N 份 SKILL.md + 提炼成结构化候选表，Claude 评估推荐
@@ -232,4 +235,4 @@ Codex 是对等 agent，能做本 skill 的所有执行工作（包括跑 `npx s
 - 输出 schema（JSON 或表格）
 - 不要让 Codex 做最终推荐——只做信息收集
 
-派工细则全部以 `flow-dev-task` 的 Codex Delegation Hook 为唯一规范，不在本 skill 重复。
+派工 SPEC 模板 / prompt 模板 / review checklist / 错误分类细则,跟 `flow-dev-task` 一致 — 不在本 skill 重复。

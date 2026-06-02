@@ -11,6 +11,7 @@ description: >
 ---
 
 > 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
+> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。Codex Delegation Hook 引 `../_shared/codex-delegation-template.md`。Output Contract 引 `references/output-contract-schema.md`(sync from `_shared/`)
 
 # Orchestrating Skill Development
 
@@ -534,7 +535,9 @@ repo 的另一个 working copy），由 skillshare 用 `git pull` / `skillshare 
 
 ## Codex Delegation Hook
 
-Codex 是对等 agent，能做本 skill 的所有执行工作（包括 writing-skills 内部）。是否派工取决于 **ROI**（净收益 = 省 Claude token + 并行性 - SPEC 成本 - 协调成本 - review 成本 - 质量风险）。
+派工 ROI 判定遵循 `../_shared/codex-delegation-template.md` 通用规范。
+
+本 skill 的核心结论(SPEC 压缩比 ≈ 1,见下):
 
 ### 🔴 低 / 负 ROI 不建议派（覆盖本 skill 全部步骤）
 
@@ -570,4 +573,4 @@ Codex 是对等 agent，能做本 skill 的所有执行工作（包括 writing-s
 
 如果你要**按已有 skill 模板批量克隆 30+ 个变体**（如 lark-* 系列），SPEC 撰写成本可能 < 输出。但这种场景罕见，且即使如此每个克隆出来的 skill 仍需 Claude 逐个调整触发条件——派工净收益不显著。
 
-派工细则全部以 `flow-dev-task` 的 Codex Delegation Hook 为唯一规范，不在本 skill 重复。
+派工 SPEC 模板 / prompt 模板 / review checklist / 错误分类细则,跟 `flow-dev-task` 一致 — 不在本 skill 重复。

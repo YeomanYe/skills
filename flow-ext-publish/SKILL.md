@@ -11,6 +11,7 @@ description: >
 ---
 
 > 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
+> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。Codex Delegation Hook 引 `../_shared/codex-delegation-template.md`。Output Contract 引 `references/output-contract-schema.md`(sync from `_shared/`)
 
 # 扩展发布编排
 
@@ -76,7 +77,9 @@ Chrome 最宽松放最后,前面踩的坑这边已经修了。**不要按"用户
 
 ## Codex Delegation Hook
 
-Codex 是对等 agent，**也能跑 Playwriter / agent-browser**（对等机器，对等工具）。是否派工取决于 **ROI**（净收益 = 省 Claude token + 并行性 - SPEC 成本 - 协调成本 - review 成本 - 质量风险）。
+派工 ROI 判定遵循 `../_shared/codex-delegation-template.md` 通用规范。
+
+本 skill 的特殊考量(Codex 也能跑 Playwriter / agent-browser):
 
 ### 🟡 中 ROI 视情况派
 - **Step 4 各平台上架**：Codex 能跑 Playwriter / agent-browser 操作浏览器，但每平台之间需用户确认（"这张图可以吗？"、"是否要发 Edge？"），Codex 不能等用户回话——只能跑完一段就退出。**协调成本通常 > 节省**。仅在用户明确"全自动化提交，不要中途确认"时值得派工
@@ -96,7 +99,7 @@ Codex 是对等 agent，**也能跑 Playwriter / agent-browser**（对等机器�
 
 **派工时必须把这些工具约束写进 SPEC**，否则 Codex 可能改用其他工具导致登录态丢失。
 
-派工细则全部以 `flow-dev-task` 的 Codex Delegation Hook 为唯一规范，不在本 skill 重复。
+派工 SPEC 模板 / prompt 模板 / review checklist / 错误分类细则,跟 `flow-dev-task` 一致 — 不在本 skill 重复。
 
 ## Execution Default
 

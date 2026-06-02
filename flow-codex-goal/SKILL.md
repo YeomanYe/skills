@@ -15,6 +15,7 @@ type: workflow
 ---
 
 > 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
+> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。**Codex Delegation Hook 例外**:本 skill 是 Codex 派工的元方法,不适用通用 ROI 判定(`../_shared/codex-delegation-template.md` § "例外:flow-codex-goal" 明示)。
 
 # flow-codex-goal
 
@@ -902,6 +903,8 @@ snapshot / IM 推送，但仍严守两 Codex 硬隔离（subagent 是新进程�
 
 ## Output Contract
 
+**基线 JSON / markdown 分流** 见 `references/output-contract-schema.md`(sync from `_shared/output-contract-schema.md`,跨 skill 通用)。本 skill 扩展 = 9 段 Phase 3 task report。
+
 Phase 3 delivery 完成后,orchestrator **必须**按 `references/task-report-template.md`
 模板输出 task report——含 Task / Phase 0 Contract / Baseline / Execution /
 Score Trajectory / Review / UI Screenshots(条件) / Delivery / Risks / 结论 9 段。
@@ -932,19 +935,21 @@ Score Trajectory / Review / UI Screenshots(条件) / Delivery / Risks / 结论 9
 
 ## Codex Delegation Hook
 
-本 skill **本身就是 Codex 派工的特例**——把整个长任务派给 Codex Goal。
+> **特殊例外**:本 skill 是 Codex 派工的**元方法**(把整个长任务派给 Codex Goal),
+> 不适用 `../_shared/codex-delegation-template.md` 的"什么时候派"通用判断。
+> 该文件 §"例外:flow-codex-goal 自身"也明示这条豁免。
 
-ROI 判断：
+本 skill 的"什么时候用 codex-goal"路由建议(不是 ROI 判定):
 
-| 场景 | ROI |
+| 场景 | 建议 |
 |---|---|
-| 任务 ≥ 2 小时 + 清晰验收 | 🟢 高 |
-| 任务 < 2 小时 | 🔴 低（启动 worktree + watcher 开销 > 节省）—— *但用户明确指定 codex-goal 时仍执行，ROI 是路由建议不是准入门禁，见"用户判断权优先"段* |
-| 任务无清晰验收 | 🔴 负（goal 跑飞烧 quota）|
-| 任务高风险（auth/支付）| 🔴 负 |
-| UI 循环改造（迭代式）| 🟢 高（snapshot + 同分硬规则正是为此设计）|
+| 任务 ≥ 2 小时 + 清晰验收 | 🟢 推荐 |
+| 任务 < 2 小时 | 🔴 不推荐(启动 worktree + watcher 开销 > 节省)— *但用户明确指定 codex-goal 时仍执行,见"用户判断权优先"段* |
+| 任务无清晰验收 | 🔴 强烈不推荐(goal 跑飞烧 quota) |
+| 任务高风险(auth/支付) | 🔴 强烈不推荐 |
+| UI 循环改造(迭代式) | 🟢 推荐(snapshot + 同分硬规则正是为此设计) |
 
-派工细则细节以本 skill 为准，不引用 `flow-dev-task` 的 Codex Delegation Hook。
+派工细则细节(SPEC 模板 / prompt 模板 / review 检查表)以本 skill 为准,本 skill **不引用** `flow-dev-task` 的细则(本 skill 的派工模型是 long-running Goal,不是 single-shot exec)。
 
 ---
 

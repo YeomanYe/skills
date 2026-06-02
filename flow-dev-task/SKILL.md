@@ -14,6 +14,7 @@ description: >
 ---
 
 > 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
+> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。Codex Delegation Hook 引 `../_shared/codex-delegation-template.md`(2026-06-03 之前本 skill 是"唯一规范源",已上移)
 
 # flow-dev-task
 
@@ -230,7 +231,10 @@ subagent 返回 JSON（`verdict` / `aggregate` / `must_fix` / `artifact_path`）
 
 ### Codex Delegation Hook
 
-**Codex 是对等 agent**（不是工具），具备本机所有工具。派工是 ROI 问题，不是能力问题。**Codex 替代执行，不替代** TDD / verification / delivery-gate / commit。
+> ROI 判定的通用规范见 `../_shared/codex-delegation-template.md`(2026-06-03 上移自本 skill)。
+> 本 skill 在通用规范之上的特殊扩展(必背 Claude 自写清单 / 默认派 Codex 清单 / 5 步派工 / 错误分类)见下文。
+
+**Codex 是对等 agent**(不是工具),具备本机所有工具。派工是 ROI 问题,不是能力问题。**Codex 替代执行,不替代** TDD / verification / delivery-gate / commit。
 
 详细 5 步流程 + 错误分类表 + 退回处理 见 `references/codex-delegation-detailed.md`。
 
