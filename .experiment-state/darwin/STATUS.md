@@ -48,12 +48,39 @@ aggregate = 加权平均(per reviewer) → 2 reviewer 几何平均 → round sco
 14. director-ops
 15. director-promote
 
-## 当前状态(2026-06-03 02:08)
-- 5h: 54%(还 46% 余量,~2h 工作量)
-- 重置: 06-03 05:50 CST
+## 当前状态(2026-06-03 07:50)
+- 5h: 84%(下一轮可能撞 95% 警戒线 → 等 10:50 重置)
+- 重置: 06-03 10:50 CST
 - 截止: 06-03 13:30 CST
-- darwin runner: 状态结构已建,scoreboard.csv 已建
-- SkillClaw 已 clone 到 ~/Documents/projects/SkillClaw(参考用,不安装 daemon)
+
+### 进度
+| skill | round | 状态 | 当前 baseline |
+|---|---|---|---|
+| ✅ hat | r1-r4 | **STOPPED** counter=3 | r1 winner(score ~0.87,278 行) |
+| meta-skill | r1-r4 | counter=1 等 r4 reviewer | r2 winner(score 0.881,285 行) |
+| experience-summary | r1-r3 | counter=1 等 r3 reviewer | r1 winner(score 0.803,266 行) |
+| flow-codex-goal | r0 | pending | source baseline |
+| flow-dev-task | r0 | pending | source baseline |
+| flow-ext-publish | r0 | pending | source baseline |
+| flow-project-bootstrap | r0 | pending | source baseline |
+| flow-project-finish | r0 | pending | source baseline |
+| flow-skill-dev | r0 | pending | source baseline |
+| flow-skill-research | r0 | pending | source baseline |
+| director-architect | r0 | pending | source baseline |
+| director-design | r0 | pending | source baseline |
+| director-frontend | r0 | pending | source baseline |
+| director-ops | r0 | pending | source baseline |
+| director-promote | r0 | pending | source baseline |
+
+### 在飞 agent(07:50)
+- meta-skill r4 reviewer(scenarios variant 已落盘 330 行)
+- exp-sum r3 reviewer(failure-catalog variant 已落盘 317 行)
+
+### 下一步(cron 续作业)
+1. 若 meta r4 / exp-sum r3 still no_improvement → counter+=1(都到 2)
+2. 重置后(10:50)起 meta r5 / exp-sum r4(最后机会触发 stop)
+3. 若都 stopped → 进 flow-* 演化(7 个 skill,可考虑只跑 r1 单轮看趋势,因为 hat 模式表明 enforcement mutation 几乎稳赢)
+4. 若时间够 → director-* 同样套路
 
 ## 单轮流程(每个 skill 重复直到 stop)
 
