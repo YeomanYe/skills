@@ -12,10 +12,10 @@ description: Use after finishing a real task to triage the lesson/pattern/gotcha
 
 每完成一次真实任务后,把"学到的东西 / 踩的坑 / 新约束 / 新流程"分诊到 agent 架构的正确层级。
 
-核心信念:**skill / CLAUDE.md / hook / constitution 不是同一种东西,选错层 = 经验白攒**。
-- 放在常驻层(CLAUDE.md)的应该是高频、高广适、低歧义的;专题流程进常驻 = 每次会话烧 token 还不被认真看
-- 放在按需层(skill)的应该是多步流程 / 专题判断;通用价值观进 skill = 散落各处、不互相覆盖
-- 放在强制层(hook / constitution)的应该是"零例外、不靠模型自觉"的;只是建议进强制 = 误伤
+核心信念: **skill / CLAUDE.md / hook / constitution 不是同一种东西,选错层 = 经验白攒**。
+- 常驻层(CLAUDE.md): 高频、高广适、低歧义;专题流程进常驻 = 烧 token 不被认真看
+- 按需层(skill): 多步流程 / 专题判断;通用价值观进 skill = 散落各处不互相覆盖
+- 强制层(hook / constitution): "零例外、不靠模型自觉";只是建议进强制 = 误伤
 
 本 skill 不修代码,只输出**分诊结论 + 推荐位置 + 写作草稿 + 上移提醒**。
 
@@ -49,34 +49,28 @@ description: Use after finishing a real task to triage the lesson/pattern/gotcha
 
 ## High-Risk Actions(写盘前的强制 user gate)
 
-下列 = **不可逆 / 跨会话持久 / 影响他人 agent**,**必须先报备拿明确 yes** 才执行(口头"建议"不算):
+下列 = **不可逆 / 跨会话持久 / 影响他人 agent**,**必须先报备拿明确 yes**(口头"建议"不算):
 
-1. **写新 MEMORY.md 条目** — 跨会话持久
-2. **删除已有 memory file** — 即使看似过期也要 user 确认
+1. **写新 MEMORY.md 条目**(跨会话持久)
+2. **删除已有 memory file**(即使看似过期)
 3. **修改 user 手写的 memory**(以"补充"为名改了语义 / 重写句式 / 合并)— 越权高发区
-4. **把 in-progress 任务沉淀** — memory 是 long-term 不是 short-term buffer,用 task tracker
-5. **发出 stage_switch 信号**给 meta-skill / orchestrator(会把 user 弹出当前 flow)
-6. **触发 L9a `unblock-recipes/recipes/<slug>.md` 生成**(跨 agent 共享 + 改 INDEX.md 两处 + commit + hook)
-7. **把 PII / 机密原文**写入 memory body(即便 user 说"存着吧"仍要先脱敏 — **无 user override**)
+4. **in-progress 任务沉淀**(memory 是 long-term 不是 short-term buffer)
+5. **发出 stage_switch 信号**给 meta-skill / orchestrator(把 user 弹出当前 flow)
+6. **触发 L9a `unblock-recipes/recipes/<slug>.md` 生成**(跨 agent + 改 INDEX.md 两处 + commit + hook)
+7. **把 PII / 机密原文**写入 memory body(无 user override)
 8. **把推断(非用户原话)**写入 user-type memory(应降级 reference)
-9. **改 `_shared/constitution.md` / `_shared/<topic>.md`** — 跨 12 个 target skill 分发,影响面 = 全局
-10. **CLAUDE.md / AGENTS.md 突破 200 行** — Anthropic 官方硬约束,必须先告知"超限,要不要下沉"
+9. **改 `_shared/constitution.md` / `_shared/<topic>.md`**(跨 12 个 target skill 分发)
+10. **CLAUDE.md / AGENTS.md 突破 200 行**(Anthropic 官方硬约束)
 
-**Gate 协议**: 输出"将执行 <动作>,High-Risk #<N>,确认 yes 才落盘"。
-user 回 yes / 确认 / 行 / 嗯 = pass;沉默 / "应该可以" / "你看着办" **≠ pass**(模糊授权 ≠ 授权)。
+**Gate 协议**: "将执行 <动作>,High-Risk #<N>,确认 yes 才落盘"。yes / 确认 / 行 / 嗯 = pass;沉默 / "你看着办" **≠ pass**(模糊授权 ≠ 授权)。
 
 ## Workflow
 
 ### Step 1: 锁定要分诊的经验
 
-请用户用**一句话**描述这次想沉淀的内容。模糊就追问(最多 2 个问题):
+请用户用**一句话**描述。模糊就追问(最多 2 个): 每次都做 vs 特定情况? 当前项目 vs 跨项目通用? 执行真实动作 vs 约束模型? 触发场景(写代码 / commit / 部署 / review)?
 
-- 这条经验是"每次都要做"还是"特定情况下要做"?
-- 它只对当前项目有用,还是跨项目通用?
-- 它需要执行真实动作,还是只是约束模型行为?
-- 触发场景是什么?(写代码时 / commit 前 / 部署时 / review 时 ...)
-
-如果用户给的是"我觉得 agent 应该更聪明点"这种空话,直接告诉用户**这条不该沉淀**,跳到 Step 5。
+空话("我觉得 agent 应该更聪明点")→ 直接告诉用户**不该沉淀**,跳 Step 5。
 
 ### Step 2: 跑判断树(12 个出口)
 
@@ -141,23 +135,15 @@ user 回 yes / 确认 / 行 / 嗯 = pass;沉默 / "应该可以" / "你看着办
 【推荐位置】<具体文件绝对路径或相对路径>
 【写作模板】<可复制的 Markdown / YAML / 代码草稿>
 
-【后续提醒】<上移路径 / flow-skill-dev / sync 分发 / CLAUDE.md 行数超限 ...>
+【后续提醒】<上移路径 / flow-skill-dev / sync 分发 / 行数超限 ...>
 ```
 
-完整 5 段格式说明 + 各段写作要求 + handoff 边界见 `references/output-contract-template.md`。
+完整说明见 `references/output-contract-template.md`。**JSON / markdown 分流** 见 `../_shared/output-contract-schema.md`。
+- 5 段 markdown = human-facing 主产物
+- handoff JSON = 3 段技术契约(分诊结论 + 推荐位置 + 写作模板)落盘 `.agent/jobs/<task-slug>/triage.json`
+- 【一句话沉淀】+ 【后续提醒】**不进 handoff JSON**
 
-**基线 JSON / markdown 分流** 见 `../_shared/output-contract-schema.md`(跨 skill 通用)。
-本 skill 扩展:
-- 5 段 markdown = **human-facing 主产物**(给 user 看的对话响应)
-- handoff payload = **机器读 JSON 含 3 段技术契约**(分诊结论 + 推荐位置 + 写作模板)落盘 `.agent/jobs/<task-slug>/triage.json`
-- 【一句话沉淀】+ 【后续提醒】**不进 handoff JSON**(纯 human-facing)
-
-**【一句话沉淀】格式硬约束**(主体保留,不可下沉):
-
-- 必须有 3 个槽位: **X(做了什么经验)** / **Y(变成了什么载体)** / **Z(沉淀到了哪个概念位置)**
-- **不带技术细节** —— 完整禁用词清单(出口编号 / 判断树编号 / 技术形态 / 文件名 / 工具命令 / skill 名)见 `references/output-contract-template.md`
-- 用**用户口语**描述(项目脚本 / 全局宪法 / 领域专家 / 启动手册 / 长期记忆 ...)
-- 例子:"把**重复的浏览器操作过程**变成了**代码**,沉淀到了**项目脚本**"
+**【一句话沉淀】格式硬约束**: 3 槽位 X(经验)/ Y(载体)/ Z(位置);**不带技术细节**(出口编号 / 文件名 / 工具命令 / skill 名禁用,详 `references/output-contract-template.md`);用用户口语(项目脚本 / 全局宪法 / 领域专家 / 长期记忆)。例: "把**重复的浏览器操作过程**变成了**代码**,沉淀到了**项目脚本**"
 
 ## Integration Contracts(精简 schemas + precedence)
 
@@ -225,33 +211,22 @@ meta-skill 响应契约: schema/ttl/project 校验通过 → 更新 stage + 下�
 ### E. ASCII 流程图
 
 ```
-agent session 结束
-       │
-       ▼
-用户显式触发 exp-sum?
-   │              │
-   no             yes
-   ▼              ▼
- no-op    Step 1: 锁定经验(1 句 + ≤ 2 追问)
-              │
-              ▼
-        Step 2: judgment-tree Q0→Q10, 第一 yes 即出口
-              │
-   ┌──────────┼──────────┐
-   ▼          ▼          ▼
- L0/L10    L1~L8       L9a/9b
- 丢弃     主流出口     增量层
-   │          │          │
-   ▼          ▼          ▼
- no-op    Step 3 草稿  Step 3 L9a
-          + handoff    incident JSON
-              │
-              ▼
-   Step 4 上移检查 + stage-switch.json (若切 stage)
-              │
-              ▼
-   Step 5: 5 段 markdown → user
-   同步落盘: triage.json / l9a-incident.json / stage-switch.json / deferred-triage.json
+agent session 结束 → 用户显式触发? ─no→ no-op
+                          │ yes
+                          ▼
+Step 1 锁定经验 → Step 2 judgment-tree (Q0→Q10, 第一 yes 即出口)
+                          │
+        ┌─────────────────┼─────────────────┐
+        ▼                 ▼                 ▼
+     L0/L10            L1~L8           L9a/9b
+     丢弃            主流出口           增量层
+        │              │ Step 3 草稿+handoff JSON
+        ▼              ▼   │ L9a → l9a-incident JSON
+      no-op    Step 4 上移检查 + (若切 stage) stage-switch.json
+                          │
+                          ▼
+Step 5: 5 段 markdown → user
+落盘: triage.json / l9a-incident.json / stage-switch.json / deferred-triage.json
 ```
 
 ### F. Precedence 总表(冲突时谁优先)
@@ -332,32 +307,20 @@ STOP 原因: **RF6** + **RF4** + **RF11**。正确路径: 降级 **L9b auto memo
 
 ## Relationship to Other Skills
 
-- **上游**: 用户在完成任务后直接触发
-- **下游(handoff)**:
-  - 出口是 skill / director-* / flow-* → `flow-skill-dev` 完整流程
-  - 出口是 hook → `update-config` 配置 settings.json
-  - 出口是 constitution / _shared/ → **完整 4 步链**:
-    1. `bash scripts/sync-shared.sh`(分发到 12 个 target skill 的 references/)
-    2. `git add -A && git commit && git push origin main`(推到 GitHub 单一事实源)
-    3. `cd ~/.config/skillshare/skills && git pull origin main`(skillshare clone 拉更新)
-    4. `skillshare sync --force`(分发到 `~/.claude/skills/` 等 agent 目标)
-  - 出口是 skill-doctor 规则 → 切到 `~/Documents/projects/node-scripts/` 项目走 `flow-dev-task`
-  - 出口是单个 skill 同步 → `sync-skills`(把单个 skill 目录同步到中心,**不是**用于 _shared 分发)
-  - **出口是 unblock-recipes(L9a)**: 按 `references/l9a-recipe-template.md` 输出骨架 → user/agent 落盘到 `unblock-recipes/recipes/<slug>.md` → 同步更新 `INDEX.md` 两处(tag + symptom 反查)→ commit 触发 pre-commit hook 检查 frontmatter
+- **上游**: 用户完成任务后直接触发
+- **下游 handoff**:
+  - skill / director-* / flow-* → `flow-skill-dev`
+  - hook → `update-config`
+  - constitution / _shared/ → **4 步链**: `bash scripts/sync-shared.sh` → `git commit && push origin main` → `cd ~/.config/skillshare/skills && git pull` → `skillshare sync --force`
+  - skill-doctor 规则 → 切到 `~/Documents/projects/node-scripts/` 走 `flow-dev-task`
+  - 单 skill 同步 → `sync-skills`(**不是**用于 _shared 分发)
+  - L9a → 按 `references/l9a-recipe-template.md` 输出骨架 → 落盘 `unblock-recipes/recipes/<slug>.md` → 同步 `INDEX.md` 两处(tag + symptom 反查)→ commit 触发 pre-commit hook
 
-**不替代**: `flow-skill-dev`(写 skill 本身) / `superpowers:brainstorming`(发散探索) / retro post-mortem(更重的复盘)
-
-### 跟其他 meta 类 skill 的优先级
-
-| 主体场景 | hat | meta-skill | unblock-recipes |
-|---|---|---|---|
-| 本 skill 显式触发 | 让位,只在末尾追加告知行;不进产物 | 不触发 | Q9a 调度,L9a 模板由本 skill 输出 |
-| meta-skill 主体跑时 | 让位(同上) | 主体 | 卡壳分支兜底 |
-| user 绕过本 skill 直接写 recipes/ | — | n/a | 拒绝(唯一入口 = Q9a) |
+**不替代**: `flow-skill-dev` / `superpowers:brainstorming` / retro post-mortem
 
 **关键 invariant**:
-- 主体 skill 跑时,hat 不挡 / 不替 / 不进产物 — 见 `hat/SKILL.md` 同名段
-- L9a 产物 = `unblock-recipes/recipes/<slug>.md` 的**唯一合法生成路径** — 见 `references/l9a-recipe-template.md`
+- 主体 skill 跑时 hat 不挡 / 不替 / 不进产物(见 `hat/SKILL.md`)
+- L9a 产物 = `unblock-recipes/recipes/<slug>.md` 的**唯一合法生成路径**(unblock-recipes 拒非 exp-sum 来源)
 
 ## Handoff 产物落盘约定(单一事实源)
 

@@ -141,15 +141,15 @@ read-only(ls / cat / git log / 读 package.json / `skillshare list-available`)**
 
 ### Step 5 — 落地 + 记录版本
 
-写 `<project>/.skillshare/manifest.json`(canonical);user apply → 跑 skillshare + 写 `.skillshare/applied-at`(ISO)+ manifest 加 `applied_at`。monorepo:子先 apply,root 后。
+写 `<project>/.skillshare/manifest.json`(canonical);user apply → 跑 skillshare + 写 `.skillshare/applied-at`(ISO)+ manifest 加 `applied_at`。monorepo:子先 root 后。
 
 ### Step 6 — Halt
 
-不主动重复触发自己。下次由 cwd 变化 / user 显式 / exp-sum 信号。`skip` 时 manifest.json 仍留盘,**不**跑 skillshare、**不**写 `applied_at`。下次推断主体同上次 skip → 复用 + 更新 `last_evaluated_at`(避免 skip 循环)。
+不主动重复触发自己。下次由 cwd 变化 / user 显式 / exp-sum 信号。`skip` 时 manifest 仍留盘,**不**跑 skillshare、**不**写 `applied_at`;下次推断主体同上次 skip → 复用 + 更新 `last_evaluated_at`(避免 skip 循环)。
 
 ### Step 7 — 复审(7 天冷却)
 
-全部满足才自动重 invoke:manifest 存在 + `generated_at` mtime > 7 天 + 状态明显变化(新 release tag / 主分支切换 / commit +20% / CLAUDE.md mtime 更新)+ `user_opt_out: false`。重跑时上次 manifest 作 `previous_manifest`。否则跳过。
+全部满足才自动重 invoke:manifest 存在 + `generated_at` mtime > 7 天 + 状态明显变化(新 release tag / 主分支切换 / commit +20% / CLAUDE.md mtime 更新)+ `user_opt_out: false`。重跑时上次 manifest 作 `previous_manifest`,否则跳过。
 
 ## Edge Cases(必查表)
 
@@ -211,7 +211,7 @@ skillshare list-enabled  --scope project --cwd .   # (read) Step 7 复审 diff
 
 ## Output Contract
 
-落盘 = `<project>/.skillshare/manifest.json`(canonical);对话 = markdown 摘要(候选 + rationale + `stage_confidence` + 等确认指令);**不**向 user 输出整个 JSON。JSON/markdown 分流基线见 `../_shared/output-contract-schema.md`,完整 schema 见 `references/manifest-schema.md`。
+落盘 = `<project>/.skillshare/manifest.json`(canonical);对话 = markdown 摘要(候选 + rationale + `stage_confidence` + 等确认);**不**向 user 输出整 JSON。基线见 `../_shared/output-contract-schema.md`;完整 schema 见 `references/manifest-schema.md`。
 
 ## Red Flags — STOP
 
@@ -231,13 +231,9 @@ skillshare list-enabled  --scope project --cwd .   # (read) Step 7 复审 diff
 - monorepo root manifest enable 了子 package 显式 disable 的 skill(子优先违反)
 - submodule 推断时继承宿主 stage(应独立判定,除非 user 显式说继承)
 
-## Always-Follow 底线
+## Always-Follow 底线 / Codex Hook
 
-`../_shared/constitution.md` 优先。本 skill 永远尊重 constitution 的高风险动作 gate(不替 user 单方面动 `.skillshare/`)。
-
-## Codex Delegation Hook
-
-元判断 + 配置生成,**不**派 Codex。推断卡死(stage 多信号冲突且 user 不在场)**也不**派 Codex;直接落 manifest + `stage_confidence: low` + 等下次 user 显式触发。
+`../_shared/constitution.md` 优先;本 skill 尊重 constitution 高风险动作 gate(不替 user 单方面动 `.skillshare/`)。元判断 + 配置生成 → **不**派 Codex;推断卡死(stage 冲突 + user 不在场)也不派;直接落 manifest + `stage_confidence: low` 等 user 显式触发。
 
 ## Rationalizations to Reject
 

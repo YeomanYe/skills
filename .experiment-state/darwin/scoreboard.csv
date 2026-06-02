@@ -25,3 +25,7 @@ experience-summary,1,v4-m4-enforcement,0.803,WINNER,2026-06-03T07:05Z
 hat,4,v1-radical-compression,0.893,best-but-no-improvement,2026-06-03T07:20Z
 hat,4,no_improvement_counter,3,STOP,2026-06-03T07:20Z
 hat,FINAL,r1-winner-kept,0.87,FROZEN,2026-06-03T07:20Z
+meta-skill,3,v1-integration-plus-compression,0.9,best-but-no-improvement,2026-06-03T07:30Z
+meta-skill,3,no_improvement_counter,1,counter,2026-06-03T07:30Z
+experience-summary,2,v1-hybrid,0.847,best-but-no-improvement,2026-06-03T07:35Z
+experience-summary,2,no_improvement_counter,1,counter,2026-06-03T07:35Z
