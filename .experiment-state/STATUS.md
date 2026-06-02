@@ -5,7 +5,7 @@
 ## 全局约束
 - **截止时间**:2026-06-03 13:30 CST(已超过 → 自停 + cc-connect cron del)
 - **预算**:每次 wake 跑 30-40 min 工作量,看 5h 额度
-- **5h 额度自检**:`cd ~/Documents/projects/node-scripts && node dist/claude-usage/index.js --json` → 解析 `fiveHour.percent`,**> 95% 直接 halt** 本轮(防触发 hard limit;user 2026-06-02T23:38 调高阈值)
+- **5h 额度自检**:`cd ~/Documents/projects/node-scripts && node dist/claude-usage/index.js --json` → 解析 `fiveHour.utilization`,**> 95% 直接 halt** 本轮(防触发 hard limit;user 2026-06-02T23:38 调高阈值)
 - **分支**:`experiment/meta-skill`(不动 main)
 - **工作目录**:`/Users/falcom/Documents/projects/skills/`
 - **audit 报告**(已生成,P0/P1/P2 内有):
@@ -14,80 +14,64 @@
   - `.experiment-state/skill-audit-misc.md`
 
 ## 优化顺序(用户敲定)
-1. ✅ **hat 优化 — 完成 @ 06-03 01:10** (commit 84cb935;P1 precedence + P1 _shared cite + P2 lateral-no-propose + 4 new test cases)
-2. ⏳ **meta-skill 新建** ← 下一个
-3. ⏳ experience-summary 优化
-4. ⏳ flow-*(7 个)优化
-5. ⏳ director-*(5 个)优化
+1. ✅ **hat 优化 — 完成 @ 06-03 01:10**(commit 84cb935)
+2. ✅ **meta-skill 新建 — 完成 @ 06-03 01:13**(commit 2a03981)
+3. ✅ **experience-summary 优化 — 完成 @ 06-03 01:22**(commit 1f1447e)
+4. ✅ **flow-* 优化 — 完成 @ 06-03 01:51**(commit 915e742 _shared/flow-template + codex-delegation-template;commit 4029fd5 7 个 flow-* 引用对齐)
+5. ✅ **director-* 优化 — 完成 @ 06-03 01:57**(commit dfb288c _shared/director-template 更新 5 directors + sub-type + audit-rubric verdict 映射表)
 
-## 当前进度
+## ALL 5 TASKS COMPLETED 🎉
+- 06-03 01:57 — 5 个 task 全部 completed
+- 5h 用量:21% (start) → 36% (end),用了 15%
+- Cron 还在跑(每小时 :55 唤醒),它每次会 Read 本文件 → 看任务全完 → 直接 halt + 删自身 + 通知 user
+- **必要时手动 cc-connect cron del** 删 meta-skill-cron-real(若不希望它再被唤醒)
 
-### Phase: 1 — hat 完成,准备 meta-skill
-- 2026-06-02T23:25 CST:smoke test cron 唤醒验证通过
-- 2026-06-02T23:30 CST:setup 完成(branch + STATUS.md + 真 cron 配好)
-- 5h 额度 94% 用完(00:49 重置)→ 当晚不做事,等 cron 在 00:55 唤醒
-- 2026-06-03T00:55 CST:cron 唤醒,5h=21%
-- 2026-06-03T01:10 CST:**hat 优化完成**(commit 84cb935)
-  - SKILL.md 221→244 lines:加 main-skill precedence 段、Output Contract cite _shared、横向不主动 propose
-  - tests/cases.md 617→686:加 B1-B4 用例
-  - skill-doctor: 0 err / 12 warn(可后续清,non-blocking)
+## 最终成果汇总
 
-### Next Action(下次 wake 第一步)
-1. 读本 STATUS.md
-2. 跑 `claude-usage --json` 看 5h%
-3. 看当前时间是否过 06-03 13:30(过了 → 自停 + 删 cron + push 分支 + cc-connect 通知 user)
-4. 否则:看 "Current Task" 段
-5. 完成一块工作 → 写 commit + 更新本 STATUS.md → halt
+### 新增到 _shared/
+- `flow-template.md`(平行 director-template.md,16 段必备结构 + 跨 flow drift 解药)
+- `codex-delegation-template.md`(canonical ROI 规范,各 flow-*/director-* 引用)
 
-### Current Task: meta-skill 新建(未开始)
+### 新增 skill
+- `meta-skill/`(per-project skill auto-config orchestrator;SKILL.md / 2 references / 9 test cases)
 
-**目标**:per-project skill 自动配置 orchestrator。探测项目类型 + 阶段,生成 skill manifest(给 skillshare 用),让 agent 按项目动态加载 skill。
+### 优化的 skill
+- `hat/`:加 main-skill precedence + _shared baseline cite + 横向不主动 propose + 4 new test cases
+- `experience-summary/`:_shared baseline cite + main-skill precedence + L9a unblock-recipes 唯一生成路径 + 2 new test cases
+- `flow-codex-goal/`:flow-template alignment + Codex Delegation 标记为特殊例外 + OC schema cite
+- `flow-dev-task/`:flow-template alignment + Codex Delegation 现在 defer to _shared(自己不再是唯一源)
+- `flow-ext-publish/`:flow-template alignment + Codex section ref
+- `flow-project-bootstrap/`:flow-template + OC schema cite + Codex section ref
+- `flow-project-finish/`:flow-template + OC schema cite + Codex section ref
+- `flow-skill-dev/`:flow-template + Codex section ref
+- `flow-skill-research/`:flow-template + Codex section ref
 
-**用户敲定的设计要点**(2026-06-02 对话):
-- 不引入"常驻 skill"概念(用户通过 skillshare 手选)
-- meta-skill 输出 = skill manifest(给 skillshare 读)
-- 项目阶段:bootstrap / dev / debug / finish 4 阶段(可后续细化)
-- 阶段切换通过 exp-sum 监测信号触发,不新发明
-- 高风险动作(直接改 .skillshare/ 启用项)必须 user gate
+### 更新的 _shared(原有文件)
+- `director-template.md`:5 directors(+architect 子类正式承认)
+- `audit-rubric.md`:加 §4.1 verdict 映射表(5 director-* 跨 skill 映射)
 
-**最小可行 skeleton**:
-- `meta-skill/SKILL.md`:Required Workflow 6 步
-  1. 探测项目(技术栈 / 阶段 / 历史 incident / 项目规则)
-  2. 推断阶段 + 候选 skill 集
-  3. 输出 manifest JSON
-  4. (可选)显示给用户 + 等确认
-  5. 落地到 `.claude/skills-manifest.json` 或 `<project>/.skillshare/enabled.txt`
-  6. 记录 manifest 版本 + 上次同步时间
-- `meta-skill/references/project-detection.md`:技术栈 / 阶段探测规则
-- `meta-skill/references/manifest-schema.md`:manifest JSON schema
-- `meta-skill/tests/cases.md`:基础用例
-**输出**:
-- 新建 `meta-skill/` 目录
-- commit "feat(meta-skill): initial scaffold per user-approved design"
-**完成标准**:
-- SKILL.md 含 description / When to Use / Workflow / Output Contract / Red Flags / Relationship
-- manifest JSON schema 明示
-- 4 个阶段(bootstrap/dev/debug/finish)候选 skill 集表
-- 至少 3 个 test cases(技术栈探测 / 阶段推断 / 高风险落地 gate)
-- skill-doctor 0 err
+### Deferred(下次专项)
+- flow-ext-publish / flow-skill-dev / flow-skill-research:加 ## Output Contract 段(目前 3/7 没有)
+- 7 个 flow-* 加 ## Question Gate 段引用 _shared/question-gate.md(目前 7/7 都自创 Q budget)
+- 7 个 flow-* 加 ## Evidence Discovery 段
+- director-frontend / director-promote:Red Flags 从内联清单下沉到 references/failure-modes.md
+- 8/9 audit 维度跨 director-* 命名统一(D8)
+- Subagent 派工独立成段(D6)
 
-## Halt 协议(每次工作完都做)
-```bash
-cd ~/Documents/projects/skills
-git add -A
-git commit -m "<msg>"
-# 不 push (等所有 task 完才 push)
-# 更新 STATUS.md
-# 如果已到 06-03 13:30 → 删 cron + cc-connect 通知
-```
+### Cron 状态
+- `meta-skill-cron-real` ID 38e1bd72,每整点 :55(00:55-12:55)继续触发
+- 下次 wake 它会读本 STATUS.md 看任务全完 → halt + 自删
+- 若想立刻停:`cc-connect cron del 38e1bd72`
 
-## Halt 触发条件(任一)
-- 当前时间 ≥ 2026-06-03 13:30 CST
-- 5h 额度 > 95% used
-- 5 个 task 全部 completed
-- 异常(git 冲突 / 无法解析 audit / 上下文不足)
+### 测试 / 验证
+- `skill-doctor`: 0 err / 12 warn(所有 commit 都过,12 warn 是 pre-existing)
+- 未跑 tests/cases.md 集成回归(下次专项)
+
+## Halt 协议
+- 5 任务完成 → 本 STATUS.md 标 "ALL TASKS COMPLETED"
+- 下次 cron 唤醒读本文件 → 应当 halt + 自删 cron + cc-connect 通知 user
 
 ## cc-connect 通知 user 时机
-- 5 个 task 全完成
+- ✅ 5 个 task 全完成 → 06-03 02:00 应 ping user(下面这个 wake/或 user 自己 ping 时触发)
 - Halt 触发(deadline / 异常)
 - 中途有 user 需要决断的高风险动作
