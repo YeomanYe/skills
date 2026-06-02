@@ -83,12 +83,10 @@ description: Use after finishing a real task to triage the lesson/pattern/gotcha
 
 #### Step 2 反例 A: Q0-Q10 全 no 兜底 (禁止 silent halt)
 
-如果 Q0-Q10 全 no(用户在 Step 1 塞了"既不丢也分不出层"的混合体)→ **进 split-or-discard 二选一**,
-不能 silent halt(白攒经验)也不能强落 L10(破坏用户信任):
-
-- 提示: "(a) 拆 ≥ 2 条分别走 exp-sum, 或 (b) 接受 L10 + 落盘到 `~/.claude/projects/<proj>/memory/unrouted.md` 备查"
-- 5 段【后续提醒】追加 `<unrouted: <reason>>` 标签供下次 lookup
-- 同 session 内 ≥ 2 次进入兜底 → 提示"判断树有盲区,触发 flow-skill-dev 修订 judgment-tree.md"
+Q0-Q10 全 no(用户塞了混合体经验)→ **进 split-or-discard**,不 silent halt 也不强落 L10:
+- 提示 "(a) 拆 ≥ 2 条分走 exp-sum, 或 (b) L10 + 落盘 `~/.claude/projects/<proj>/memory/unrouted.md`"
+- 【后续提醒】追加 `<unrouted: <reason>>` 供下次 lookup
+- 同 session ≥ 2 次进兜底 → "判断树有盲区,触发 flow-skill-dev 修订 judgment-tree.md"
 
 #### Step 2 反例 B: 跨会话冲突 — stale 而非删除
 
@@ -141,29 +139,23 @@ description: Use after finishing a real task to triage the lesson/pattern/gotcha
 
 #### Step 4 反例: stage_switch 信号外送 meta-skill
 
-用户本会话从 dev (flow-dev-task) 切到 finish (flow-project-finish) 并触发 exp-sum。
-meta-skill 不知道 stage 已切换会持续推 dev reminder 造成冗余。
-
-**信号 schema** 写入 `.agent/jobs/<task-slug>/stage-signal.json`:
+会话从 dev (flow-dev-task) 切到 finish (flow-project-finish) 时 exp-sum 必须给 meta-skill 发信号,
+否则 meta-skill 会持续推 dev reminder。**信号 schema** 写入 `.agent/jobs/<task-slug>/stage-signal.json`:
 
 ```json
 {
-  "type": "stage_switch",
-  "from": "dev",
-  "to": "finish",
-  "triggered_by": "experience-summary",
-  "session_id": "<uuid>",
-  "timestamp": "2026-06-03T10:00:00Z",
-  "exp_sum_exit": "L8",
+  "type": "stage_switch", "from": "dev", "to": "finish",
+  "triggered_by": "experience-summary", "session_id": "<uuid>",
+  "timestamp": "2026-06-03T10:00:00Z", "exp_sum_exit": "L8",
   "suppress_followups": ["dev-reminder", "code-review-nag", "test-coverage-nag"],
   "active_until": "stage=finish completes OR 24h timeout"
 }
 ```
 
-- **写入时机**: 用户原话含"切到 finish / 进收尾 / wrap up" + 上一 active flow ≠ 当前推断 flow → **Step 5 生成前**必须落盘
-- **写入失败** → 【后续提醒】标 `<stage-signal-write-failed: <err>>`,降级口头告知 user 手动通知 meta-skill
-- **何时去除冗余**: meta-skill 下个 turn 开头读到 → 按 `suppress_followups` 静默 reminder;`active_until` 到期失效;stage 切回 dev → 写新信号覆盖
-- **反例**: 用户顺口"以后收尾时也注意 X" — **不算** stage_switch,只是经验适用场景描述。判据:本会话有无**真切换** flow orchestrator,非未来式假设
+- **写入时机**: 原话含"切到 finish / 进收尾 / wrap up" + 上一 active flow ≠ 当前推断 flow → **Step 5 生成前**必须落盘
+- **写入失败** → 【后续提醒】标 `<stage-signal-write-failed: <err>>`,降级口头告知 user 手动通知
+- **何时去除冗余**: meta-skill 下 turn 开头读到 → 按 `suppress_followups` 静默 reminder;`active_until` 到期失效;切回 dev → 写新信号覆盖
+- **反例**: "以后收尾时也注意 X" 顺口提 — **不算** stage_switch,只是经验适用场景描述。判据:本会话有无**真切换** flow orchestrator
 
 ### Step 5: 输出契约
 
@@ -227,14 +219,13 @@ meta-skill 不知道 stage 已切换会持续推 dev reminder 造成冗余。
 见 `references/failure-modes.md`。命中任一 Red Flag **停止并修正**;不要拿
 Rationalizations 给自己台阶。
 
-### 灾难性失败模式(显式拦截,不输出 5 段产物)
+### 灾难性失败模式(任一命中 → 停,不输出 5 段产物,转人工)
 
-任一命中立即停 → 转人工:
-1. **凭据沉淀**: Step 1.5 漏了 token → 紧急停 + emergency-delete 已落盘条目
-2. **stale 误覆盖**: 新条目路径 == 旧路径但未标 STALE → 停,走 supersedes 流程
+1. **凭据沉淀**: Step 1.5 漏了 token → emergency-delete 已落盘条目
+2. **stale 误覆盖**: 新路径 == 旧路径但未标 STALE → 走 supersedes
 3. **L9a 无 incident 落盘**: 出口 9a 但 incident 字段缺 ≥ 1 → 退 Step 3 反例
 4. **跨项目误升**: 跨项目信号 < 2 但写入 _shared/ → 降级回项目级
-5. **stage-signal 写失败但继续**: 信号必须落盘成功才进 Step 5,否则 meta-skill 重复推 reminder
+5. **stage-signal 写失败但继续**: 必须落盘成功才进 Step 5
 
 ## Self-Reference(自指)
 
@@ -283,22 +274,9 @@ Rationalizations 给自己台阶。
 - 任何主体 skill 跑时,hat 不挡 / 不替 / 不进产物 — 见 `hat/SKILL.md` 同名段
 - 本 skill 的 L9a 产物 = unblock-recipes/recipes/<slug>.md 的**唯一合法生成路径**(unblock-recipes 拒接直接写入)— 见 `references/l9a-recipe-template.md`
 
-## 回归测试用例(必须全过)
-
-`tests/cases.md` 维护,以下 8 类必须覆盖(M2 新增 case 4-8):
-
-| # | case | 输入 | 期望 |
-|---|---|---|---|
-| 1 | 正常 L1 | "agent 不要假装跑了测试" | L1 + 4 步同步链 |
-| 2 | 正常 L5 | "this dir 下 .tsx 全用 server component" | L5 nested CLAUDE.md |
-| 3 | Prior-art | "新增审 perf 的 director" | 引导改 director-frontend |
-| 4 | **PII redact** | 原话含 `ghp_abc123` | Step 1.5 拒绝,不进产物 |
-| 5 | **跨会话冲突** | 旧条目 CLAUDE.md, 新条目下沉 skill | 旧 STALE 90 天 + 新 supersedes |
-| 6 | **Q0-Q10 全 no** | 用户塞混合体 | split-or-discard,不 silent halt |
-| 7 | **L9a 无 incident** | 提 unblock-recipes 无 incident | 拒 skeleton + L9a-deferred |
-| 8 | **stage_switch** | "切到收尾" + 上一 flow=dev | stage-signal.json + suppress list |
-
 ## Reuse
 
-测试用例保留在 `tests/cases.md`,后续修订以这些用例为回归基线。新增 edge case (4-8) 对应
-Step 1.5 / Step 2 兜底 / Step 2 stale / Step 3 L9a-deferred / Step 4 stage-signal 5 个补丁段。
+测试用例保留在 `tests/cases.md`,后续修订以这些用例为回归基线。M2 新增 8 类必须覆盖
+(1=L1 价值观, 2=L5 模块, 3=Prior-art, 4=PII redact 拒绝, 5=跨会话 STALE+supersedes,
+6=Q0-Q10 全 no split-or-discard, 7=L9a 无 incident 拒 skeleton, 8=stage_switch 信号外送),
+分别对应 Step 1.5 / Step 2 兜底 / Step 2 stale / Step 3 L9a-deferred / Step 4 stage-signal 补丁段。

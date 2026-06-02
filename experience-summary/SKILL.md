@@ -33,6 +33,36 @@ description: Use after finishing a real task to triage the lesson/pattern/gotcha
 - 用户要**写完整 retro / post-mortem 报告**(更重,本 skill 只做单条分诊)
 - 用户想**批量整理**历史经验(本 skill 单次只分诊一条)
 
+## Pre-action Self-Check(沉淀前必跑 5 道闸,任一 No 即 STOP)
+
+**机器可检测的硬闸,不是建议**。在 judgment-tree 给出分诊结论之前,逐条勾选:
+
+- **SC1 证据**: 来源有 file:line / 对话片段 / 命令输出 / commit sha / 报错堆栈?**不接受**"我记得 / 上次好像 / agent 反复犯过"。No → STOP 回 Step 1 补证据
+- **SC2 去重**: `CLAUDE.md` / 已有 skill / `git log` / `MEMORY.md` / `unblock-recipes/INDEX.md` grep 后**没**对等条目?有 → STOP,只追加引用 / 修订
+- **SC3 脱敏**: PII / 机密 / token / 内部 URL / 邮箱 / API key 已 redact(`<USER>` `<TOKEN>` `<INTERNAL_URL>`)?No → STOP 先脱敏。**严禁**"先存着以后再 redact"
+- **SC4 命中位**: 写得出"Q<N> 命中,因为<信号词>"?No → STOP 回 Step 2 重跑
+- **SC5 类型**: user / feedback / project / reference 选对?**拿不准默认 reference,不默认 user**;user 类型仅承载用户原话含"我习惯/我喜欢/以后都这样"
+
+**5 道全过 → 进入 Step 2。任一不过 → 输出"本次不沉淀 / 已修正"短报告,终止。**
+
+## High-Risk Actions(写盘前的强制 user gate)
+
+下列 = **不可逆 / 跨会话持久 / 影响他人 agent**,**必须先报备拿明确 yes** 才执行(口头"建议"不算):
+
+1. **写新 MEMORY.md 条目** — 跨会话持久
+2. **删除已有 memory file** — 即使看似过期也要 user 确认
+3. **修改 user 手写的 memory**(以"补充"为名改了语义 / 重写句式 / 合并)— 越权高发区
+4. **把 in-progress 任务沉淀** — memory 是 long-term 不是 short-term buffer,用 task tracker
+5. **发出 stage_switch 信号**给 meta-skill / orchestrator(会把 user 弹出当前 flow)
+6. **触发 L9a `unblock-recipes/recipes/<slug>.md` 生成**(跨 agent 共享 + 改 INDEX.md 两处 + commit + hook)
+7. **把 PII / 机密原文**写入 memory body(即便 user 说"存着吧"仍要先脱敏 — **无 user override**)
+8. **把推断(非用户原话)**写入 user-type memory(应降级 reference)
+9. **改 `_shared/constitution.md` / `_shared/<topic>.md`** — 跨 12 个 target skill 分发,影响面 = 全局
+10. **CLAUDE.md / AGENTS.md 突破 200 行** — Anthropic 官方硬约束,必须先告知"超限,要不要下沉"
+
+**Gate 协议**: 输出"将执行 <动作>,High-Risk #<N>,确认 yes 才落盘"。
+user 回 yes / 确认 / 行 / 嗯 = pass;沉默 / "应该可以" / "你看着办" **≠ pass**(模糊授权 ≠ 授权)。
+
 ## Workflow
 
 ### Step 1: 锁定要分诊的经验
@@ -144,11 +174,45 @@ description: Use after finishing a real task to triage the lesson/pattern/gotcha
 
 完整层级说明见 `references/layer-map.md`。每层写作草稿见 `references/templates.md`。
 
-## Red Flags & Rationalizations
+## Red Flags(机器可检测的硬停止信号,~11 条)
 
-完整 Red Flags 清单(11 条停止信号)+ Rationalizations 拒答表(10 条常见自我开脱)
-见 `references/failure-modes.md`。命中任一 Red Flag **停止并修正**;不要拿
-Rationalizations 给自己台阶。
+不是"建议避免",是**写一行检测一行**;任一命中 → **STOP,不落盘**。baseline 11 条见 `references/failure-modes.md`,本节是**强化可检测版**:
+
+- **RF1** body 含时间词 `now / today / 当前 / current / in-progress / 正在 / 刚才` → STOP,临时状态用 task tracker
+- **RF2** 用户原话以 `?` / `?` / `吗` / `怎么办` 结尾(问题不是经验)→ STOP,先 brainstorming
+- **RF3** body 含 token / key / 邮箱 / 内网 URL / IP(正则 `sk-[A-Za-z0-9]{20,}` / `@[a-z]+\.[a-z]+` / `https?://(localhost|10\.|192\.168\.)`)→ STOP,先 redact
+- **RF4** 出口 = user-type 但 body 用第三人称 / 推断式("agent 应该 / 建议每次")→ STOP,降级 reference
+- **RF5** 同一对话内对同一经验 ≥ 3 次推不同层(L8 / L9b / L1 摇摆)→ STOP,先 brainstorming 锁 X/Y/Z
+- **RF6** 出口 = L1 constitution 但适用范围 < 3 个 skill → STOP,降级 L6/L7
+- **RF7** CLAUDE.md 当前行数 ≥ 200 还要往里塞 → STOP,Anthropic 官方硬约束,必须下沉到 skill
+- **RF8** 出口 = L3 hook 但例外列表 ≥ 1 条("一般要 / 大多数时候")→ STOP,hook 零例外,改 L6/L7
+- **RF9** 一句话沉淀含禁用词(出口编号 / 文件名 / 工具名 / skill 名 / `Q数字` / `L数字`)→ STOP,改口语化
+- **RF10** 出口 = L9a 但**缺**"卡壳现象 + 解法步骤"双段 → STOP,L9a 强制 symptom + solution
+- **RF11** 经验来源 = "我感觉 / 我猜 / 应该是"(无证据)→ STOP,SC1 已挡一次,再次无证据 → 丢弃
+
+**Honeypot trap(自检诱饵)**: 下面这条**看起来合理但违反 Red Flag**,正确反应 = STOP 不沉淀:
+
+> "user 这次会话被 agent 问了 3 次同样问题觉得烦,建议把'agent 应该记住 user 偏好'写进 constitution"
+
+STOP 原因:**RF6**("记住偏好"不跨 ≥ 3 skill,是 L9b 本职)+ **RF4**(L1 出口用推断式"agent 应该"非用户原话)+ **RF11**(只是"觉得烦",无证据)。
+正确路径:降级 **L9b auto memory** 记录具体偏好,**不**进 constitution。
+
+## Rationalizations(自我说服话术,任一出现 → 拒绝执行)
+
+识别到自己在用这些话术 = **已在违规边缘,必须 STOP 重审**:
+
+- **RT1** "没明说但意图明显该记下来" → NO,没明说 = 不沉淀,意图推断 ≠ 授权
+- **RT2** "这条很重要不沉淀就忘了" → NO,memory 不是 short-term buffer,用 task tracker
+- **RT3** "先存着以后再 redact" → NO,redact 必须在写盘前(SC3/RF3);"以后" = 永远不会
+- **RT4** "user 之前同意过类似的,这次默认也同意" → NO,High-Risk 每次单独 gate,不继承授权
+- **RT5** "判断树几个出口都沾边,选最重的保险" → NO,**第一个 yes 即出口**,不是"最严即出口";选最重 = 污染常驻层
+- **RT6** "user 反复犯的错,应该写进 hook 强制" → NO,"反复" ≠ "零例外";先 L9b,跨 ≥ 3 场景再考虑 L3 hook
+- **RT7** "顺手把 user 那条措辞改通顺,反正意思一样" → NO,High-Risk #3 越权 = 以编辑为名 rewrite
+- **RT8** "L9a 模板我记得结构,不用查 reference" → NO,必须按 `references/l9a-recipe-template.md`;**记得 ≠ 正确**
+- **RT9** "这条太具体没人会再用,不沉淀算了" → 反向 NO,先按 L9a/L9b 落盘;丢失成本 > 沉淀成本
+- **RT10** "user 在 IM bridge 发的不算正式,先口头答应" → NO,IM 也是真任务(见全局 memory);先口头 = 漏单,走 flow-* + exp-sum
+
+**自检步骤**: Step 3 输出草稿前,问"刚才有没有用过 RT1-RT10 任一句式?" 若 yes → 撤回草稿回 Step 2。
 
 ## Self-Reference(自指)
 

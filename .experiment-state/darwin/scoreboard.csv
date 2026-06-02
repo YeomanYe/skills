@@ -17,3 +17,8 @@ hat,3,v1-hybrid,0.909,best-but-no-improvement,2026-06-03T06:55Z
 hat,3,no_improvement_counter,2,counter,2026-06-03T06:55Z
 meta-skill,2,v1-hybrid,,WINNER,2026-06-03T07:00Z
 meta-skill,2,v1-hybrid,0.881,WINNER,2026-06-03T07:00Z
+experience-summary,0,baseline,0.770,baseline,2026-06-03T07:05Z
+experience-summary,1,v1-m1-clarity,0.752,no,2026-06-03T07:05Z
+experience-summary,1,v2-m2-completeness,0.783,no,2026-06-03T07:05Z
+experience-summary,1,v3-m3-integration,0.718,no,2026-06-03T07:05Z
+experience-summary,1,v4-m4-enforcement,0.803,WINNER,2026-06-03T07:05Z

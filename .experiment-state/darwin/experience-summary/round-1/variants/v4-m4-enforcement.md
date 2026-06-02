@@ -37,13 +37,11 @@ description: Use after finishing a real task to triage the lesson/pattern/gotcha
 
 **机器可检测的硬闸,不是建议**。在 judgment-tree 给出分诊结论之前,逐条勾选:
 
-| # | 自检问 | 通过条件 | 不通过 |
-|---|---|---|---|
-| SC1 | 经验来源是否有**具体引用**(file:line / 对话片段 / 命令输出 / commit sha / 报错堆栈)? | ≥ 1 条可定位证据 | STOP — 回 Step 1 补证据。**不接受**"我记得 / 上次好像 / agent 反复犯过" |
-| SC2 | 这条经验是否**已经**在 `CLAUDE.md` / 已有 skill / `git log` / `MEMORY.md` / `unblock-recipes/INDEX.md` 里能找到? | grep 没对等条目 | STOP — 输出"已存在于 `<path:line>`,本次不沉淀,只追加引用 / 修订" |
-| SC3 | 是否 **redact** 了 PII / 机密 / token / 内部 URL / 客户名 / 邮箱 / API key? | body 已脱敏(`<USER>` `<TOKEN>` `<INTERNAL_URL>`) | STOP — 先脱敏。**严禁**"先存着以后再 redact" |
-| SC4 | judgment-tree 第几条 **Q 命中**?能否一句话说清命中信号? | 写出"Q<N> 命中,因为<信号词>" | STOP — 没想清就别落盘,回 Step 2 重跑 |
-| SC5 | 沉淀类型(user / feedback / project / reference)是否选对? | 类型与 X/Y/Z 槽位语义一致 | STOP — **拿不准默认 reference,不要默认 user**;user 类型仅在用户**原话**含"我习惯/我喜欢/以后都这样"才用 |
+- **SC1 证据**: 来源有 file:line / 对话片段 / 命令输出 / commit sha / 报错堆栈?**不接受**"我记得 / 上次好像 / agent 反复犯过"。No → STOP 回 Step 1 补证据
+- **SC2 去重**: `CLAUDE.md` / 已有 skill / `git log` / `MEMORY.md` / `unblock-recipes/INDEX.md` grep 后**没**对等条目?有 → STOP,只追加引用 / 修订
+- **SC3 脱敏**: PII / 机密 / token / 内部 URL / 邮箱 / API key 已 redact(`<USER>` `<TOKEN>` `<INTERNAL_URL>`)?No → STOP 先脱敏。**严禁**"先存着以后再 redact"
+- **SC4 命中位**: 写得出"Q<N> 命中,因为<信号词>"?No → STOP 回 Step 2 重跑
+- **SC5 类型**: user / feedback / project / reference 选对?**拿不准默认 reference,不默认 user**;user 类型仅承载用户原话含"我习惯/我喜欢/以后都这样"
 
 **5 道全过 → 进入 Step 2。任一不过 → 输出"本次不沉淀 / 已修正"短报告,终止。**
 
@@ -180,19 +178,17 @@ user 回 yes / 确认 / 行 / 嗯 = pass;沉默 / "应该可以" / "你看着办
 
 不是"建议避免",是**写一行检测一行**;任一命中 → **STOP,不落盘**。baseline 11 条见 `references/failure-modes.md`,本节是**强化可检测版**:
 
-| # | 检测规则(可 grep / 可机查) | 触发处置 |
-|---|---|---|
-| RF1 | body 含时间词 `now / today / 当前 / current / in-progress / 正在 / 刚才 / just now` | STOP — 临时状态不沉淀,改用 task tracker |
-| RF2 | 用户原话以 `?` / `?` / `吗` / `怎么办` 结尾(**问题**不是经验) | STOP — 先 brainstorming,有结论再回 exp-sum |
-| RF3 | body 含 token / key / 邮箱 / 内网 URL / IP(正则:`sk-[A-Za-z0-9]{20,}` / `@[a-z]+\.[a-z]+` / `https?://(localhost|10\.|192\.168\.)`) | STOP — 先 redact(SC3 二次拦截) |
-| RF4 | 出口 = user-type 但 body 用第三人称 / 推断式("agent 应该 / 应该总是 / 建议每次") | STOP — 降级 reference;user-type 仅承载第一人称原话 |
-| RF5 | 同一对话内对同一条经验 ≥ 3 次推不同层(L8 / L9b / L1 摇摆) | STOP — 分诊没想清,先 brainstorming 锁定 X/Y/Z |
-| RF6 | 出口 = L1 constitution 但适用范围 < 3 个 skill | STOP — constitution 必须跨 ≥ 3 skill;否则降级 L6/L7 |
-| RF7 | CLAUDE.md 当前行数 ≥ 200 还要继续往里塞 | STOP — Anthropic 官方硬约束,必须下沉到 skill |
-| RF8 | 出口 = L3 hook 但例外列表 ≥ 1 条("一般要 / 大多数时候") | STOP — hook 零例外;有例外改 L6/L7 软规则 |
-| RF9 | 一句话沉淀含禁用词(出口编号 / 文件名 / 工具名 / skill 名 / `Q数字` / `L数字`) | STOP — 改口语化(项目脚本 / 全局宪法 / 启动手册 ...) |
-| RF10 | 出口 = L9a unblock-recipes 但**缺**"卡壳现象 + 解法步骤"双段 | STOP — L9a 强制 symptom + solution 双段 |
-| RF11 | 经验来源 = "我感觉 / 我猜 / 应该是"(无证据) | STOP — SC1 已挡一次,再次无证据 → 丢弃 |
+- **RF1** body 含时间词 `now / today / 当前 / current / in-progress / 正在 / 刚才` → STOP,临时状态用 task tracker
+- **RF2** 用户原话以 `?` / `?` / `吗` / `怎么办` 结尾(问题不是经验)→ STOP,先 brainstorming
+- **RF3** body 含 token / key / 邮箱 / 内网 URL / IP(正则 `sk-[A-Za-z0-9]{20,}` / `@[a-z]+\.[a-z]+` / `https?://(localhost|10\.|192\.168\.)`)→ STOP,先 redact
+- **RF4** 出口 = user-type 但 body 用第三人称 / 推断式("agent 应该 / 建议每次")→ STOP,降级 reference
+- **RF5** 同一对话内对同一经验 ≥ 3 次推不同层(L8 / L9b / L1 摇摆)→ STOP,先 brainstorming 锁 X/Y/Z
+- **RF6** 出口 = L1 constitution 但适用范围 < 3 个 skill → STOP,降级 L6/L7
+- **RF7** CLAUDE.md 当前行数 ≥ 200 还要往里塞 → STOP,Anthropic 官方硬约束,必须下沉到 skill
+- **RF8** 出口 = L3 hook 但例外列表 ≥ 1 条("一般要 / 大多数时候")→ STOP,hook 零例外,改 L6/L7
+- **RF9** 一句话沉淀含禁用词(出口编号 / 文件名 / 工具名 / skill 名 / `Q数字` / `L数字`)→ STOP,改口语化
+- **RF10** 出口 = L9a 但**缺**"卡壳现象 + 解法步骤"双段 → STOP,L9a 强制 symptom + solution
+- **RF11** 经验来源 = "我感觉 / 我猜 / 应该是"(无证据)→ STOP,SC1 已挡一次,再次无证据 → 丢弃
 
 **Honeypot trap(自检诱饵)**: 下面这条**看起来合理但违反 Red Flag**,正确反应 = STOP 不沉淀:
 
@@ -205,20 +201,18 @@ STOP 原因:**RF6**("记住偏好"不跨 ≥ 3 skill,是 L9b 本职)+ **RF4**(L1
 
 识别到自己在用这些话术 = **已在违规边缘,必须 STOP 重审**:
 
-| # | 自我说服话术 | 反驳 / 正确动作 |
-|---|---|---|
-| RT1 | "用户**没明说**但**意图明显**该记下来" | NO — 没明说 = 不沉淀,等下次确认。意图推断 ≠ 授权 |
-| RT2 | "这条很重要,不沉淀就忘了" | NO — memory 不是 short-term buffer,task tracker 才是。重要 ≠ 该进长期记忆 |
-| RT3 | "先存着,以后再 redact" | NO — redact 必须在写盘前(SC3 / RF3)。"以后"在 agent 世界 = 永远不会 |
-| RT4 | "user 之前同意过类似的,这次默认也同意" | NO — High-Risk 每次单独 gate,不继承授权。隐式 = 越权 |
-| RT5 | "判断树几个出口都沾边,**选最重的**保险" | NO — 选最重 = 污染常驻层。判断树是**第一个 yes 即出口**,不是"最严即出口" |
-| RT6 | "user 反复犯的错,**应该**写进 hook 强制" | NO — "反复" ≠ "零例外"。先 L9b 个人偏好;跨 ≥ 3 场景再考虑 L3 hook |
-| RT7 | "顺手把 user 那条措辞改通顺了,**反正**意思一样" | NO — High-Risk #3 越权。"意思一样还能改" = 以编辑为名 rewrite |
-| RT8 | "L9a 模板我**记得**结构,不用查 reference" | NO — L9a 必须按 `references/l9a-recipe-template.md`,**记得 ≠ 正确**;RF10 会查双段 |
-| RT9 | "这条**太具体**没人会再用,不沉淀算了" | 反向 NO — 具体 ≠ 不可复用。先按 L9a/L9b 落盘,低频不命中再下线;丢失成本 > 沉淀成本 |
-| RT10 | "user 在 IM bridge 发的,不算正式,**先口头答应**" | NO — IM 也是真任务(见全局 memory)。先口头 = 漏单。走 flow-* 编排 + exp-sum |
+- **RT1** "没明说但意图明显该记下来" → NO,没明说 = 不沉淀,意图推断 ≠ 授权
+- **RT2** "这条很重要不沉淀就忘了" → NO,memory 不是 short-term buffer,用 task tracker
+- **RT3** "先存着以后再 redact" → NO,redact 必须在写盘前(SC3/RF3);"以后" = 永远不会
+- **RT4** "user 之前同意过类似的,这次默认也同意" → NO,High-Risk 每次单独 gate,不继承授权
+- **RT5** "判断树几个出口都沾边,选最重的保险" → NO,**第一个 yes 即出口**,不是"最严即出口";选最重 = 污染常驻层
+- **RT6** "user 反复犯的错,应该写进 hook 强制" → NO,"反复" ≠ "零例外";先 L9b,跨 ≥ 3 场景再考虑 L3 hook
+- **RT7** "顺手把 user 那条措辞改通顺,反正意思一样" → NO,High-Risk #3 越权 = 以编辑为名 rewrite
+- **RT8** "L9a 模板我记得结构,不用查 reference" → NO,必须按 `references/l9a-recipe-template.md`;**记得 ≠ 正确**
+- **RT9** "这条太具体没人会再用,不沉淀算了" → 反向 NO,先按 L9a/L9b 落盘;丢失成本 > 沉淀成本
+- **RT10** "user 在 IM bridge 发的不算正式,先口头答应" → NO,IM 也是真任务(见全局 memory);先口头 = 漏单,走 flow-* + exp-sum
 
-**自检步骤**: Step 3 输出草稿前,问自己"刚才有没有用过 RT1-RT10 任一句式?" 若 yes → 撤回草稿,回 Step 2。
+**自检步骤**: Step 3 输出草稿前,问"刚才有没有用过 RT1-RT10 任一句式?" 若 yes → 撤回草稿回 Step 2。
 
 ## Self-Reference(自指)
 
