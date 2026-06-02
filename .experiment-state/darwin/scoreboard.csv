@@ -22,3 +22,6 @@ experience-summary,1,v1-m1-clarity,0.752,no,2026-06-03T07:05Z
 experience-summary,1,v2-m2-completeness,0.783,no,2026-06-03T07:05Z
 experience-summary,1,v3-m3-integration,0.718,no,2026-06-03T07:05Z
 experience-summary,1,v4-m4-enforcement,0.803,WINNER,2026-06-03T07:05Z
+hat,4,v1-radical-compression,0.893,best-but-no-improvement,2026-06-03T07:20Z
+hat,4,no_improvement_counter,3,STOP,2026-06-03T07:20Z
+hat,FINAL,r1-winner-kept,0.87,FROZEN,2026-06-03T07:20Z
