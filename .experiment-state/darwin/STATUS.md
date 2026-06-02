@@ -48,17 +48,18 @@ aggregate = 加权平均(per reviewer) → 2 reviewer 几何平均 → round sco
 14. director-ops
 15. director-promote
 
-## 当前状态(2026-06-03 07:50)
-- 5h: 84%(下一轮可能撞 95% 警戒线 → 等 10:50 重置)
+## 当前状态(2026-06-03 08:00)
+- 5h: 88%(已撞警戒边缘 → halt new agent 等 10:50 重置)
 - 重置: 06-03 10:50 CST
 - 截止: 06-03 13:30 CST
+- cron be758bdc 仍 active(每 :55)— 下次 09:55 wake 但 budget 仍高,该轮跳过;10:55 wake budget reset 后可干活
 
 ### 进度
 | skill | round | 状态 | 当前 baseline |
 |---|---|---|---|
 | ✅ hat | r1-r4 | **STOPPED** counter=3 | r1 winner(score ~0.87,278 行) |
-| meta-skill | r1-r4 | counter=1 等 r4 reviewer | r2 winner(score 0.881,285 行) |
-| experience-summary | r1-r3 | counter=1 等 r3 reviewer | r1 winner(score 0.803,266 行) |
+| meta-skill | r1-r4 | counter=2(差 1 轮 stop) | r2 winner(score 0.881,285 行) |
+| experience-summary | r1-r3 | counter=2(差 1 轮 stop) | r1 winner(score 0.803,266 行) |
 | flow-codex-goal | r0 | pending | source baseline |
 | flow-dev-task | r0 | pending | source baseline |
 | flow-ext-publish | r0 | pending | source baseline |
@@ -72,15 +73,32 @@ aggregate = 加权平均(per reviewer) → 2 reviewer 几何平均 → round sco
 | director-ops | r0 | pending | source baseline |
 | director-promote | r0 | pending | source baseline |
 
-### 在飞 agent(07:50)
-- meta-skill r4 reviewer(scenarios variant 已落盘 330 行)
-- exp-sum r3 reviewer(failure-catalog variant 已落盘 317 行)
+### 在飞 agent(08:00)
+- 无(全部已完成,处于 halt 状态)
 
-### 下一步(cron 续作业)
-1. 若 meta r4 / exp-sum r3 still no_improvement → counter+=1(都到 2)
-2. 重置后(10:50)起 meta r5 / exp-sum r4(最后机会触发 stop)
-3. 若都 stopped → 进 flow-* 演化(7 个 skill,可考虑只跑 r1 单轮看趋势,因为 hat 模式表明 enforcement mutation 几乎稳赢)
-4. 若时间够 → director-* 同样套路
+### 下一步(cron 续作业)— 决策树
+
+**优先级 1**: 若 budget < 60% → 触发 meta r5(单 variant)+ exp-sum r4(单 variant)并行。两者大概率 no_improvement → stop。
+
+**优先级 2**: 一旦 meta + exp-sum 都 stopped → 进 flow-* 演化(7 个 skill)
+  - 考虑只跑 r1 单轮看趋势(hat r1 模式表明 enforcement mutation 几乎稳赢 +0.05+)
+  - 每个 flow-* 派 1 个 v4-enforcement-style variant + 1 reviewer = 2 agent
+  - 7 × 2 = 14 agent,可分成 2-3 批,每批 5 agent
+
+**优先级 3**: director-* 5 个,同样套路
+
+**Halt 决策**:
+  - budget ≥ 90% → 立刻 halt + 写状态 + 等下次 cron
+  - 时间 ≥ 13:30 → 立刻 halt + 删 cron + 通知 user
+  - 5 个 flow-* + 5 个 director-* 都完成 → 任务结束,通知 user
+
+### Halt 时刻 user 通知
+- 用 cc-connect send --message 通知关键里程碑
+- 不通知中间小步,只通知:
+  1. 演化完 1 个完整 skill(commit + 分数)
+  2. 全部 finish
+  3. 超 deadline 强停
+  4. 重大错误
 
 ## 单轮流程(每个 skill 重复直到 stop)
 
