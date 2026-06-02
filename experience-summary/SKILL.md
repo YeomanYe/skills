@@ -103,6 +103,12 @@ description: Use after finishing a real task to triage the lesson/pattern/gotcha
 
 完整 5 段格式说明 + 各段写作要求 + handoff 边界见 `references/output-contract-template.md`。
 
+**基线 JSON / markdown 分流** 见 `../_shared/output-contract-schema.md`(跨 skill 通用)。
+本 skill 扩展:
+- 5 段 markdown = **human-facing 主产物**(给 user 看的对话响应)
+- handoff payload = **机器读 JSON 含 3 段技术契约**(分诊结论 + 推荐位置 + 写作模板)落盘 `.agent/jobs/<task-slug>/triage.json`
+- 【一句话沉淀】+ 【后续提醒】**不进 handoff JSON**(纯 human-facing,见下方"handoff 边界"段)
+
 **【一句话沉淀】格式硬约束**(主体保留,不可下沉):
 
 - 必须有 3 个槽位: **X(做了什么经验)** / **Y(变成了什么载体)** / **Z(沉淀到了哪个概念位置)**
@@ -178,6 +184,18 @@ Rationalizations 给自己台阶。
 - `flow-skill-dev`(那是写 skill 本身)
 - `superpowers:brainstorming`(那是发散探索)
 - retro / post-mortem 会议(那是更重的复盘)
+
+### 跟其他 meta 类 skill 的优先级(避免抢同一回合)
+
+| 主体场景 | hat 的位置 | meta-skill 的位置 | unblock-recipes 的位置 |
+|---|---|---|---|
+| **本 skill 显式触发**("经验该写哪") | hat 让位,只在最终对话响应末尾追加告知行;**不**写入 exp-sum 5 段产物 | 不触发(meta-skill 是项目级配置,不是经验沉淀) | Q9a 路径下被本 skill 调度 — 由本 skill 输出 L9a 模板后,user/agent 落盘到 unblock-recipes/recipes/ |
+| meta-skill 主体跑时 | hat 让位(同上) | 主体 | 卡壳分支兜底 |
+| user 直接写经验到 unblock-recipes/recipes/(绕过本 skill)| 被 unblock-recipes 拒绝(它唯一入口是本 skill Q9a) | n/a | 拒绝,告知 user 走 exp-sum |
+
+**关键 invariant**:
+- 任何主体 skill 跑时,hat 不挡 / 不替 / 不进产物 — 见 `hat/SKILL.md` 同名段
+- 本 skill 的 L9a 产物 = unblock-recipes/recipes/<slug>.md 的**唯一合法生成路径**(unblock-recipes 拒接直接写入)— 见 `references/l9a-recipe-template.md`
 
 ## Reuse
 

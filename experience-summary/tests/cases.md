@@ -376,3 +376,38 @@ Case 24-27 是 v2 新增专项验证(覆盖代表性叙事场景)。
 **断言**:
 - ✅ 不出现死循环
 - ✅ 路由结果是"独立 skill"(已经在 ~/Documents/projects/skills/experience-summary/)
+
+---
+
+### Chain 5: hat 让位 — exp-sum 主体跑时 hat 不进 5 段产物(2026-06-03 加)
+
+**场景**: user 说"刚踩了 X 坑,想沉淀下"。
+
+**预期**:
+- hat 检测到 exp-sum 显式触发,**让位**(见 hat/SKILL.md "跟其他 meta 类 skill 的优先级"段)
+- exp-sum 走 12 出口判断 → 输出 5 段(一句话沉淀 / 分诊结论 / 推荐位置 / 写作模板 / 后续提醒)
+- **5 段 markdown 主体里没有 `[戴帽:...]` 告知行**
+- hat 告知行只追加在 agent 给 user 的**最终对话响应**末尾,不在 5 段 markdown 内
+- exp-sum handoff JSON(`.agent/jobs/<task>/triage.json`)也不含 hat 字段
+
+**反例**(违规):
+- ❌ 5 段产物末尾被加 `[戴帽:「严」]`
+- ❌ handoff JSON 含 `hat: "strict"`
+- ❌ hat 主体接管,exp-sum 没跑 12 出口判断
+
+---
+
+### Chain 6: L9a → unblock-recipes 合法生成路径(2026-06-03 加)
+
+**场景**: 出口判定 = L9a(跨 agent 卡壳-解法)。
+
+**断言**:
+- exp-sum 按 `references/l9a-recipe-template.md` 输出**完整骨架**(含 frontmatter slug / tags / symptoms / cause / fix)
+- 输出 5 段 + L9a 骨架后,提示 user/agent 落盘到 `~/Documents/projects/skills/unblock-recipes/recipes/<slug>.md`
+- **必须同时更新** `unblock-recipes/INDEX.md` 两处(按 tag 分类 + 按 symptom 关键词反查)
+- commit 时 pre-commit hook 跑 skill-doctor 检查 frontmatter 完整性
+
+**反例**(违规):
+- ❌ exp-sum 让 user 自己手写 recipe(应当给 ready-to-paste 骨架)
+- ❌ user 跳过 exp-sum 直接 echo > unblock-recipes/recipes/x.md(被 unblock-recipes 拒)
+- ❌ 落盘后忘更新 INDEX.md(pre-commit hook 应拦)
