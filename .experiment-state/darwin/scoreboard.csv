@@ -1,0 +1,6 @@
+skill,round,variant_id,score,picked,timestamp
+hat,0,baseline,0.780,baseline,2026-06-03T05:33Z
+hat,1,v1-m1-clarity,0.780,no,2026-06-03T05:45Z
+hat,1,v2-m2-completeness,0.810,no,2026-06-03T05:45Z
+hat,1,v3-m3-integration,0.860,no,2026-06-03T05:45Z
+hat,1,v4-m4-enforcement,0.870,WINNER,2026-06-03T05:45Z

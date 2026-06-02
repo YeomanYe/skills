@@ -1,0 +1,52 @@
+{
+  "round": 1,
+  "skill": "hat",
+  "scores": {
+    "baseline": {
+      "triggerability": 0.85,
+      "actionability": 0.78,
+      "integration": 0.75,
+      "enforcement": 0.72,
+      "volume_efficiency": 0.85,
+      "weighted_avg": 0.78
+    },
+    "v1-m1-clarity": {
+      "triggerability": 0.85,
+      "actionability": 0.78,
+      "integration": 0.74,
+      "enforcement": 0.71,
+      "volume_efficiency": 0.88,
+      "weighted_avg": 0.78
+    },
+    "v2-m2-completeness": {
+      "triggerability": 0.85,
+      "actionability": 0.82,
+      "integration": 0.80,
+      "enforcement": 0.76,
+      "volume_efficiency": 0.82,
+      "weighted_avg": 0.81
+    },
+    "v3-m3-integration": {
+      "triggerability": 0.87,
+      "actionability": 0.84,
+      "integration": 0.93,
+      "enforcement": 0.82,
+      "volume_efficiency": 0.82,
+      "weighted_avg": 0.86
+    },
+    "v4-m4-enforcement": {
+      "triggerability": 0.85,
+      "actionability": 0.92,
+      "integration": 0.76,
+      "enforcement": 0.93,
+      "volume_efficiency": 0.83,
+      "weighted_avg": 0.87
+    }
+  },
+  "winner": "v4-m4-enforcement",
+  "winner_weighted_avg": 0.87,
+  "baseline_weighted_avg": 0.78,
+  "improvement_delta": 0.09,
+  "improvement_status": "improved",
+  "rationale": "v4 wins on the two highest-weighted dimensions: actionability (+0.14 vs baseline) via the new Step 5 Pre-output Self-Check with 5 numbered yes/no gates, and enforcement (+0.21) via RF-1..RF-9 machine-detectable codes paired with a per-RF remediation table, an ALWAYS-FOLLOW marker on the announce line, and a honeypot/prompt-injection rationalization that explicitly rejects fake 'exemption' signals. v3 was a close runner-up (0.86) with the strongest integration layer (Precedence Flow diagram + Handoff Payload JSON schema + grep-able lint contracts + concrete Case A/B), but its enforcement layer is weaker than v4's and actionability gain is smaller. v2 added useful edge cases but lacked v3's integration depth or v4's enforcement codes. v1 mostly compresses text without adding gates. Delta +0.09 exceeds the +0.05 improvement threshold."
+}
