@@ -1,7 +1,7 @@
 # director-* 角色型 skill 元规范
 
 > 本文件定义 **director-*** 命名空间下所有角色 skill 的**标准结构**。
-> 新建角色 / 改造现有角色都必须对齐本规范。当前 4 个 director-* 都遵循此模板。
+> 新建角色 / 改造现有角色都必须对齐本规范。当前 5 个 director-* 都遵循此模板(部分有合理例外,见 §2 子类)。
 
 ## 1. 命名空间含义
 
@@ -9,20 +9,38 @@
 
 | 类型 | 命名 | 本质 | 例子 |
 |---|---|---|---|
-| **角色型** | `director-<role>` | 一个虚拟专家:**专业判断 + 自己干活 + 调度同领域工具** | director-design / director-promote / director-frontend / director-ops |
+| **角色型** | `director-<role>` | 一个虚拟专家:**专业判断 + 自己干活 + 调度同领域工具** | director-design / director-promote / director-frontend / director-ops / director-architect |
 | **编排型** | `flow-<workflow>` | 一条流水线:**串联多个 skill,推任务从起点到终点** | flow-dev-task / flow-project-finish / flow-codex-goal |
 | **工具型** | `<tool>` | 单一能力,被 director-* 或 flow-* 调用 | web-image / clean-commit / delivery-gate |
 
-## 2. 4 个核心角色(2026-05 现状)
+## 2. 5 个核心角色(2026-06 现状)+ 子类型
 
-| Skill | 角色 | 5 modes 摘要 |
+### 标准 director-*(4 个)— 单角色 + 同领域工具调度
+
+| Skill | 角色 | N modes 摘要 |
 |---|---|---|
-| `director-design` | 设计师 | audit / direction / variants / mockup / handoff |
-| `director-frontend` | 前端工程师 | audit / boundaries / implement / extract / handoff |
-| `director-promote` | 宣发者 | audit / draft / variants / dispatch / recap |
+| `director-design` | 设计师 | audit / direction / variants / mockup / handoff(5 modes) |
+| `director-frontend` | 前端工程师 | audit / boundaries / implement / extract / handoff(5 modes) |
+| `director-promote` | 宣发者 | audit / draft / variants / dispatch / recap(5 modes) |
 | `director-ops` | 运维 | install / uninstall(2 modes,装卸主干) |
 
-未来候选:`director-pm` / `director-architect` / `director-qa` / `director-security`。
+### 角色型 + 内部 mini-pipeline(1 个)— architect 子类
+
+| Skill | 角色 | 内部 pipeline 性质 |
+|---|---|---|
+| `director-architect` | 架构师 | 含"盘点 → 评估 → 设计 → 暂停求批 → 执行"内部小流水线,跟标准 director-* 不同(标准是 mode 切换,不是 stage 串联) |
+
+**子类规则**:角色型 + 内部 pipeline 是合理的(架构 / project-prep 这类工作天然带流水线)。这种 skill **可**:
+- 用"输入识别表"代替标准 Mode Selection 表(因为不是 mode 切换是 stage 走通)
+- Mode 数量不必 5(architect 实际是单"流水线 mode")
+- 9 维 audit 可扩展到 10 维(加上"规则路由"等架构特有维度)
+
+但**仍必须**:
+- 对齐 Q gate / Output Contract / audit-rubric / constitution 引用
+- 包含 Codex Delegation Hook / Red Flags + Rationalizations / Relationship 等 14-16 段
+- 明示**为什么**是子类(在 SKILL.md "关于命名"段说清楚)
+
+未来候选:`director-pm` / `director-qa` / `director-security`。
 
 ## 3. 必备 16 段结构(SKILL.md)
 

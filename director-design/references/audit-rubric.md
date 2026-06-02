@@ -53,7 +53,18 @@ aggregate = N 维**算术平均**(`sum(scores) / N`)。`[n/a]` 维度不计入�
 | 3.0-3.9 | **partial 档**(必修后才可交付) | 列 must-fix 清单,修完回审 |
 | < 3.0 | **failed 档**(整体不达标,回前置 mode) | 回 direction / draft / research 重出 |
 
-verdict 标签的**具体词**由各 skill 自命名(director-ops:`installed-clean` / `installed-with-warnings` / `partial` / `failed`;director-design:`pass` / `pass-with-fixes` / `needs-redesign` / `blocked`;director-architect:`ready-to-land` / `ready-with-refinement` / `needs-refinement` / `blocked`)。**等级数(4 档)与语义对应不可变**,标签词可变。
+verdict 标签的**具体词**由各 skill 自命名。**等级数(4 档)与语义对应不可变**,标签词可变。
+
+### 4.1 当前 5 个 director-* 的 verdict 映射表(orchestrator 跨 skill 处理时查这张)
+
+| 等级 | director-design | director-frontend | director-promote | director-ops | director-architect |
+|---|---|---|---|---|---|
+| **clean**(≥ 4.5) | `pass` | `ready` | `ready` | `installed-clean` | `ready-to-land` |
+| **with-warnings**(4.0-4.4) | `pass-with-fixes` | `ready-with-fixes` | `ready-with-fixes` | `installed-with-warnings` | `ready-with-refinement` |
+| **partial**(3.0-3.9) | `needs-redesign` | `needs-revision` | `needs-revision` | `partial` | `needs-refinement` |
+| **failed**(< 3.0) | `blocked` | `needs-rewrite` | `blocked` | `failed` | `blocked` |
+
+新建 director-* 时,**在 SKILL.md 引用本表**(`../_shared/audit-rubric.md` §4.1)并加自己的一行,而不是自命名一套不映射的标签。
 
 **禁止**用几何平均 / 加权平均(各角色会借此粉饰短板,违反 ACBDQC 强制佐证)——若某维度严重失分,走 §3 特殊降级,不靠权重稀释。
 
