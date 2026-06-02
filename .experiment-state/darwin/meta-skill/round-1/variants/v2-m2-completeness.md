@@ -31,6 +31,7 @@ description: >
 - manifest 是**配置产物**,不是 agent 直接 import 的执行入口
 - skillshare 是真正的 enable/disable 执行者,本 skill 只生成 manifest
 - 高风险动作(实际改 `.skillshare/`)必须 user gate
+- **边界情况比主流程更重要**:monorepo / nested / 多语言 / corrupt manifest 都要明确处理路径,不能默认 fallthrough
 
 ## When to Use
 
@@ -38,6 +39,7 @@ description: >
 - 用户说"这个项目要配什么 skill"/ "重新评估 skill"/ "项目阶段变了"
 - `experience-summary` 监测到阶段切换信号,主动调本 skill
 - 项目内已有 `.skillshare/manifest.json` 但 mtime > 7 天前 + 项目状态明显变化(比如新增 release tag / 切了主分支)
+- monorepo 内切到某个子 package 目录(子 project 视为独立单元,见 Q&A)
 
 ## When NOT to Use
 
@@ -46,26 +48,17 @@ description: >
 - 新建 skill 到中心库 → 用 `flow-skill-dev`
 - 同步 skill 到中心库 → 用 `sync-skills`
 - 用户只问"我项目里有哪些 skill?" — 这是 read-only,直接 ls `.skillshare/manifest.json`,不重新生成
-
-## High-Risk Actions — 必经 User Gate
-
-以下动作**任何一个**触发前都必须走 Step 4 User Gate,不能跳过、不能合并、不能"顺手"做掉:
-
-1. 跑 `skillshare enable <skill>` / `skillshare disable <skill>`(实际改 enable 状态)
-2. 写 / 改 `<project>/.skillshare/enabled.txt` 或等价 config 文件
-3. 覆盖已有 `<project>/.skillshare/manifest.json`(必须先 backup 到 `previous_manifest` 字段)
-4. 把任何 user-managed 常驻 skill(`hat` / `experience-summary` / `unblock-recipes`)写入 `disable[]`
-5. reset / 删除 user 在 manifest 里手改过的字段(如 user 加了 `pinned[]` / `notes`)
-6. 调 `flow-skill-research` 派生新的候选 skill 后**直接** enable(必须先回 user gate)
-7. 把推断 confidence 为 `low` 的 stage 当 high 处理,自动 enable 该 stage 默认 skill 集
-8. 把上一次 manifest 的 `applied_at` 字段清空或回填假时间(等于伪造历史)
-
-read-only 动作(ls / cat / git log / 读 package.json / `skillshare list-available`)**不**算 high-risk,可以直接做。
-read-only 动作的输出**必须**记到 `signals[].evidence`,不能只在脑里用完就丢。
+- 用户明确说"我自己来配,别 enable 任何"→ 写空 manifest(`enable: []`)后 halt,不推断
 
 ## Required Workflow
 
 ### Step 1 — 探测项目特征(并行,只读)
+
+**Step 1.0 — 边界判定(必先做)**:
+- **找 project root**:从 cwd 向上找 `.git` / `package.json` / `Cargo.toml` / `pyproject.toml`,取最近的作为 root。
+- **submodule / nested 检测**:cwd 含 `.git` 文件(而非目录)→ 是 submodule,把 submodule 视为独立 project(其 `.skillshare/` 走 submodule 自己的)。
+- **monorepo 检测**:root 含 `pnpm-workspace.yaml` / `lerna.json` / `nx.json` / `turbo.json` / `Cargo.toml` 带 `[workspace]` / `packages/*` 目录结构 → 标记 `is_monorepo: true`,workflow 分叉(见下文 Step 2.5)。
+- **nested project**:cwd 不在 git root 但本目录有自己的 manifest(如 `apps/web/package.json`)→ 当作 sub-project,manifest 落在本目录的 `.skillshare/`,不污染 root。
 
 **A. 技术栈**(从文件存在性 + package manifest 推断):
 - `package.json` → 检 dependencies/scripts:
@@ -73,23 +66,25 @@ read-only 动作的输出**必须**记到 `signals[].evidence`,不能只在脑�
   - `electron` / `tauri` → desktop
   - `react-native` / `expo` → mobile
   - `wxt` / `plasmo` / `manifest.json` → browser extension
-- `Cargo.toml` → rust
+- `Cargo.toml` → rust(若有 `[workspace]` 段,展开 members)
 - `pyproject.toml` / `requirements.txt` → python
 - `go.mod` → go
 - `Gemfile` → ruby
-- 多个共存 → 多栈混合
+- 多个共存 → **多栈混合**(详见 Step 2.5)
 
 **B. 项目阶段**(从 git history 推断):
 - 0 commit / < 5 commits → `bootstrap`
 - 有 commit + 主分支活跃 + 无 release tag → `dev`
 - 含 `release-*` / `v[0-9]` tag + 持续 maintenance → `finish`
 - 最近 git log 含 "fix"/"revert"/"hotfix" 集中(> 30% commits in last 7d)→ `debug`
-- 多信号叠加 → 取最强;无法判定 → 默认 `dev`,**且 stage.confidence 必须显式标 `low`**
+- 多信号叠加 → 取最强;无法判定 → 默认 `dev`
+- submodule:阶段独立判定,不继承宿主项目
 
 **C. 项目规则**(从 docs 推断):
 - `CLAUDE.md` / `AGENTS.md` / `GEMINI.md`(根目录或 docs/)
 - `CONTRIBUTING.md` / `docs/**/rules.md`
 - 内含 hint(如 "use pnpm not npm" / "MobX with makeObservable")
+- monorepo:root CLAUDE.md + 各子 package 自己的 CLAUDE.md 都要读,子 package 规则覆盖 root
 
 **D. 历史 incident**(从 git log / .agent/ 残留 / commit message 推断):
 - 含 `flow-codex-goal` / `todo-flow` 历史产物 → 跑过编排任务
@@ -110,49 +105,44 @@ read-only 动作的输出**必须**记到 `signals[].evidence`,不能只在脑�
 | `finish` | `flow-project-finish` / `delivery-gate` / `clean-commit` / `flow-ext-publish` (扩展项目) |
 
 **正交常驻候选**(任何阶段都建议):`hat` / `experience-summary` / `unblock-recipes`
-> 但用户已声明这 3 个由 skillshare 单独管,本 skill **不**重复推荐它们(避免 manifest 噪音),
-> 更**绝对不能**把它们写进 `disable[]`(见 Red Flags / Pre-action Self-Check)。
+> 但用户已声明这 3 个由 skillshare 单独管,本 skill **不**重复推荐它们(避免 manifest 噪音)。
+
+### Step 2.5 — Monorepo / 多语言混合分叉
+
+- **monorepo**:为 root 生成一份 union manifest(`enable[]` 取所有子 package 的并集 + 标 `scope: "monorepo-root"`);**同时**为每个子 package 写各自 `.skillshare/manifest.json`(stage 独立判定)。
+- **rust workspace + 前端 + python ML 混合**:多栈合并候选,但若 enable 数 > 12 → 让 user 选主栈,避免 skill 过载。
+- **冲突规则**:子 package 显式 disable 的 skill,union manifest 不可 enable(子 package 优先)。
 
 ### Step 3 — 输出 manifest JSON
 
 写到 `<project>/.skillshare/manifest.json`(详见 `references/manifest-schema.md`)。
 
 JSON 必含:
-- `project_type` / `stage`(含 `confidence: high|medium|low`)/ `signals[]`(推断依据)
-- 每条 `signals[]` 必含 `source`(检测来源)+ `evidence`(原始片段)+ `implies`(推出什么结论)
+- `project_type` / `stage` / `signals[]`(推断依据)
 - `enable[]` / `disable[]` / `keep[]`(下次同步动作)
-- `rationale[]`(逐项推断说明,跟 `enable[]` / `disable[]` 一一对应)
+- `rationale[]`(逐项推断说明)
 - `generated_at` / `meta_skill_version`
+- monorepo 时加 `scope` / `parent_manifest`(子 package 指向 root)
+
+**Corrupt manifest 处理**:若 `.skillshare/manifest.json` 已存在但 JSON parse 失败 / schema 不符 → 备份到 `.skillshare/manifest.json.broken.<timestamp>`,提示 user,然后当作首次生成。**不要**静默覆盖。
 
 ### Step 4 — User Gate(高风险动作)
 
 **禁止**未经 user 确认就实际改 `.skillshare/enabled.txt` 或对应 skillshare config。
 
-#### Pre-action Self-Check(进入 user gate 前必跑,5 条 yes/no)
-
-任何一条答 No → **回 Step 3 修 manifest**,不向 user 推送摘要。回答必须显式写进对话或思考,不允许默念跳过。
-
-1. manifest `signals[]` 段的**每一条**都有 `source` + `evidence` + `implies` 三字段吗?
-2. `enable[]` 里列的每个 skill 都跑过 `skillshare list-available` 验证存在吗?
-3. 任何 user-managed 常驻 skill(`hat` / `experience-summary` / `unblock-recipes`)是否**未**被写入 `disable[]`?
-4. `stage` 推断如果是 fallback 默认值(`dev`)或多信号冲突, `stage.confidence` 是否显式标了 `low` / `medium`?
-5. 若已有旧 manifest 且 user 手改过(出现 `pinned[]` / `notes` / 注释)→ 是否已存进 `previous_manifest` 而非直接覆盖?
-
-#### User Gate 流程
-
 输出 manifest 后:
-1. 用 markdown 摘要给 user 看(候选 skill 列表 + rationale + stage.confidence)
+1. 用 markdown 摘要给 user 看(候选 skill 列表 + rationale)
 2. 等待 user 确认("apply" / "skip" / "modify X")
 3. 仅在 user 明确 `apply` 后,跑 skillshare 实际命令(如 `skillshare enable <skill>` / `skillshare disable <skill>`)
-4. 若 user 模糊回复或沉默 → **不动**,只留 manifest.json 在 `.skillshare/`,等下次显式触发
-5. user 说 "modify X" → 改 manifest → **重新跑 Pre-action Self-Check** → 再 gate,不能直接 apply
-6. user 回复"看起来 ok / 差不多 / 应该可以" 这类**非显式 apply** → 视为模糊回复 → 走第 4 条,不 apply
+4. 若 user 模糊回复或沉默 → **不动**,只留 manifest.json 在 `.skillshare/`
+5. user 说"我自己来配"→ 写空 `enable: []` + `user_opt_out: true`,halt
 
 ### Step 5 — 落地 + 记录版本
 
 - 写 `<project>/.skillshare/manifest.json`(canonical 记录)
 - 若 user apply 了 → 跑 skillshare 实际启用 + 写 `<project>/.skillshare/applied-at` 记录 ISO 时间
 - 同时在 manifest.json 加 `applied_at` 字段
+- monorepo 场景:root + 各子 package 各写一份,apply 顺序 = 子 package 先,root 后
 
 ### Step 6 — Halt
 
@@ -161,18 +151,42 @@ JSON 必含:
 - user 显式 ask
 - experience-summary 阶段切换信号
 
-Halt 时如果 user 选了 `skip`,manifest.json **仍**留盘(canonical 记录推断结果),
-但**不**跑任何 skillshare 命令、**不**写 `applied_at`、**不**写 `applied-at` 文件。
-下次触发时,新推断结果若跟上次 skip 掉的 manifest 主体相同,直接复用 + 更新 `last_evaluated_at`,
-不重新打扰 user(避免 skip 循环)。
+### Step 7 — Manifest 复审(可选,自动)
+
+后续会话进入同一项目时,若同时满足:
+- `.skillshare/manifest.json` 存在
+- `generated_at` mtime > 7 天前
+- 项目状态明显变化(新增 release tag / 主分支切换 / commit 数 +20% / CLAUDE.md mtime 更新)
+
+→ 自动重新 invoke 本 skill(从 Step 1 重跑),把上次 manifest 作为 `previous_manifest` 字段写入新 JSON 供 diff 对照。若 user 已 `user_opt_out: true`,跳过自动复审。
 
 ## Output Contract
 
 - **基线 JSON / markdown 分流** 见 `../_shared/output-contract-schema.md`
 - **本 skill 落盘产物** = `<project>/.skillshare/manifest.json`(canonical)
-- **对话响应**(给 user)= markdown 摘要(候选 skill + rationale + stage.confidence + 等确认指令)
+- **对话响应**(给 user)= markdown 摘要(候选 skill + rationale + 等确认指令)
 - **不向 user 输出整个 JSON**(读不动);user 想看完整 JSON 自己 cat 文件
 - 完整 schema 见 `references/manifest-schema.md`
+
+## Q&A — 常见边界场景
+
+**Q1: 我项目是个 monorepo(pnpm workspace + 5 个 packages),你怎么处理?**
+A: 走 Step 2.5 分叉。root 生成 union manifest(并集 + 标 monorepo-root),每个子 package 独立判定 stage 再各写一份。子 package 的 disable 优先于 root enable。
+
+**Q2: cwd 是 submodule,我希望它继承宿主项目的 skill 集?**
+A: 默认**不**继承(submodule 独立)。若要继承,user 显式说"继承宿主"才走;否则按 submodule 自己的 git history 判定。
+
+**Q3: 项目是 rust workspace + 前端 + python ML 三栈混合,enable 列表会不会爆?**
+A: 会。Step 2.5 规则:enable 数 > 12 时,让 user 选 1-2 个主栈,其他栈只装 skeleton skill(如 clean-commit / hat),不装该栈的全套 director-*。
+
+**Q4: 我自己来配 skill,别 enable 任何,你能跳过吗?**
+A: 能。Step 4 第 5 条:写空 `enable: []` + `user_opt_out: true`,后续 Step 7 自动复审也跳过。user 可随时手动 refresh 重置。
+
+**Q5: 已有 manifest 但是损坏 / 无效 JSON,你会直接覆盖吗?**
+A: 不会。Step 3 corrupt 分支:备份到 `.broken.<timestamp>`,提示 user,然后当首次生成。绝不静默覆盖(对应 Red Flags 第 7 条)。
+
+**Q6: 上游 experience-summary 的触发条件升级了,会不会双触发?**
+A: 本 skill 自己 idempotent — 同 input 同 output,且 Step 7 复审带 7 天冷却。即使 exp-sum 在短期内重复 invoke,Step 1 推断 hash 相同时仅更新 `last_evaluated_at`(对应 Rationalizations 表第 3 行),不重写主体也不重复 user gate。
 
 ## Red Flags — STOP
 
@@ -183,11 +197,9 @@ Halt 时如果 user 选了 `skip`,manifest.json **仍**留盘(canonical 记录�
 - **同时 enable + disable 同一个 skill**(矛盾,必须 reject)
 - **enable 一个根本不在 skillshare 源里的 skill**(`skillshare list-available` 应当先 check)
 - **覆盖一份用户手改过的 manifest**(应当先 backup 旧版,加 `previous_manifest` 字段)
-- **把 user 在旧 manifest 里 override / 手改过的字段(`pinned[]` / `notes` / 自定义 disable)reset 掉**(等于擦除 user 意图)
-- **把 user-managed 常驻 skill(`hat` / `experience-summary` / `unblock-recipes`)写进 `disable[]`**(它们由 skillshare 单独管,本 skill 无权 disable)
-- **推断 stage 但 manifest 里不写 `stage.confidence`**(下游无法判断是否该重测,等于盲信)
-- **signals[] 段缺 `source` / `evidence` / `implies` 任一字段**(推断不可追溯 = 不可审计)
-- **跳过 Pre-action Self-Check 直接进 User Gate**(self-check 是 user gate 的前置门,不是装饰)
+- **静默覆盖 corrupt manifest**(必须备份 `.broken.<timestamp>` 并提示 user)
+- **monorepo root manifest enable 了子 package 显式 disable 的 skill**(子优先规则违反)
+- **submodule 推断时继承了宿主项目 stage**(应独立判定,除非 user 显式说继承)
 
 ## Always-Follow 底线
 
@@ -201,23 +213,19 @@ Halt 时如果 user 选了 `skip`,manifest.json **仍**留盘(canonical 记录�
 | "项目还没 git init,先按 bootstrap 配吧" | **不行**。无 git = 无足够信号,应让 user 显式说要哪些 skill,不擅自推断 |
 | "manifest 跟上次一样,跳过写盘" | **可以**。若推断结果跟现有 manifest.json hash 相同,只更新 `last_evaluated_at`,不重写主体 |
 | "skillshare 命令报错,我自己改 enabled.txt" | **不行**。skillshare 是唯一执行入口,绕过 = 状态漂移 |
-| "user 这次没回但上次说过 always apply,默认 apply 吧" | **不行**。"always apply" 不是有效 standing order;每次都要新 gate |
-| "stage 推不出来,跳过 confidence 字段比标 low 干净" | **不行**。缺字段 = 下游默认 high,比标 low 更危险 |
-| "self-check 第 2 条懒得跑 `skillshare list-available`,反正这些 skill 我都见过" | **不行**。skillshare 源会变(skill 被 rename / 移除),凭印象 enable = 写废 manifest |
-| "user 手改的 `notes` 看起来过期了,顺手删掉重写" | **不行**。user 手改的字段一律进 `previous_manifest`,本 skill 没有 GC 权限 |
+| "monorepo 太麻烦,只给 root 写一份,子 package 共用" | **不行**。子 package stage 不同(如 apps/web 在 dev、apps/api 在 finish),共用会装错 skill |
+| "corrupt manifest 反正坏了,直接覆盖省事" | **不行**。先备份 `.broken.<timestamp>`,user 可能手改过想恢复 |
 
 ## Codex Delegation Hook
 
 本 skill 是元判断 + 配置生成,**不**派 Codex(SPEC 写完输出已经成型,Codex 没增值)。
-若推断卡死(如 stage 多信号冲突且 user 不在场),**也不**派 Codex 续跑;
-直接落 manifest + `stage.confidence: low` + 等下次 user 显式触发。
 
 ## Relationship to Other Skills
 
 ### Upstream(谁会触发本 skill)
 - agent 主对话 / 主 orchestrator 检测 cwd 变化 → 本 skill
 - 用户显式触发(关键词见 description)
-- `experience-summary` 监测阶段切换信号 → 主动 invoke
+- `experience-summary` 监测阶段切换信号 → 主动 invoke(上游触发条件升级时,本 skill 仍 idempotent,见 Q6)
 
 ### Downstream(本 skill 输出给谁)
 - `skillshare`(读 `.skillshare/manifest.json` + applied list,负责实际 enable/disable)
@@ -225,17 +233,16 @@ Halt 时如果 user 选了 `skip`,manifest.json **仍**留盘(canonical 记录�
 
 ### 并列 meta 类 skill(跟 hat / unblock-recipes / experience-summary 关系)
 - **`hat`**:hat default 激活,但本 skill 跑时(输出是配置文件不是对话响应),hat 告知行**不**写入 manifest.json。详见 hat SKILL.md "跟其他 meta 类 skill 的优先级"段。
-- **`unblock-recipes`**:本 skill 卡壳(如推断不出 stage)→ 让 unblock 接手,不死循环。
+- **`unblock-recipes`**:本 skill 卡壳(如推断不出 stage / monorepo 边界判定失败)→ 让 unblock 接手,不死循环。
 - **`experience-summary`**:上游触发本 skill;同时本 skill 输出的 `signals[]` 段可作为 exp-sum 后续分诊的输入。
-- 这 3 个常驻 skill 一律**不**进 `enable[]` 或 `disable[]`,由 skillshare 单独管(见 Red Flags)。
 
 ### 不替代
 - `flow-skill-dev`(新建 skill 到中心库)
 - `sync-skills`(同步 skill 到中心库)
-- `flow-skill-research`(调研 skill 候选)— 但本 skill **可调用** flow-skill-research 当某 stage 候选 skill 不明确时;**调完仍需走 user gate**,不能直接 apply 调研结果
+- `flow-skill-research`(调研 skill 候选)— 但本 skill **可调用** flow-skill-research 当某 stage 候选 skill 不明确时
 
 ## Reuse
 
-- `references/project-detection.md` — 技术栈 / 阶段 / 规则 / incident 探测细则
-- `references/manifest-schema.md` — manifest JSON schema + 4 阶段候选 skill 矩阵
-- `tests/cases.md` — 行为测试用例
+- `references/project-detection.md` — 技术栈 / 阶段 / 规则 / incident / monorepo / submodule 探测细则
+- `references/manifest-schema.md` — manifest JSON schema + 4 阶段候选 skill 矩阵 + monorepo union 规则
+- `tests/cases.md` — 行为测试用例(含 monorepo / corrupt / opt-out 边界)

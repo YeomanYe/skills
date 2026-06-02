@@ -47,22 +47,6 @@ description: >
 - 同步 skill 到中心库 → 用 `sync-skills`
 - 用户只问"我项目里有哪些 skill?" — 这是 read-only,直接 ls `.skillshare/manifest.json`,不重新生成
 
-## High-Risk Actions — 必经 User Gate
-
-以下动作**任何一个**触发前都必须走 Step 4 User Gate,不能跳过、不能合并、不能"顺手"做掉:
-
-1. 跑 `skillshare enable <skill>` / `skillshare disable <skill>`(实际改 enable 状态)
-2. 写 / 改 `<project>/.skillshare/enabled.txt` 或等价 config 文件
-3. 覆盖已有 `<project>/.skillshare/manifest.json`(必须先 backup 到 `previous_manifest` 字段)
-4. 把任何 user-managed 常驻 skill(`hat` / `experience-summary` / `unblock-recipes`)写入 `disable[]`
-5. reset / 删除 user 在 manifest 里手改过的字段(如 user 加了 `pinned[]` / `notes`)
-6. 调 `flow-skill-research` 派生新的候选 skill 后**直接** enable(必须先回 user gate)
-7. 把推断 confidence 为 `low` 的 stage 当 high 处理,自动 enable 该 stage 默认 skill 集
-8. 把上一次 manifest 的 `applied_at` 字段清空或回填假时间(等于伪造历史)
-
-read-only 动作(ls / cat / git log / 读 package.json / `skillshare list-available`)**不**算 high-risk,可以直接做。
-read-only 动作的输出**必须**记到 `signals[].evidence`,不能只在脑里用完就丢。
-
 ## Required Workflow
 
 ### Step 1 — 探测项目特征(并行,只读)
@@ -84,7 +68,7 @@ read-only 动作的输出**必须**记到 `signals[].evidence`,不能只在脑�
 - 有 commit + 主分支活跃 + 无 release tag → `dev`
 - 含 `release-*` / `v[0-9]` tag + 持续 maintenance → `finish`
 - 最近 git log 含 "fix"/"revert"/"hotfix" 集中(> 30% commits in last 7d)→ `debug`
-- 多信号叠加 → 取最强;无法判定 → 默认 `dev`,**且 stage.confidence 必须显式标 `low`**
+- 多信号叠加 → 取最强;无法判定 → 默认 `dev`
 
 **C. 项目规则**(从 docs 推断):
 - `CLAUDE.md` / `AGENTS.md` / `GEMINI.md`(根目录或 docs/)
@@ -110,43 +94,27 @@ read-only 动作的输出**必须**记到 `signals[].evidence`,不能只在脑�
 | `finish` | `flow-project-finish` / `delivery-gate` / `clean-commit` / `flow-ext-publish` (扩展项目) |
 
 **正交常驻候选**(任何阶段都建议):`hat` / `experience-summary` / `unblock-recipes`
-> 但用户已声明这 3 个由 skillshare 单独管,本 skill **不**重复推荐它们(避免 manifest 噪音),
-> 更**绝对不能**把它们写进 `disable[]`(见 Red Flags / Pre-action Self-Check)。
+> 但用户已声明这 3 个由 skillshare 单独管,本 skill **不**重复推荐它们(避免 manifest 噪音)。
 
 ### Step 3 — 输出 manifest JSON
 
 写到 `<project>/.skillshare/manifest.json`(详见 `references/manifest-schema.md`)。
 
 JSON 必含:
-- `project_type` / `stage`(含 `confidence: high|medium|low`)/ `signals[]`(推断依据)
-- 每条 `signals[]` 必含 `source`(检测来源)+ `evidence`(原始片段)+ `implies`(推出什么结论)
+- `project_type` / `stage` / `signals[]`(推断依据)
 - `enable[]` / `disable[]` / `keep[]`(下次同步动作)
-- `rationale[]`(逐项推断说明,跟 `enable[]` / `disable[]` 一一对应)
+- `rationale[]`(逐项推断说明)
 - `generated_at` / `meta_skill_version`
 
 ### Step 4 — User Gate(高风险动作)
 
 **禁止**未经 user 确认就实际改 `.skillshare/enabled.txt` 或对应 skillshare config。
 
-#### Pre-action Self-Check(进入 user gate 前必跑,5 条 yes/no)
-
-任何一条答 No → **回 Step 3 修 manifest**,不向 user 推送摘要。回答必须显式写进对话或思考,不允许默念跳过。
-
-1. manifest `signals[]` 段的**每一条**都有 `source` + `evidence` + `implies` 三字段吗?
-2. `enable[]` 里列的每个 skill 都跑过 `skillshare list-available` 验证存在吗?
-3. 任何 user-managed 常驻 skill(`hat` / `experience-summary` / `unblock-recipes`)是否**未**被写入 `disable[]`?
-4. `stage` 推断如果是 fallback 默认值(`dev`)或多信号冲突, `stage.confidence` 是否显式标了 `low` / `medium`?
-5. 若已有旧 manifest 且 user 手改过(出现 `pinned[]` / `notes` / 注释)→ 是否已存进 `previous_manifest` 而非直接覆盖?
-
-#### User Gate 流程
-
 输出 manifest 后:
-1. 用 markdown 摘要给 user 看(候选 skill 列表 + rationale + stage.confidence)
+1. 用 markdown 摘要给 user 看(候选 skill 列表 + rationale)
 2. 等待 user 确认("apply" / "skip" / "modify X")
 3. 仅在 user 明确 `apply` 后,跑 skillshare 实际命令(如 `skillshare enable <skill>` / `skillshare disable <skill>`)
-4. 若 user 模糊回复或沉默 → **不动**,只留 manifest.json 在 `.skillshare/`,等下次显式触发
-5. user 说 "modify X" → 改 manifest → **重新跑 Pre-action Self-Check** → 再 gate,不能直接 apply
-6. user 回复"看起来 ok / 差不多 / 应该可以" 这类**非显式 apply** → 视为模糊回复 → 走第 4 条,不 apply
+4. 若 user 模糊回复或沉默 → **不动**,只留 manifest.json 在 `.skillshare/`
 
 ### Step 5 — 落地 + 记录版本
 
@@ -161,16 +129,11 @@ JSON 必含:
 - user 显式 ask
 - experience-summary 阶段切换信号
 
-Halt 时如果 user 选了 `skip`,manifest.json **仍**留盘(canonical 记录推断结果),
-但**不**跑任何 skillshare 命令、**不**写 `applied_at`、**不**写 `applied-at` 文件。
-下次触发时,新推断结果若跟上次 skip 掉的 manifest 主体相同,直接复用 + 更新 `last_evaluated_at`,
-不重新打扰 user(避免 skip 循环)。
-
 ## Output Contract
 
 - **基线 JSON / markdown 分流** 见 `../_shared/output-contract-schema.md`
 - **本 skill 落盘产物** = `<project>/.skillshare/manifest.json`(canonical)
-- **对话响应**(给 user)= markdown 摘要(候选 skill + rationale + stage.confidence + 等确认指令)
+- **对话响应**(给 user)= markdown 摘要(候选 skill + rationale + 等确认指令)
 - **不向 user 输出整个 JSON**(读不动);user 想看完整 JSON 自己 cat 文件
 - 完整 schema 见 `references/manifest-schema.md`
 
@@ -183,11 +146,6 @@ Halt 时如果 user 选了 `skip`,manifest.json **仍**留盘(canonical 记录�
 - **同时 enable + disable 同一个 skill**(矛盾,必须 reject)
 - **enable 一个根本不在 skillshare 源里的 skill**(`skillshare list-available` 应当先 check)
 - **覆盖一份用户手改过的 manifest**(应当先 backup 旧版,加 `previous_manifest` 字段)
-- **把 user 在旧 manifest 里 override / 手改过的字段(`pinned[]` / `notes` / 自定义 disable)reset 掉**(等于擦除 user 意图)
-- **把 user-managed 常驻 skill(`hat` / `experience-summary` / `unblock-recipes`)写进 `disable[]`**(它们由 skillshare 单独管,本 skill 无权 disable)
-- **推断 stage 但 manifest 里不写 `stage.confidence`**(下游无法判断是否该重测,等于盲信)
-- **signals[] 段缺 `source` / `evidence` / `implies` 任一字段**(推断不可追溯 = 不可审计)
-- **跳过 Pre-action Self-Check 直接进 User Gate**(self-check 是 user gate 的前置门,不是装饰)
 
 ## Always-Follow 底线
 
@@ -201,16 +159,10 @@ Halt 时如果 user 选了 `skip`,manifest.json **仍**留盘(canonical 记录�
 | "项目还没 git init,先按 bootstrap 配吧" | **不行**。无 git = 无足够信号,应让 user 显式说要哪些 skill,不擅自推断 |
 | "manifest 跟上次一样,跳过写盘" | **可以**。若推断结果跟现有 manifest.json hash 相同,只更新 `last_evaluated_at`,不重写主体 |
 | "skillshare 命令报错,我自己改 enabled.txt" | **不行**。skillshare 是唯一执行入口,绕过 = 状态漂移 |
-| "user 这次没回但上次说过 always apply,默认 apply 吧" | **不行**。"always apply" 不是有效 standing order;每次都要新 gate |
-| "stage 推不出来,跳过 confidence 字段比标 low 干净" | **不行**。缺字段 = 下游默认 high,比标 low 更危险 |
-| "self-check 第 2 条懒得跑 `skillshare list-available`,反正这些 skill 我都见过" | **不行**。skillshare 源会变(skill 被 rename / 移除),凭印象 enable = 写废 manifest |
-| "user 手改的 `notes` 看起来过期了,顺手删掉重写" | **不行**。user 手改的字段一律进 `previous_manifest`,本 skill 没有 GC 权限 |
 
 ## Codex Delegation Hook
 
 本 skill 是元判断 + 配置生成,**不**派 Codex(SPEC 写完输出已经成型,Codex 没增值)。
-若推断卡死(如 stage 多信号冲突且 user 不在场),**也不**派 Codex 续跑;
-直接落 manifest + `stage.confidence: low` + 等下次 user 显式触发。
 
 ## Relationship to Other Skills
 
@@ -227,12 +179,11 @@ Halt 时如果 user 选了 `skip`,manifest.json **仍**留盘(canonical 记录�
 - **`hat`**:hat default 激活,但本 skill 跑时(输出是配置文件不是对话响应),hat 告知行**不**写入 manifest.json。详见 hat SKILL.md "跟其他 meta 类 skill 的优先级"段。
 - **`unblock-recipes`**:本 skill 卡壳(如推断不出 stage)→ 让 unblock 接手,不死循环。
 - **`experience-summary`**:上游触发本 skill;同时本 skill 输出的 `signals[]` 段可作为 exp-sum 后续分诊的输入。
-- 这 3 个常驻 skill 一律**不**进 `enable[]` 或 `disable[]`,由 skillshare 单独管(见 Red Flags)。
 
 ### 不替代
 - `flow-skill-dev`(新建 skill 到中心库)
 - `sync-skills`(同步 skill 到中心库)
-- `flow-skill-research`(调研 skill 候选)— 但本 skill **可调用** flow-skill-research 当某 stage 候选 skill 不明确时;**调完仍需走 user gate**,不能直接 apply 调研结果
+- `flow-skill-research`(调研 skill 候选)— 但本 skill **可调用** flow-skill-research 当某 stage 候选 skill 不明确时
 
 ## Reuse
 

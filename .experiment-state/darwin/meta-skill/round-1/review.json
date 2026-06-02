@@ -1,0 +1,52 @@
+{
+  "round": 1,
+  "skill": "meta-skill",
+  "scores": {
+    "baseline": {
+      "triggerability": 0.85,
+      "actionability": 0.75,
+      "integration": 0.75,
+      "enforcement": 0.72,
+      "volume_efficiency": 0.85,
+      "weighted_avg": 0.77
+    },
+    "v1-m1-clarity": {
+      "triggerability": 0.85,
+      "actionability": 0.76,
+      "integration": 0.73,
+      "enforcement": 0.71,
+      "volume_efficiency": 0.90,
+      "weighted_avg": 0.78
+    },
+    "v2-m2-completeness": {
+      "triggerability": 0.86,
+      "actionability": 0.82,
+      "integration": 0.78,
+      "enforcement": 0.79,
+      "volume_efficiency": 0.80,
+      "weighted_avg": 0.81
+    },
+    "v3-m3-integration": {
+      "triggerability": 0.85,
+      "actionability": 0.84,
+      "integration": 0.93,
+      "enforcement": 0.78,
+      "volume_efficiency": 0.78,
+      "weighted_avg": 0.84
+    },
+    "v4-m4-enforcement": {
+      "triggerability": 0.86,
+      "actionability": 0.86,
+      "integration": 0.77,
+      "enforcement": 0.92,
+      "volume_efficiency": 0.81,
+      "weighted_avg": 0.85
+    }
+  },
+  "winner": "v4-m4-enforcement",
+  "winner_weighted_avg": 0.85,
+  "baseline_weighted_avg": 0.77,
+  "improvement_delta": 0.08,
+  "improvement_status": "improved",
+  "rationale": "v4 wins on the two highest-weighted dimensions: actionability (+0.11 vs baseline) via a new Step 4 Pre-action Self-Check with 5 ordered yes/no gates plus an explicit 'modify X → re-run self-check' loop and a Step 6 halt that prevents skip-loops; and enforcement (+0.20) via a dedicated 'High-Risk Actions — 必经 User Gate' section enumerating 8 specific gated actions, Red Flags expanded from 7 to 12 with new codes for signals[] field completeness / stage.confidence missing / disabling user-managed skills / self-check bypass, and 4 additional rationalizations targeting the most likely evasion paths (fake standing-order, confidence-skip, list-available skip, GC excuse for user-edited fields). v3 was a very close runner-up (0.84) with the strongest integration layer of any variant: an ASCII end-to-end flow diagram, a full Manifest JSON Schema inline with field-level constraints (enable/disable disjoint, rationale covers enable∪disable, signals[] >= 1), a 4-command skillshare contract block with invariants, and an exp-sum signal JSON schema + flow-skill-research input/output contract. v3 only lost because its enforcement layer matches baseline+1-rationalization rather than v4's coded gates. v2 added valuable edge-case coverage (monorepo / submodule / corrupt manifest / opt-out / 7-day cooldown re-review / Q&A) that closes real ambiguity but lacks v3's contract schemas or v4's enforcement codes. v1 mostly compresses prose into tables for a small volume gain with no behavioral lift. Delta +0.08 exceeds the +0.05 improvement threshold. Recommended round-2 candidate: merge v4's High-Risk Actions + Pre-action Self-Check + RF-coded Red Flags with v3's Manifest Schema + skillshare command contract + signal JSON schema to push integration toward 0.90 while keeping enforcement at 0.92."
+}

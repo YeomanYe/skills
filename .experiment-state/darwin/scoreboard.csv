@@ -4,3 +4,12 @@ hat,1,v1-m1-clarity,0.780,no,2026-06-03T05:45Z
 hat,1,v2-m2-completeness,0.810,no,2026-06-03T05:45Z
 hat,1,v3-m3-integration,0.860,no,2026-06-03T05:45Z
 hat,1,v4-m4-enforcement,0.870,WINNER,2026-06-03T05:45Z
+hat,2,v1-m2-completeness,0.878,no,2026-06-03T06:30Z
+hat,2,v2-m3-integration,0.892,best-but-no-improvement,2026-06-03T06:30Z
+hat,2,v3-m5-consolidation,0.873,no,2026-06-03T06:30Z
+hat,2,no_improvement_counter,1,counter,2026-06-03T06:30Z
+meta-skill,0,baseline,0.770,baseline,2026-06-03T05:33Z
+meta-skill,1,v1-m1-clarity,0.780,no,2026-06-03T06:35Z
+meta-skill,1,v2-m2-completeness,0.810,no,2026-06-03T06:35Z
+meta-skill,1,v3-m3-integration,0.840,no,2026-06-03T06:35Z
+meta-skill,1,v4-m4-enforcement,0.850,WINNER,2026-06-03T06:35Z
