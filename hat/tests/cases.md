@@ -615,3 +615,51 @@
 - 新规则**只**影响"主体研发阶段"的默认 hat 选择,**不引入中途换帽**机制
 - 现有 brainstorming → `散` / verification → `严` / code review → `挑` 等映射**不变**
 - description 长度: 当前 ~700 字符,远 < 800 soft warn / 1000 hard error 阈值
+
+---
+
+## Case B 系列:跟主体 skill 优先级(2026-06-03 加)
+
+### Case B1: experience-summary 显式触发时 hat 让位
+
+- 输入: 用户说"这次踩了个 PgVector 不会自动 fallback 的坑,想沉淀下"
+- 预期:
+  - hat 检测到 exp-sum 触发关键词("踩坑"/"沉淀")
+  - **主体由 experience-summary 跑**(L0~L9b 路由),hat 不挡
+  - exp-sum 输出的分诊报告(markdown / JSON)里**不**夹 hat 告知行
+  - hat 告知行只追加在 **agent 给 user 的对话响应**最末尾
+  - 告知行: `[戴帽:「严」(strict) — 经验分诊任务,跟 exp-sum 协同]`(或 `教` 视任务调性)
+
+### Case B2: unblock-recipes 自召时 hat 让位
+
+- 输入: agent 自检 "同样错误已 3 次" loop 信号触发 unblock-recipes lookup
+- 预期:
+  - hat 检测到 unblock-recipes 主体接管
+  - 主体由 unblock-recipes 跑(查错题本)
+  - unblock-recipes 返回 recipe 时 hat 不写入 recipe 文件
+  - hat 告知行只追加在 agent 最终回 user 的对话响应
+
+### Case B3: 横向同级不主动 propose 换帽
+
+- 输入: agent 当前戴 `收` (severity 3),任务转向"需要梳理思路"(可能映射到 `问` severity 3)
+- 预期:
+  - **不**主动 propose "要切到 `问` 吗?"(severity 相等 = 横向,不主动)
+  - 继续戴 `收` 完成任务
+  - 仅当 user 显式说"换问"才走 4a 切换
+  - 反例(违规): agent 输出"我感觉这里 `问` 更合适,要切吗?" → 违反新规则
+
+### Case B4: 主体 skill 产物里不夹告知行
+
+- 输入: 跑 change-recap 输出 3 段 markdown 给 user
+- 预期:
+  - change-recap 的 3 段 markdown **里**不含 `[戴帽:...]`
+  - 告知行**只**在 agent 给 user 的最终响应外层(若适用)
+  - 反例: change-recap 第 3 段末尾被自动加 `[戴帽:「快」(lean)]` → 违反
+
+---
+
+## description 长度复核(2026-06-03 编辑后)
+
+- description 长度: ~720 字符(微增,仍远低于 800 soft warn)
+- 新增"主体 skill 让位"规则没进 description(放在 When NOT to Use + Relationship 段)
+- 显式触发关键词清单**不变**

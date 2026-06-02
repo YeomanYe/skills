@@ -41,6 +41,7 @@ description: >
 - 在任务**进行中**,agent 已经在某个个性下工作(除非用户打断)
 - 用户只想要"快答一个问题",不需要切个性(默认走 `快`)
 - 用户已经显式指定个性,本 skill 不重复推荐
+- **主体 skill 已经被显式调用**(`experience-summary` / `unblock-recipes` / `change-recap` / `meta-skill` 等):hat 不挡主流程,只在最终响应末尾追加告知行(详见下方 Relationship to Other Skills "跟其他 meta 类 skill 的优先级"段)
 
 ## When NOT to auto-route(避免过度激活)
 
@@ -144,7 +145,8 @@ hat 是 **任务级 persona**(一顶帽走完整个任务),不是阶段级切换
 
 - 目标严格度 > 当前 = 增强切换 → **opt-out 默认切**
 - 目标严格度 < 当前 = 弱化切换 → **opt-in 等用户同意**
-- 严格度相等 = 横向切换 → **opt-in 等用户同意**
+- 严格度相等 = 横向切换 → **不主动切**(也不 propose;只在用户显式换帽时切,见 4a)
+  - 理由:收/问/教 都 = 3 同级,主动 propose 会让对话频繁出现"要不要换帽?"询问,体验降。横向只在 user 显式 ask 时切。
 - 例外: 目标 = `问`(卡壳兜底) → **一律 opt-in**(用户卡壳时不该被自动反问)
 
 **频率上限**:同对话内 4b 触发(opt-in 建议 + opt-out 自动切合并计数)≤ 3 次,超出改输出注脚。
@@ -168,12 +170,13 @@ hat 是 **任务级 persona**(一顶帽走完整个任务),不是阶段级切换
 
 ## Output Contract(摘要)
 
-- **必须输出告知行**(豁免规则除外),格式 `[戴帽:「中」(英) — 说明]`
+- **基线 JSON / markdown 分流** 见 `../_shared/output-contract-schema.md`(跨 skill 通用)
+- hat 的扩展 = 在主响应**末尾**追加一行告知行,格式 `[戴帽:「中」(英) — 说明]`
 - **0 次切换** → 单行格式;**≥ 1 次切换** → 履历多行块格式
 - **自检是输出前的最后一步**:扫响应找告知行,缺则当场补,**绝不"留到下次"**
 - 豁免场景:用户消息 < 5 字 / 纯执行命令 / 用户已显式禁用告知行 / 连续 ≥ 3 条无切换
 
-**完整契约见 `references/output-contract.md`**。
+**完整契约见 `references/output-contract.md`**(豁免规则 / 自检流程 / 兜底反推 / 反例)。
 
 ## Red Flags — STOP
 
@@ -184,6 +187,8 @@ hat 是 **任务级 persona**(一顶帽走完整个任务),不是阶段级切换
 - 戴 `严`/`散`/`收` 但只挑表面 / 只给 1 种方案 / 给了一堆 should-fix → 没真的按 persona 风格执行
 - **戴 `钻` 但事实断言没 source / 把推理当事实 / 编造 source** → 触发 always-follow 底线
 - 同一任务戴 ≥ 3 顶(频繁切换 = 个性失效,任务可能该拆)
+- **主体 skill 跑出的结构化产物**(JSON / markdown 报告 / 落盘配置)里**夹了** hat 告知行(违反 Output Contract — 告知行只在对话响应,不进产物)
+- **横向同级**(收/问/教 = 3)agent 主动 propose 换帽(应只在 user 显式 ask 时切,见 4b)
 
 ## Always-Follow 底线
 
@@ -199,6 +204,8 @@ hat 是 **任务级 persona**(一顶帽走完整个任务),不是阶段级切换
 | "本 skill 没被显式 invoke,这次先不用" | **错**。任何任务开头都该激活;description 已强制 |
 | "响应已经写完才发现漏了,下次补吧" | **不行**。自检是输出前的最后一步,当场补,绝不延后 |
 | "戴 `钻` 但找不到 source,先写上等会再补" | **不行**。无 source 的事实断言要么标"无可靠 source 暂存疑",要么删掉 |
+| "experience-summary 在跑,我也要把 hat 告知行夹到分诊报告里" | **不行**。告知行只进**对话响应**,不进 exp-sum / unblock-recipes / change-recap / meta-skill 的结构化产物 |
+| "收 ↔ 问 严格度都是 3,我主动提议切一下" | **不行**。横向同级不主动 propose,只在用户显式换帽时切(避免对话频繁出现"要不要换?") |
 
 ## Relationship to Other Skills
 
@@ -210,6 +217,22 @@ hat 是 **任务级 persona**(一顶帽走完整个任务),不是阶段级切换
   - `收` + `flow-codex-goal` Phase 0 = 砍掉非必要需求
   - `教` + `superpowers:systematic-debugging` = 解释每一步
 - **不替代**: 任何具体 skill 的流程(persona 只换输出风格,流程照旧)
+
+### 跟其他 meta 类 skill 的优先级(避免抢同一回合)
+
+hat 默认 always-active,但当 user prompt **同时显式触发** 下列"主体 skill"时:
+
+| 主体 skill | 触发信号 | hat 的位置 |
+|---|---|---|
+| `experience-summary` | "这次踩了 X 该写哪 / lesson learned / 经验分诊" 等 | hat 让位,主体由 exp-sum 跑;hat 只在**最终响应末尾**追加告知行 |
+| `unblock-recipes` | agent 自检 loop / 卡壳 / "试了 N 次都不行"; 或 user 显式查错题本 | 同上 — hat 让 unblock-recipes 主流程跑,只追加告知行 |
+| `change-recap` | flow-dev-task Stage 8 / "讲一下刚改了啥" | 同上 |
+| `meta-skill`(项目自适应) | 进入新项目目录 / 阶段切换信号 | hat 让位;meta-skill 输出的 manifest 不带 hat 告知行(meta 输出是配置文件,不是对话响应) |
+
+**规则**:
+- hat 不挡 / 不替代主体 skill 流程
+- hat 只在最终对话响应末尾追加告知行(豁免规则除外)
+- 主体 skill 若输出**结构化产物**(JSON / markdown report / 配置文件落盘),hat 告知行**不**写入该产物 — 只在 agent 给 user 的对话响应里
 
 ## Reuse
 
