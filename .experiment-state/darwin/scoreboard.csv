@@ -13,3 +13,6 @@ meta-skill,1,v1-m1-clarity,0.780,no,2026-06-03T06:35Z
 meta-skill,1,v2-m2-completeness,0.810,no,2026-06-03T06:35Z
 meta-skill,1,v3-m3-integration,0.840,no,2026-06-03T06:35Z
 meta-skill,1,v4-m4-enforcement,0.850,WINNER,2026-06-03T06:35Z
+hat,3,v1-hybrid,0.909,best-but-no-improvement,2026-06-03T06:55Z
+hat,3,no_improvement_counter,2,counter,2026-06-03T06:55Z
+meta-skill,2,v1-hybrid,,WINNER,2026-06-03T07:00Z

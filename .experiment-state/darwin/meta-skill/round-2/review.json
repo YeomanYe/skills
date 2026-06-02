@@ -1,0 +1,19 @@
+{
+  "skill": "meta-skill",
+  "round": 2,
+  "baseline_score": 0.816,
+  "scores": {
+    "v1-hybrid": {
+      "triggerability": 0.85,
+      "actionability": 0.90,
+      "integration": 0.92,
+      "enforcement": 0.91,
+      "volume_efficiency": 0.75,
+      "aggregate": 0.881
+    }
+  },
+  "winner": "v1-hybrid",
+  "delta": 0.065,
+  "status": "improved",
+  "rationale": "Hybrid adds inline Manifest JSON Schema, 4-command skillshare contract, exp-sum signal schema, ASCII flow, and 5 edge cases (monorepo/submodule/corrupt/opt-out/7-day cooldown) — Integration jumps +0.20 and Actionability +0.08 while Enforcement gains 3 new Red Flags. The +18% volume (241→285 lines) is justified by high-value additions; volume_efficiency dips slightly (0.80→0.75) but the gain on Integration/Actionability/Enforcement easily clears the +0.05 threshold."
+}
