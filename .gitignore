@@ -1,2 +1,5 @@
 .DS_Store
 **/.DS_Store
+
+# 长跑实验本地状态(STATUS.md / scoreboard / cron-log / variants / reviews)
+.experiment-state/
