@@ -1,5 +1,5 @@
 ---
-name: long-running-cron-orchestrator
+name: flow-cron
 description: >
   Use when a task is too long to fit in a single agent context window and must
   be sliced across multiple wake-ups gated by budget / deadline. 编排"创建带 STATUS 文件
@@ -14,7 +14,7 @@ description: >
 
 > 本 skill 受 `../_shared/constitution.md` 约束(always-follow,身份 / 安全 / 高风险动作 gate)
 
-# long-running-cron-orchestrator — 长跑任务定时续作业编排
+# flow-cron — 长跑任务定时续作业编排
 
 ## Overview
 

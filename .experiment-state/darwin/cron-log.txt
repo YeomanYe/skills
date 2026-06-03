@@ -1,2 +1,4 @@
 06:55 wake skipped: budget 90% near threshold, awaiting user decision on huashu darwin pivot
 07:55 wake skipped: budget 91% near threshold, awaiting user decision on huashu darwin pivot
+08:55 wake skipped: budget 95% at threshold, awaiting user decision on huashu darwin pivot
+09:55 wake skipped: budget 95% at threshold, awaiting user decision on huashu darwin pivot

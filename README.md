@@ -178,7 +178,7 @@ director-* 现状与扩展：
 
 | 类别 | skill |
 |---|---|
-| 编排器（flow-*）| flow-codex-goal / flow-dev-task / flow-ext-publish / flow-project-bootstrap / flow-project-finish / flow-skill-dev / flow-skill-research |
+| 编排器（flow-*）| flow-codex-goal / flow-cron / flow-dev-task / flow-ext-publish / flow-project-bootstrap / flow-project-finish / flow-skill-dev / flow-skill-research |
 | **角色型 agent（director-*）** | **director-design / director-frontend / director-promote / director-ops / director-architect** |
 | 共享工具 | clean-commit / delivery-gate / sync-skills |
 | **经验治理** | **experience-summary**（任务结束后分诊经验到 11 层架构正确出口） |

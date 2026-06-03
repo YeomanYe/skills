@@ -1,4 +1,4 @@
-# long-running-cron-orchestrator — 行为测试用例
+# flow-cron — 行为测试用例
 
 四类:正例触发 / 反例触发 / 主流程成功 / 护栏负例。每条标注预期行为、判定标准、可观察产物。
 
