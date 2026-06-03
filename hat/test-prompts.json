@@ -7,7 +7,7 @@
   {
     "id": 2,
     "prompt": "为啥这个 jest 测试一直 timeout 失败,我都改了 3 遍了还是不行",
-    "expected": "hat 应自动激活并戴 「钻」 persona(未定位的 bug,先做 systematic debugging);告知行 [戴帽:「钻」(drill) — ...];不要直接给修复建议,先要排查信息 / 重现步骤"
+    "expected": "hat 应自动激活并戴 「钻」 persona(未定位的 bug,先做 systematic debugging);告知行 [戴帽:「钻」(deep) — ...];不要直接给修复建议,先要排查信息 / 重现步骤"
   },
   {
     "id": 3,
