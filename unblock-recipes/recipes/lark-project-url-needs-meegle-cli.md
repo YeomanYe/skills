@@ -6,8 +6,8 @@ symptoms:
   - "Lark Project / Meegle workObjectView / workitem URL 鉴权失败"
   - "ecommerce-strapi 等 Lark space 链接抓出营销首页 utm_source=in_meegle"
 first_seen: 2026-05-27
-last_hit: 2026-06-01
-hit_count: 2
+last_hit: 2026-06-03
+hit_count: 3
 tags: [meegle]
 ---
 
@@ -29,4 +29,4 @@ tags: [meegle]
 
 ### 出处
 - 首次发现: 2026-05-27 / 在 payment-landing-page 项目里要分析 Lark `test_cases` 视图与代码差异
-- 复现: 1 次
+- 复现: 2 次(2026-06-03 在 tracking-v4-admin 项目分析 test_cases 与代码差异时再次命中；当次因先上 cdp-browser-control 关了用户 Chrome 才查错题本，属漏召回——redirect→meegle 应先查 INDEX 再选工具)
