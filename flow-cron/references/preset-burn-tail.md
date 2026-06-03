@@ -70,19 +70,31 @@ def main():
     # 3. 删旧 cron(idempotent)
     for role in old_ids: cc-connect cron del role_id
 
-    # 4. 算新 target(local time = CST)
-    resets_local = budget.fiveHour.resetsAt.astimezone()
+    # 4. 读 budget(graceful degradation 必做)
+    try:
+        budget = json(claude-usage --json)
+        resets_local = budget.fiveHour.resetsAt.astimezone()
+    except Exception:
+        # 必须 fail-safe!直接 sys.exit(1) 会让链路死(本预设踩过的坑)
+        retry_id = cc-connect cron add (now + 5min) → bash reschedule.sh
+        ids = {main: None, reschedule: retry_id}  # desc 标记 retry
+        write ids + log WARN
+        return  # 5 min 后自动再试,不死链
+
+    # 5. 算新 target(local time = CST)
     T_main       = resets_local - 20min
     T_reschedule = resets_local + 1min
 
-    # 5. 新增 cron
+    # 6. 新增 cron
     if in_work_window(T_main):  # Mon-Fri 11:45-21:30
         ids.main = cc-connect cron add T_main → bash burn.sh main
     ids.reschedule = cc-connect cron add T_reschedule → bash reschedule.sh
     # main 出窗口 → ids.main = null,本周期跳过 burn 等下个
 
-    # 6. 写 cron-ids.json + 日志
+    # 7. 写 cron-ids.json + 日志
 ```
+
+**关键 robustness 规则**:budget 读失败时**绝不**直接 abort。必须自动排一个 5 min 后的 retry reschedule,否则一次偶发 API 错误就让链路死。watchdog 是兜底(最坏 12h),但 5 min retry 才是日常该有的容错。
 
 ## burn.sh 关键逻辑(伪码)
 
