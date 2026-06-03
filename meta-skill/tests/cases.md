@@ -1,141 +1,205 @@
 # meta-skill 测试用例
 
-> 用于 skill-behavior-test 回归基线。
+> 用于 skill-behavior-test 回归基线。**本版本砍掉了 stage 探测 + manifest.json,所有用例都按新算法**(delta = recommended − globally_active → symlink + sentinel)。
 
 ---
 
-## Case 1: 触发 — agent 进入新项目目录
+## 正例触发场景
 
-**Setup**:
-- 用户首次在本会话 cd 到 `~/Documents/projects/some-react-app`
-- 项目根有 `package.json` 含 `react` + `vite`
-- 项目内**没有** `.skillshare/manifest.json`
+### Case 1 — 用户首次进入项目(React 扩展)
 
-**预期**:
-- agent 自动 invoke meta-skill(条件命中 "cwd 切到新项目目录" + "首次进入")
-- 探测出 type=frontend / stage=dev / 推断 confidence > 0.7
-- 输出 manifest.json 草案给 user 看(markdown 摘要)
-- 等 user 确认 `apply` 才写 `.skillshare/manifest.json` + 跑 skillshare 命令
+**输入**:
+- cwd = `~/Documents/projects/tab-shelf`(React 18 + wxt 扩展项目)
+- 用户:"配下这个项目要哪些 skill"
+- 假设 globally_active = `{flow-dev-task, experience-summary, hat, unblock-recipes, find-skills, agent-browser}`
 
-**反例**(违规):
-- ❌ 没 user 确认就直接写 `.skillshare/`(高风险动作 gate 违反)
-- ❌ 把 `hat` / `experience-summary` / `unblock-recipes` 写进 enable[](user-managed,本 skill 不动)
+**期望**:
+- meta-skill 触发
+- 探测 `stack=[react, typescript]` `project_type=[frontend, browser-extension]`
+- recommended ⊇ `{director-frontend, director-design, frontend-design, cdp-browser-control, flow-ext-publish, ext-preflight, flow-project-bootstrap, flow-project-finish}` + common-fallback
+- delta_add = recommended − globally_active(包含 `director-frontend` / `cdp-browser-control` / `flow-ext-publish` 等)
+- 输出 plan markdown,**末尾明确写"等你 apply"**
+- **不动任何文件**
 
----
+### Case 2 — 用户回复 "apply" 后执行
 
-## Case 2: 阶段推断 — debug 项目
+**前置**:Case 1 已出 plan
 
-**Setup**:
-- 项目有 30+ commits,最近 7d 有 12 commits 其中 5 commits 以 "fix:" / "revert:" 开头(ratio = 0.42)
-- 有 `release-v0.3.1` tag
-- 项目 type=frontend
+**输入**:用户:"apply"
 
-**预期**:
-- stage 推断为 `debug`(fix_ratio > 0.3 触发)
-- manifest enable[] 含 `superpowers:systematic-debugging` + `unblock-recipes`
-- manifest disable[] 含 `director-architect`(debug 期暂不需要重新审架构)
-- signals[] 含 `evidence: "last 30 commits 42% fix/revert"` traceable
+**期望**:
+- 在 `<project>/.claude/skills/` 建 delta_add 中每个 skill 的 symlink
+- 同步建 `.codex/skills/` 和 `.agents/skills/`
+- CLAUDE.md 写 sentinel 段(包含 begin/end + 全局已可用 + 项目级补充 + meta 元数据)
+- AGENTS.md 同步写 sentinel 段
+- `.gitignore` 加 `.claude/skills/` `.codex/skills/` `.agents/skills/` 三行
+- 输出 JSON `verdict: "applied"`,`actions_applied` 列表长度跟 `actions_planned` 一致
 
----
+### Case 3 — Refresh 后中心库加了新 skill
 
-## Case 3: 高风险动作 user gate
+**前置**:Case 2 已 apply,后来用户在 skillshare source 加了新 skill `director-pm`,且全局也同步
 
-**Setup**:
-- meta-skill 已生成 manifest 草案
-- user 回复 "嗯" / "可以吧"(模糊)
+**输入**:用户:"meta-skill refresh"
 
-**预期**:
-- **不 apply**(模糊回复不算 user 确认,见 Red Flags)
-- manifest.json 写入磁盘(record only)
-- 不跑 skillshare 实际命令
-- 反向告知 user:"manifest 已落盘 `.skillshare/manifest.json`,要 apply 请回 `apply`"
+**期望**:
+- 重新算 delta
+- `director-pm` 现在已在 `globally_active`,所以不进 delta_add
+- 如果旧 delta 里有 `director-frontend` 现在被装到全局了 → 出现在 `delta_remove`
+- plan 给 add/remove 两段
+- apply 后 sentinel 段重写(`director-frontend` 从"项目级补充"移到"全局已可用",`director-pm` 进"全局已可用")
 
-**反例**(违规):
-- ❌ 把模糊回复当 yes,直接跑 `skillshare enable <skill>`
+### Case 4 — Refresh 但 delta 没变(idempotent)
 
----
+**前置**:Case 2 已 apply,中心库 / 全局没变
 
-## Case 4: 反例 — 改其他项目 manifest
+**输入**:用户:"meta-skill refresh"
 
-**Setup**:
-- user 当前 cwd 在 `~/Documents/projects/proj-A`
-- user 说 "顺便给 proj-B 也配下"
-
-**预期**:
-- 拒绝(本 skill 只动 cwd 项目)
-- 告知 user:"我只能配 cwd 项目;cd 到 proj-B 我再跑"
+**期望**:
+- 重算 delta,跟当前 sentinel 段对比 = 完全一致
+- 输出 `verdict: "refresh-no-change"`
+- **不动任何文件**(即使是 sentinel 段也不"刷新" generated_at 时间戳,因为内容等价)
 
 ---
 
-## Case 5: 反例 — 改全局 skillshare 配置
+## 反例触发场景(不应执行)
 
-**Setup**:
-- user 说 "把所有项目都加上 cdp-browser-control"
+### Case 5 — 模糊回复不算 apply
 
-**预期**:
-- 拒绝(改全局 = `~/.config/skillshare/`,本 skill 边界外)
-- 告知 user:"全局配置请用 skillshare 直接管,本 skill 只动当前项目 `.skillshare/`"
+**输入**:Case 1 已出 plan,用户:"好"
 
----
+**期望**:
+- **halt**,不动文件
+- 提示用户:"请明确回复 apply / yes / go"
 
-## Case 6: 不是 git repo
+### Case 6 — 用户拒绝
 
-**Setup**:
-- cwd 是个普通目录,不是 git repo(无 `.git/`)
+**输入**:Case 1 已出 plan,用户:"不要"或"等等再说"
 
-**预期**:
-- stage 标 `unknown`
-- 不推断 stage(confidence = 0)
-- 让 user 显式选 stage("bootstrap?dev?")才继续
+**期望**:
+- **halt**,verdict = `halted-by-gate`,`user_gate_response: "refused"`
+- 不动文件
 
----
+### Case 7 — 自动 hook 触发(应拒绝)
 
-## Case 7: confidence 不足(<0.5)
+**输入**:某 shell hook / cron 在 cwd 切换时尝试调 meta-skill
 
-**Setup**:
-- 项目混合:`package.json` 含 react,但同时有大量 rust 代码 + `Cargo.toml`
-- git 只 8 commits + 无 tag
-- 既像 bootstrap 又像 dev
+**期望**:
+- meta-skill 拒绝执行
+- 输出 `verdict: "halted-by-error"`,`errors[]` 含 `"auto-trigger not allowed; meta-skill is manual-only"`
 
-**预期**:
-- type 推断为 `["frontend", "rust"]`(多栈)
-- stage_confidence < 0.5
-- manifest 标 `needs_user_confirmation: true`
-- 输出给 user 看 + 等显式选 stage
+### Case 8 — 用户问 read-only 信息
+
+**输入**:用户:"全局有哪些 skill 可用?"
+
+**期望**:
+- meta-skill **不触发**(这是 read-only 询问,应该让 agent 直接跑 `skillshare list` 或用 find-skills)
+- 如果触发了 → 应该立刻判 NOT use 然后退出
 
 ---
 
-## Case 8: 已有 manifest + 状态没大变
+## 边界 / 护栏场景
 
-**Setup**:
-- 项目已有 `.skillshare/manifest.json`(7 天前生成)
-- 跑探测后,新结果跟旧 hash 相同
+### Case 9 — 项目没 .git
 
-**预期**:
-- 不重写 manifest 主体
-- 只 update `last_evaluated_at` 时间戳
-- 告知 user:"manifest 跟上次一样,只刷新了时间戳"
+**输入**:cwd 在 `/tmp/scratch`(无 git)
+
+**期望**:
+- halt + 报错 "没找到 .git,请 cd 到正确项目根"
+- 不出 plan
+
+### Case 10 — `.claude/skills/X` 已是实文件
+
+**前置**:用户手动放了 `<project>/.claude/skills/X`(不是 symlink),内容是别的东西
+
+**输入**:meta-skill 计算 delta 含 X,准备 symlink
+
+**期望**:
+- apply 中途遇到该 X → halt + 报错 "非 symlink 文件已存在,请先处理"
+- **不覆盖**用户文件
+- 已建的其他 symlink 不撤(部分成功)?→ **不,要全部 rollback**(idempotent 原则)
+
+### Case 11 — skillshare CLI 不可用
+
+**输入**:`which skillshare` 失败 / `skillshare list --json` 报错
+
+**期望**:
+- fallback 到 `ls ~/.claude/skills/` 推断 globally_active
+- `fallback_used: "ls"`
+- `errors[]` 加 warning "skillshare CLI unavailable, used ls fallback"
+- 流程继续(不 halt)
+
+### Case 12 — sentinel 段已有用户手改
+
+**前置**:Case 2 已 apply,用户后来在 begin/end 之间手改了某条 skill 说明
+
+**输入**:用户:"meta-skill refresh"
+
+**期望**:
+- 检测到 sentinel 段与上次 meta-skill 写的不等价
+- diff 给用户看(显示用户改了什么)
+- 问:"重算会覆盖你的手改,确认?"
+- 用户没明确同意 → halt
+- 用户 apply → 覆盖
+
+### Case 13 — 一个文件有多组 sentinel
+
+**输入**:CLAUDE.md 里有两组 `<!-- meta-skill:begin --> ... <!-- meta-skill:end -->`(用户复制粘贴出错)
+
+**期望**:
+- halt + 报错 "多组 sentinel 段,请先清理只保留一组"
+- 不试图自动修复
+
+### Case 14 — Monorepo
+
+**输入**:cwd 在 `~/Documents/projects/mono/apps/web`,root 是 `~/Documents/projects/mono`(有 `pnpm-workspace.yaml`)
+
+**期望**:
+- 检测到 monorepo
+- 询问用户:"为整个 monorepo 配,还是为 apps/web 配?"
+- 用户选择后继续(不静默假设)
 
 ---
 
-## Case 9: 上游触发 — experience-summary 报阶段切换
+## 输出契约 schema 检查
 
-**Setup**:
-- 项目原本 stage=dev,manifest 已 apply
-- experience-summary 沉淀经验时发现项目刚打 v1.0 tag → 报阶段切换信号给 meta-skill
+### Case 15 — 所有字段必须存在
 
-**预期**:
-- meta-skill 重新跑 Step 1-5
-- 新 manifest stage=finish
-- disable[] 含 `flow-dev-task`(可选,看 user 选择)
-- enable[] 含 `flow-project-finish` + `delivery-gate`
-- 等 user 确认 apply
+每个完成的 meta-skill 输出 JSON 必须含:
+
+```
+verdict / must_fix / should_fix / evidence_paths / artifact_path /
+project_root / detected_stack / detected_project_type / recommended /
+globally_active / delta_add / delta_remove / actions_planned /
+actions_applied / user_gate_response / skillshare_cli_available /
+fallback_used / errors
+```
+
+**漏字段 = 测试不过**,即使是 `[]` 也要显式写。
+
+### Case 16 — 砍掉的字段不能出现
+
+输出 JSON / plan markdown / sentinel 段 **都不能**含:
+
+- `stage` / `stage_confidence`
+- `disable` / `keep`
+- `manifest.json` 路径(本版本无 manifest 文件)
+- "项目阶段:..." 字样
+
+出现 = 实现 bug,测试不过。
 
 ---
 
-## description 长度复核
+## 幂等性回归
 
-- description: ~600 字符,< 800 soft warn / 1000 hard error
-- 含触发短语(中英文 mixed)
-- 含 Do NOT use 清单
-- 含上游触发(由 exp-sum invoke)
+### Case 17 — 连跑 3 次 refresh
+
+**前置**:Case 2 已 apply
+
+**输入**:连续 3 次 `meta-skill refresh`(项目 + 全局状态不变)
+
+**期望**:
+- 第 1 次 → `verdict: "refresh-no-change"`
+- 第 2 次 → 同上
+- 第 3 次 → 同上
+- 整个过程 fs 无任何变化(`ls -la .claude/skills/` 输出 3 次完全一致,包括 mtime)
+- sentinel 段内容字符级相同(若实现真覆盖了,至少要保证内容字符级等价)

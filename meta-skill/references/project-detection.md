@@ -1,160 +1,144 @@
 # Project Detection — 探测细则
 
-> Step 1 的 4 个并行探测路径的具体实现细则。
+> Step 1 的并行探测路径具体实现。**只探测 stack + project_type**;砍掉了 stage 推断(本版本不需要)。
 
 ## A. 技术栈探测
 
 按以下顺序检查文件存在性 + 解析:
 
 ### A.1 package.json(JavaScript/TypeScript 生态)
+
 ```bash
-test -f package.json && cat package.json | jq '{name, dependencies, devDependencies, scripts}'
+test -f package.json && cat package.json | jq '{name, dependencies, devDependencies, scripts, bin, main, type}'
 ```
 
 **signature mapping**:
 
-| 依赖关键字 | 推断 |
+| 依赖关键字 / 字段 | 推断 |
 |---|---|
-| `react` + `react-dom` | type=frontend, framework=react |
-| `next` | type=frontend, framework=nextjs, ssr=true |
-| `vue` | type=frontend, framework=vue |
-| `svelte` | type=frontend, framework=svelte |
-| `solid-js` | type=frontend, framework=solidjs |
-| `electron` | type=desktop, framework=electron |
-| `tauri` | type=desktop, framework=tauri |
-| `react-native` / `expo` | type=mobile, framework=react-native |
-| `wxt` / `plasmo` | type=browser-extension |
-| `nest` / `express` / `fastify` / `koa` | type=backend, framework=<name> |
-| `prisma` / `drizzle-orm` / `typeorm` | feature=orm,推断 backend |
-| `playwright` / `cypress` / `vitest` / `jest` | testing=present |
+| `react` + `react-dom` | stack=react, project_type=frontend |
+| `next` | stack=next(隐含 react), project_type=frontend |
+| `vue` | stack=vue, project_type=frontend |
+| `svelte` | stack=svelte, project_type=frontend |
+| `solid-js` | stack=solid, project_type=frontend |
+| `electron` | stack=electron, project_type=desktop |
+| `tauri-apps/cli` | stack=tauri, project_type=desktop |
+| `react-native` / `expo` | stack=react-native, project_type=mobile |
+| `wxt` / `plasmo` | stack=react/vue(看 deps), project_type=browser-extension |
+| `nest` / `express` / `fastify` / `koa` / `hono` | stack=ts-backend, project_type=backend |
+| `prisma` / `drizzle-orm` / `typeorm` | feature=orm → backend 信号增强 |
+| `playwright` / `cypress` / `vitest` / `jest` | testing=present(仅记录,不影响 stack) |
+| `bin` 字段 + `commander` / `yargs` / `oclif` | project_type=cli |
 
-**package manager 推断**:
+**package manager 推断**(只用于 plan 摘要,不影响 recommended):
+
 - `pnpm-lock.yaml` → pnpm
 - `bun.lockb` → bun
 - `yarn.lock` → yarn
 - `package-lock.json` → npm
-- 默认 → npm
+- 多个并存 → 标 `lockfile_conflict`,plan 加 warning
 
 ### A.2 其他语言
 
-| 文件 | 推断 |
-|---|---|
-| `Cargo.toml` | language=rust;若 dependencies 含 `tokio` → async, 含 `tauri` → desktop |
-| `pyproject.toml` / `setup.py` / `requirements.txt` | language=python;若 `django` / `flask` / `fastapi` → backend |
-| `go.mod` | language=go;若 `gin` / `echo` → backend |
-| `Gemfile` | language=ruby;若 `rails` → backend |
-| `composer.json` | language=php |
-| `pubspec.yaml` | language=dart;若 `flutter` → mobile |
-| `xcodeproj/` | type=ios |
-| `gradle*` / `pom.xml` | language=java/kotlin |
+| 文件 | stack | 常见 project_type 信号 |
+|---|---|---|
+| `Cargo.toml` | rust | `[[bin]]` → cli;`tauri-apps` → desktop;无 bin 全 lib → library |
+| `pyproject.toml` / `setup.py` / `requirements.txt` | python | `django` / `flask` / `fastapi` → backend |
+| `go.mod` | go | `gin` / `echo` / `chi` → backend;`cobra` → cli |
+| `Gemfile` | ruby | `rails` → backend |
+| `composer.json` | php | `laravel` / `symfony` → backend |
+| `pubspec.yaml` | dart | `flutter` → mobile |
+| `xcodeproj/` 或 `Package.swift` | swift | ios / macos / cli(看 platforms) |
+| `gradle*` / `pom.xml` | java / kotlin | `spring-boot` → backend;`android` → mobile |
 
-### A.3 多栈混合
+### A.3 同级 Chrome `manifest.json`
 
-允许 `type` 是数组。常见混合:
-- `frontend + backend`(monorepo 或全栈)
-- `frontend + browser-extension`(扩展含 popup/sidepanel)
-- `rust + frontend`(tauri / wxt + rust core)
+如果项目根有名为 `manifest.json` 的文件且含 `manifest_version` 字段(2 或 3)→ 必为 `project_type=browser-extension`,无论是否同时有 `wxt`/`plasmo` 依赖。
 
-## B. 项目阶段推断
+### A.4 多栈混合
 
-### B.1 git 信号
+允许 `stack` 和 `project_type` 都是数组。常见组合:
 
-```bash
-total_commits=$(git rev-list --count HEAD 2>/dev/null || echo 0)
-recent_commits=$(git log --since=7.days.ago --pretty=oneline 2>/dev/null | wc -l)
-release_tags=$(git tag -l 'v[0-9]*' 'release-*' 2>/dev/null | wc -l)
-fix_ratio=$(git log -n 30 --pretty=%s 2>/dev/null | grep -cE '^(fix|revert|hotfix|rollback)' || echo 0)
-```
+- `[react] + [frontend, browser-extension]` — React 扩展(wxt + react)
+- `[react] + [frontend, mobile]` — 一个仓库共享 web + RN
+- `[rust, react] + [desktop]` — tauri 桌面应用
+- `[next] + [frontend, backend]` — Next.js 全栈
 
-### B.2 阶段判定逻辑
+Step 2 的 recommended 取并集去重处理。
 
-```
-if total_commits < 5:
-    stage = "bootstrap"
-    confidence = 0.9
+## B. 项目类型(project_type)兜底逻辑
 
-elif release_tags > 0 and recent_commits > 0:
-    if fix_ratio / max(recent_commits, 1) > 0.3:
-        stage = "debug"  # 维护中 + 集中修 bug
-    else:
-        stage = "finish"  # 已 release + 持续维护
-    confidence = 0.8
+如果上面 signature 都没命中:
 
-elif release_tags > 0 and recent_commits == 0:
-    stage = "finish"  # 已 release 不再活跃
-    confidence = 0.7
+1. 看 `src/`(或主源码目录)结构:
+   - 含 `components/` / `pages/` / `app/` → frontend
+   - 含 `routes/` / `controllers/` / `handlers/` → backend
+   - 含 `popup/` / `background/` / `content/` → browser-extension
+   - 含 `cmd/` / `cli/` + 单 entry → cli
 
-elif fix_ratio / max(min(recent_commits, 30), 1) > 0.3:
-    stage = "debug"  # debug spike
-    confidence = 0.6
+2. 看 `scripts` 字段:
+   - 含 `dev` / `start` 用 `vite` / `webpack-dev-server` / `next dev` → frontend
+   - 含 `serve` / `start:dev` 跑 `node`/`tsx`/`bun` → backend
 
-else:
-    stage = "dev"
-    confidence = 0.7
-```
+3. 都不命中 → 标 `project_type=unknown`,plan 列出来让用户在出 plan 时确认/补
 
-### B.3 confidence 不足
+## C. 项目规则探测(只作上下文,不驱动 recommended)
 
-`confidence < 0.5` → manifest 标 `needs_user_confirmation: true`,要 user 显式选 stage。
-
-## C. 项目规则探测
-
-按以下顺序读(取存在的第一个):
+按以下顺序读(取存在的第一个,把摘要写到 plan 的"偏好规则"段):
 
 ```
 CLAUDE.md > AGENTS.md > GEMINI.md > .cursorrules > CONTRIBUTING.md
 docs/coding/rules.md
 docs/architecture/rules.md
-docs/workflow/rules.md
-docs/extension/rules.md
 ```
 
-**提取常见 hint pattern**(grep 后做轻量分类):
+提取常见 hint pattern:
 
-| 内容关键词 | hint |
+| 内容关键词 | hint(摘要给用户看) |
 |---|---|
-| "use pnpm" / "use yarn" / "don't npm" | `package_manager_locked` |
-| "MobX with makeObservable" | `mobx_strict` |
-| "no class component" / "function component only" | `react_function_only` |
-| "TDD required" / "no skip tests" | `tdd_required` |
-| "don't push to main" / "PR only" | `pr_workflow` |
-| "no force push" | `no_force_push` |
+| "use pnpm" / "use yarn" / "don't npm" | "强制 pnpm/yarn,不许 npm" |
+| "MobX with makeObservable" | "MobX strict,装饰器禁用" |
+| "no class component" / "function component only" | "React 只 function component" |
+| "TDD required" / "no skip tests" | "TDD 必须" |
+| "don't push to main" / "PR only" | "禁直推 main" |
+| "no force push" | "禁 force push" |
 
-把命中的 hint 写到 `signals[]` 段供 manifest 用。
+**hint 只显示在 plan 摘要里**,不参与 recommended 计算(那是 skill 的事,不是 meta-skill 的)。
 
-## D. 历史 incident 探测
+## D. 不做的事
 
-### D.1 git log signals
-```bash
-git log --since=30.days.ago --pretty=%s | grep -iE 'incident|rollback|revert|hotfix|emergency' | wc -l
-```
+明确**不**探测以下内容:
 
-> 0 → 标 `high_attention: true`,推荐加 `unblock-recipes` + 提示 user 看历史。
+| 项 | 为什么不 |
+|---|---|
+| stage(bootstrap/dev/debug/finish) | 本版本砍掉;stage 是用户意图,不是代码可探测属性 |
+| git log commit 频率 / fix ratio | 同上,砍 stage 之后没用了 |
+| `.agent/tasks/` 残留(未完成 codex-goal 等) | 那是 task 状态,跟 skill enable 没直接关系 |
+| commit message keyword 聚类 / 痛点分析 | 同上,本 skill 不做痛点画像 |
+| `.env` / secrets / 源码内容 | 隐私边界,不读 |
 
-### D.2 .agent/ 残留
-```bash
-find .agent/tasks -name "STATUS.md" -mtime -30 -exec grep -l "STOPPED\|BLOCKED\|abort" {} \;
-```
-
-> 0 → 有未完成 / 异常终止的 codex-goal 或 todo-flow 任务,manifest 加 `unfinished_tasks[]`。
-
-### D.3 commit message clue
-最近 50 commits 提取 keyword(`bug` / `slow` / `crash` / `leak` / `incident`),聚类 top-3 表征该项目的"痛点",写到 `signals[]`。
+如果用户希望恢复这些信号驱动决策,走 `flow-skill-dev` 加 new feature,**不在本 skill 内偷偷加回**。
 
 ## E. 探测失败兜底
 
 | 场景 | 行为 |
 |---|---|
-| 不是 git repo | stage=`unknown` + 让 user 显式选 |
-| 无任何 lock file + 无 source code | 标 `empty_project: true`,manifest 只 enable `project-prep` |
-| 多个 lock file 冲突(如 npm + pnpm)| 标 `lockfile_conflict: true`,提示 user 清理一致 |
-| 探测过程超 30s | 强 halt,manifest 标 `partial_detection: true` |
+| 不是 git repo(根没 `.git`)| **halt**,要求用户 cd 到正确根 |
+| 无任何 manifest 文件 | `stack=[]` `project_type=unknown`,plan 列原因,只补 common-fallback 集 |
+| 多个 lockfile 共存 | 不影响 stack 探测,plan 加 warning "lockfile_conflict" |
+| 探测过程超 5s(读 package.json 等卡住)| halt + 报错,让用户检查 fs / 权限 |
 
-## F. 隐私
+## F. 隐私边界
 
 探测**只读** + 只看以下路径:
-- 项目根目录文件名 / package.json / lock files
-- git log(metadata,不含 diff content)
-- `CLAUDE.md` 等规则文档
 
-**不**读源码内容 / 不读 `.env` / 不读 secrets。这些超出本 skill 范围。
+- 项目根目录文件名 / 各 manifest 文件 / lock files
+- 项目根的 CLAUDE.md / AGENTS.md / CONTRIBUTING.md
+- (可选)`src/` 顶层目录列表(只看一层,不递归读源码)
+
+**不读**:
+
+- 源码内容
+- `.env` / secrets
+- 私有 token / API key
+- node_modules / target / dist 等构建产物
