@@ -251,6 +251,35 @@ agent 被 cron 唤醒后,**只做这 4 步**,不超出范围:
 - "user 没明说要 95% 我用 80% 保守点" → NO。default 95% 是本 skill 契约,user 没改你不能改
 - "我自删 cron 不用通知 user 反正他不在乎" → NO。删 user 的 cron 是 high-risk action,必通知
 
+## 预设(Presets) — 现成可挑的编排方案
+
+落地长跑任务时,直接挑现成预设比从零编排省事。每个预设是 SKILL.md Required Workflow 的**具体实例化**:固定 cron 模式 + 默认参数 + 实战范例。在 Phase 0 跟 user 对齐时,先问"是否用预设"。
+
+### #1 — `burn-tail`(5h budget 尾巴 burn)
+
+**最适合**:长跑任务(几天到几周)+ 任务可切 ~18 min batch + 不能影响 user 日常额度。
+
+**核心机制**: 动态一次性 cron 两件套 + watchdog:
+- **main** @ `resetsAt - 20min`(burn 触发,仅工作窗内)
+- **reschedule** @ `resetsAt + 1min`(查新 resetsAt + 排下一组,链心脏)
+- **watchdog** @ daily 12:00 + 22:00(reboot 后自愈,完成检测点)
+
+**默认参数**(均可改):
+- 工作窗口:Mon-Fri 11:45-21:30(CST)
+- budget 上限:util ≤ 95%
+- burn 触发:`0 < remaining_min ≤ 20`
+- 单 batch:≤ 18 min
+- watchdog:每天 12:00 / 22:00,最坏 12h 自愈
+
+**何时**不用**此预设**:
+- 任务无法切成独立 batch(每 batch 必须 < 18 min 自包含)→ 改 `--prompt --session-mode new-per-run` 跑更长 single session
+- 必须每 N 小时定时触发(无关 budget)→ 用普通 recurring cron
+- 用户允许"任何时候打扰" → 用每 5 min poll(老式 polling 方案)
+
+**完整实现**(schedule.py / burn.sh / reschedule.sh / 工作目录结构 / cron prompt 模板 / 实战参数 / reboot 容灾)见 [`references/preset-burn-tail.md`](references/preset-burn-tail.md)。
+
+**实战**:`~/Documents/projects/skills/.experiment-state/darwin-huashu/`(本 skill 来源,2026-06-03 编排)。
+
 ## Boundaries(本 skill 不做的事)
 
 - **不实现 cron 引擎本身**(dep:cc-connect cron / system crontab)
@@ -291,6 +320,7 @@ agent 被 cron 唤醒后,**只做这 4 步**,不超出范围:
 - 任务完成后自删 cron 协议(避免僵尸唤醒)
 
 参考:
+- `references/preset-burn-tail.md` — **预设 #1 burn-tail** 完整实现(schedule.py / burn.sh / 工作目录 / 实战参数)
 - `references/cron-prompt-template.md` — cron prompt 套话
 - `references/status-md-template.md` — STATUS.md 结构 + 字段说明
 - `references/halt-protocol.md` — 自删 + 通知协议
