@@ -658,6 +658,92 @@
 
 ---
 
+## Case C 系列:Turn 边界 + 唯一告知行(**2026-06 新增**)
+
+### Case C1: 多 tool call turn — 中段 text block 不带 label
+
+- 输入: 用户 "修一下 src/foo.ts 的 bug"
+- agent 行为(同一个 turn 内):
+  - text "我先查一下"
+  - Read src/foo.ts
+  - text "找到了,在 line 12"
+  - Edit src/foo.ts
+  - Bash pnpm test
+  - text "测试过了,改完。\n[戴帽:「严」(strict) — bug fix + verify]"
+- 预期:
+  - **只有最后一段 text** 含 `[戴帽:...]`
+  - 中间两段 text block **不**含
+- 反例(违规,触发 RF-10):
+  - ❌ 中段 text "我先查一下\n[戴帽:「严」(strict) — 开始修]"
+  - ❌ 每段 text 都重复一行 `[戴帽:...]`
+
+### Case C2: 同 turn 内 ≥ 2 个告知行 = bug
+
+- 输入: 同 C1
+- 反例(触发 RF-11):
+  ```
+  [text 1] "我先查一下\n[戴帽:「严」(strict) — 准备修]"
+  [Read ...]
+  [text 2] "改完了\n[戴帽:「严」(strict) — 修完]"
+  ```
+- 预期 agent 自检 Q6 命中 → 删掉 text 1 的告知行,只保留 text 2 末尾的
+
+### Case C3: 多阶段 persona 切换 — 履历多行块**一次性**放在 turn 结尾
+
+- 输入: 用户 "先 brainstorm 配色,再帮我实现 popup 改色"
+- agent 行为:
+  - 检测到先 brainstorm → 戴 `散`
+  - text "3 种配色方案: A / B / C(各自说明)"
+  - 用户没回复,agent 推进
+  - 检测到要实现 → 切到 `严`
+  - Edit popup.tsx
+  - Bash test
+  - text "实现完,选 B 配色,测试过。
+    [戴帽履历:
+      ① 「散」(explore) — 起始,配色发散
+      ② 「散」(explore) → 「严」(strict) — 转入 popup 实现 + 测试
+      当前:「严」(strict)
+    ]"
+- 预期:
+  - **只有 turn 结尾的 text** 含履历块
+  - 切到 `严` 的瞬间**不**打 label
+- 反例(违规):
+  - ❌ 切的瞬间打 `[戴帽:「散」→「严」]`,turn 末尾又打一次
+
+### Case C4: 单 text block turn — 末尾照常出告知行
+
+- 输入: 用户 "解释下 React useMemo 啥时候用"
+- agent 行为:
+  - 单段 text 回答 + 末尾 `[戴帽:「教」(teach) — 概念解释]`
+- 预期:
+  - 1 个 text block,告知行作为最后一行
+  - 无 RF 触发
+
+### Case C5: subagent 派工 — 主 turn 末尾 + subagent turn 末尾 各自管自己
+
+- 输入: 用户 "搜一下市面上的 X skill"
+- agent 行为:
+  - 主 agent Step 1 戴 `钻`
+  - 派 subagent 跑搜索
+  - subagent 返回结果 + 自己的 `[戴帽:「钻」(deep) — research report]`(subagent turn 内)
+  - 主 agent 整理回 user
+  - 主 turn 末尾 `[戴帽:「钻」(deep) — research handoff]`
+- 预期:
+  - subagent 自己的 turn 末尾**可以**有告知行(其上下文里 subagent 是独立 agent)
+  - 主 turn 末尾**仍**追加一行(主 agent 自己也走契约)
+  - 这两行**不算**RF-11(它们在不同 turn 里)
+- 反例(违规):
+  - ❌ 主 agent 在 invoke subagent 之前的 text block 就标了告知行(中段,RF-10)
+
+### Case C6: 纯 tool call turn 无 text — 末尾追加单独 text 行
+
+- 罕见场景: agent 一个 turn 内只 Bash + Edit,没回任何 user-facing 文字
+- 预期:
+  - turn 结尾补一段单独 text 只含告知行: `[戴帽:「快」(lean) — 静默执行完成]`
+- 反例: turn 真的什么 text 都没出,直接停止 → RF-2 触发(末尾非空行不是告知行)
+
+---
+
 ## description 长度复核(2026-06-03 编辑后)
 
 - description 长度: ~720 字符(微增,仍远低于 800 soft warn)

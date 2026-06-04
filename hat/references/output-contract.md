@@ -4,6 +4,79 @@
 
 ---
 
+## Response / Turn 边界定义(**2026-06 加固**)
+
+告知行的位置规则**只在一个明确定义的边界下成立**——必须先把"响应/turn"是什么钉死。
+
+### 一个 turn 的范围
+
+一个 **turn / 响应** = 用户两次连续消息之间,agent 输出的**全部内容**。包含:
+
+- ≥ 1 个 text block(给用户看的文本段)
+- 0+ 个 tool call(Bash / Edit / Read / Skill / Agent / Write / …)
+- 0+ 个 tool result(由系统/工具回填)
+- 0+ 个内部 thinking block
+
+举个典型 turn 的结构(用户问"修一下 bug"):
+
+```
+[text]  "我先查一下源代码"
+[Read SKILL.md]
+[Read tests/]
+[text]  "找到了,问题在 line 42,改一下"
+[Edit  ...]
+[Bash  pnpm test]
+[text]  "测试通过。改了 2 个文件。
+         [戴帽:「严」(strict) — 改 bug + 加 regression test]"
+```
+
+→ 整个块是**一个 turn**。**告知行只在最后那段 text 里出现一次**,且作为最后一行。
+中间两段 text block 都**不带**告知行。
+
+### Turn 结尾的判定时机
+
+告知行的"输出窗口" = **agent 不再发 tool call,准备停止把控制权交还给用户**的最后一段文本里。
+判别法(自检 Q2):
+
+> 当前 text block 是否后面还要接 tool call / subagent 派工 / 还会有 text block?
+> - YES → **禁止**在这段加告知行(留到真正最后一段)
+> - NO → 这是 turn 终点,**必须**加告知行(豁免规则除外)
+
+### 多 text block 时只标最后一段(每 turn 恰好 1 次)
+
+| 场景 | 行为 |
+|---|---|
+| turn 内只有 1 段 text(无 tool call) | 这段 text 末尾出告知行 |
+| turn 内多段 text + 多次 tool call | 只有**最后一段** text 出告知行,中段不出 |
+| turn 内全是 tool call 没 text(罕见) | 末尾追加一段单独的 text "[戴帽:...]" |
+| turn 跨多阶段 persona 切换 | 用"履历多行块"整块**一次性**放在 turn 结尾 |
+
+**禁止模式(违反 RF-10 / RF-11)**:
+
+```
+❌ [text]  "我开始改"
+   [text]  "[戴帽:「严」(strict) — 开始严格修]"   ← 中段就标了,后面还要发 tool call
+   [Edit ...]
+   [text]  "[戴帽:「严」(strict) — 已修完]"        ← 又标了一次,同一 turn 出现两次
+```
+
+正确:
+
+```
+✅ [text]  "我开始改"
+   [Edit ...]
+   [text]  "已修完。
+            [戴帽:「严」(strict) — 改 bug + 验证]"   ← 唯一一处,在 turn 真正结尾
+```
+
+### 跟 subagent / Skill 调用的关系
+
+- agent 自己**调 Skill 工具** invoke 一个子 skill → 子 skill 的 SKILL.md 内容回流后,可能产生更多 tool call。此时**仍在同一 turn 内**,告知行仍留到最末
+- agent **派 subagent**(Task / Agent 工具) → subagent 在隔离上下文里跑;subagent **自己的 turn** 由 subagent 内部走 hat 契约(可能也加告知行)。主 agent 这边 subagent 工具返回后继续走主 turn,告知行仍在主 turn 末尾
+- 主 turn 的告知行**不替代**子 turn 的告知行,各自管自己的 turn 末尾
+
+---
+
 ## 两种格式按"同一任务内切换次数"分
 
 ### 0 次切换 — 单行格式
@@ -92,6 +165,9 @@
 | 响应输出后才想起没加告知行 → 算了下次再补 | **不允许**。自检是输出前的最后一步,漏了就在末尾补,绝不"留到下次" |
 | 自检发现漏了 → 编一个像样的 hat 写上去糊弄 | **不允许**。要么诚实写"事后兜底反推",要么如果真的整段没用 hat 风格,就承认"未戴帽" 并下次任务开头补做 Step 1 |
 | 把豁免规则扩大化("这条不算" / "用户没要求") | **不允许**。豁免严格按下文 "豁免规则" 段执行,不自行扩展 |
+| **中段 text block 出告知行**("先报告下进度,顺手加个 `[戴帽:...]`") | **不允许**(RF-10)。中段不带,留到 turn 真正最后一段再加 |
+| **同 turn 内多次出告知行**(每个 text block 都加一行) | **不允许**(RF-11)。每 turn 恰好 1 次,在最后一段 |
+| **切换 persona 的瞬间就标 label**("现在切到严了,先标一下") | **不允许**。多阶段切换用"履历多行块"格式,整块**一次性**放在 turn 结尾 |
 
 ---
 
