@@ -62,6 +62,22 @@
 
 → **halt + 报错给用户**,等用户自己决定处理。
 
+### 1.8 prepare.sh 双源漂移
+
+- 在 prepare.sh 里内嵌一份固定 skill 清单(`SKILLS=(director-frontend ...)` 等)
+- sentinel 段改了,prepare.sh 里的清单没同步 → 新机器跑出来跟当前 fs 不一致
+
+→ **bug**。prepare.sh **必须**运行时从 `CLAUDE.md` sentinel 段读"项目级补充"列表,
+   不内嵌清单。sentinel = 唯一事实源。
+
+### 1.9 prepare.sh 缺标记头
+
+- 写 prepare.sh 时没加 `# meta-skill prepare.sh v<N>` 注释头
+- 下次 refresh 没法判断这文件是 meta-skill 生成的还是用户自己写的
+- 你按"看着像"判定 → 覆盖了用户文件
+
+→ **必须加版本标记头**。无标记 = 当作用户文件,halt 让用户确认。
+
 ---
 
 ## 2. Rationalizations to Reject
@@ -78,6 +94,9 @@
 | 8 | "项目没 .git,我按 cwd 当根" | 不行。没 git root = 项目边界不明,halt。 |
 | 9 | "PowerShell / Windows 不支持 symlink,我改 copy" | 本版本不支持 Windows(symlink 是核心)。明确告诉用户走 WSL 或不支持。 |
 | 10 | "已 symlink 但目标变了(skillshare 重组),自动重指" | 不行。算 delta 时把"指错 src 的旧 symlink"当作 `delta_remove`,新建 `delta_add`,走 apply gate。 |
+| 11 | "prepare.sh 加点注释让人看着舒服" | 不行。模板必须**字节级一致**(便于 refresh idempotent 判定)。要改改 `references/prepare-sh-template.sh`,统一升 v 号。 |
+| 12 | "prepare.sh 把 skill 清单写死可以省一次 awk" | 不行。sentinel 改了脚本不会自动跟进 → 双源漂移。必须 runtime 读 sentinel。 |
+| 13 | "新机器没 skillshare CLI,我让 prepare.sh 自己 git clone" | 不行。本版本明确**前提**是新机器装好 skillshare;否则 fail-fast 报错 + 提示用户装,不内嵌 clone fallback。 |
 
 ---
 
@@ -151,5 +170,7 @@ halt 后用户怎么走:
 | `user_gate_response` | 审计不出来用户当下到底回复了啥 |
 | `delta_remove` | refresh 时只列加不列减,忘记 sentinel 里要删的条目 |
 | `actions_applied` | 应该跟 `actions_planned` 长度一致;不一致 = 中途出错没记 |
+| `prepare_sh_path` | 漏 = 用户不知道脚本写哪里了,新机器复刻流程缺一环 |
+| `prepare_sh_status` | 漏 = 不知道是新建 / 刷新 / 跳过 / 被 halt,refresh 审计断了 |
 
 输出契约的字段**不允许省略**,即使是空数组也要显式 `[]`。

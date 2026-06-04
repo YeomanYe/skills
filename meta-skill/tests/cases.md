@@ -33,7 +33,9 @@
 - CLAUDE.md 写 sentinel 段(包含 begin/end + 全局已可用 + 项目级补充 + meta 元数据)
 - AGENTS.md 同步写 sentinel 段
 - `.gitignore` 加 `.claude/skills/` `.codex/skills/` `.agents/skills/` 三行
-- 输出 JSON `verdict: "applied"`,`actions_applied` 列表长度跟 `actions_planned` 一致
+- **`<project>/prepare.sh` 落盘**(可执行,内容 = `references/prepare-sh-template.sh`,首行含 `# meta-skill prepare.sh v1`)
+- `prepare.sh` **不**进 .gitignore
+- 输出 JSON `verdict: "applied"`,`actions_applied` 列表长度跟 `actions_planned` 一致,`prepare_sh_path` 字段指向 `<project>/prepare.sh`,`prepare_sh_status: "created"`
 
 ### Case 3 — Refresh 后中心库加了新 skill
 
@@ -203,3 +205,64 @@ fallback_used / errors
 - 第 3 次 → 同上
 - 整个过程 fs 无任何变化(`ls -la .claude/skills/` 输出 3 次完全一致,包括 mtime)
 - sentinel 段内容字符级相同(若实现真覆盖了,至少要保证内容字符级等价)
+- `prepare.sh` 内容字节级一致(`sha256sum` 3 次相同)
+
+---
+
+## Clone-to-another-machine 回归(prepare.sh)
+
+### Case 18 — Clone round-trip
+
+**前置**:Case 2 已 apply,用户 `git add CLAUDE.md AGENTS.md prepare.sh .gitignore && git commit && git push`
+
+**输入**:在**另一台机器**上(已装 skillshare CLI 并 sync 过):
+```bash
+git clone <repo>
+cd <project>
+./prepare.sh
+```
+
+**期望**:
+- `prepare.sh` 退出码 0
+- `<project>/.claude/skills/<each project-level skill>` 是 symlink → 该机器上的 skillshare source 路径
+- `.codex/skills/` `.agents/skills/` 同上
+- sentinel 段未被改动(prepare.sh 只建 link,不改 .md)
+- 重复跑一次 `./prepare.sh` → "Already OK" 数 = skill 数 × 3,Created = 0(幂等)
+
+### Case 19 — prepare.sh 在新机缺 source
+
+**前置**:Case 18 但新机器**没装** skillshare CLI,`$HOME/.config/skillshare/skills/` 也不存在
+
+**输入**:`./prepare.sh`
+
+**期望**:
+- 退出码 ≠ 0
+- 输出含 "MISSING source for" 列表
+- 输出含 `brew install skillshare` 提示
+- **不**静默跳过(必须报错)
+- 已建的目录(`.claude/skills/` 等空目录)允许保留,但不能建错的 symlink
+
+### Case 20 — prepare.sh 用户手改
+
+**前置**:Case 2 已 apply,用户手改 `prepare.sh`(比如加了一行 `echo "my custom"`)
+
+**输入**:用户 `meta-skill refresh`
+
+**期望**:
+- meta-skill 检测到 `prepare.sh` 内容 ≠ 当前模板
+- diff 给用户看
+- 询问"重算会覆盖你的手改,确认?"
+- 用户没明确同意 → `prepare_sh_status: "halted-user-edited"`,**不动**文件
+- 用户 apply → 覆盖,`prepare_sh_status: "refreshed"`
+
+### Case 21 — prepare.sh 不是 meta-skill 生成的
+
+**前置**:项目根已有用户自己的 `prepare.sh`(无 `# meta-skill prepare.sh v1` 头)
+
+**输入**:用户首次跑 meta-skill apply
+
+**期望**:
+- 检测到首行非 meta-skill 标记
+- halt + 报错 "项目根已有 prepare.sh 但不是 meta-skill 生成的,请先重命名或确认覆盖"
+- **不**覆盖用户文件
+- 其他动作(symlink / sentinel / .gitignore)按全 apply 或 rollback 处理(参考 Case 10 同款 idempotent 原则)

@@ -67,6 +67,7 @@ recommended(stack × type) − globally_active(skillshare 当前 active 集) = d
 4. 改 `<project>/.gitignore`(自动加 `.claude/skills/` 等条目算改)
 5. 覆盖用户在 sentinel 段内**手改过**的内容(必须 diff 给用户看)
 6. 触碰 `<project>/.claude/skills/<name>` 但发现是**非 symlink**(实文件)→ 不覆盖,报错
+7. 写 / 覆盖 `<project>/prepare.sh`(用户手改过 → diff 后确认;非 meta-skill 生成的 → halt)
 
 read-only 动作(读 `package.json` / `git log -1` / `skillshare list --json` / ls 项目目录)
 **不**算 high-risk,可以直接做。但输出必须记到 plan 的 `signals` 字段。
@@ -159,6 +160,7 @@ already_global_relevant = recommended ∩ globally_active
 4. 改写 CLAUDE.md 的 sentinel 段(diff 见下)
 5. 改写 AGENTS.md 的 sentinel 段(diff 见下)
 6. .gitignore 自动加: .claude/skills/ .codex/skills/ .agents/skills/
+7. 写 / 刷新 <project>/prepare.sh(让 clone 到新机器的人能一键重建 symlink)
 
 回 "apply" / "yes" / "go" 我执行;回别的 = 不动。
 ```
@@ -236,8 +238,38 @@ total: <recommended count> = global <N> + project <M>
 ```
 
 只加未有的条目,已有跳过。
+**注意**:`prepare.sh` 是要 commit 的,**不**进 .gitignore。
 
-#### 6.4 执行后输出
+#### 6.4 写 / 刷新 `prepare.sh`(clone-portable)
+
+`.claude/skills/` 等三个 symlink 目录都进 .gitignore,**clone 到新机器后 symlink 不复存在**。
+为此每次 apply 在项目根写一份 `prepare.sh`,新机器跑一次就能按 sentinel 段重建 symlink。
+
+**模板见 `references/prepare-sh-template.sh`**,逐字复制即可(不需要 templating);写完
+`chmod +x prepare.sh`。
+
+设计要点(模板已实现,这里说明背后逻辑):
+
+- **不带 skill 名清单**:脚本运行时**从 `CLAUDE.md` 的 sentinel 段读"项目级补充"列表**,
+  保证唯一事实源(sentinel 段已 commit)。改 sentinel = 改 prepare.sh 行为,自动同步,
+  不会双源漂移
+- **target 全相对**:`cd "$(dirname "$0")"` 自定位后,所有 link 写到 `./.claude/skills/<name>`
+  等,不写绝对路径
+- **source 多 fallback**:
+  1. `$SKILLSHARE_ROOT`(显式覆盖)
+  2. `skillshare list --json` 查 CLI 真实路径
+  3. 兜底 `$HOME/.config/skillshare/skills/` 按目录名匹配
+  4. 都拿不到 → 打印 `skillshare install <repo>` 提示但不静默跳过
+- **幂等**:已存在 symlink 指对 source → skip;指错 → 报告不覆盖;非 symlink 实文件 → 报错不动
+- **前提**:新机器需先装 skillshare CLI(`brew install skillshare` 或同等);**不内嵌 git clone fallback**(维护成本太高)
+
+写入规则:
+- 项目根没有 `prepare.sh` → 创建
+- 已有 `prepare.sh` 且内容 = 当前模板 → skip
+- 已有 `prepare.sh` 且**内容跟模板不一致**(用户手改了) → diff 给用户看,确认覆盖才动
+- 已有 `prepare.sh` 但**不是 meta-skill 生成的**(无 `# meta-skill prepare.sh v1` 头) → halt,让用户重命名或确认覆盖
+
+#### 6.5 执行后输出
 
 按 Output Contract 出 JSON + 一句话 user-facing 总结。
 
@@ -253,7 +285,10 @@ total: <recommended count> = global <N> + project <M>
 3. 用户在 sentinel 段**手改过**(begin/end 之间内容 ≠ 上次 meta-skill 写的) → diff 给用户看,问"重算覆盖你的手改吗?"
 4. apply gate 同 Step 5
 
-**幂等保证**:同一项目状态 + 全局 skill 状态 → 连跑 N 次 refresh,fs 和 sentinel 段最终结果完全一致。
+refresh 也走 6.4(prepare.sh):模板没变 → skip;模板版本升级了 → 当作"项目级补充"
+变更同样要 diff 给用户看再覆盖。
+
+**幂等保证**:同一项目状态 + 全局 skill 状态 → 连跑 N 次 refresh,fs 和 sentinel 段最终结果完全一致(prepare.sh 也是字节级一致)。
 
 ### Step 8 — Output Contract
 
@@ -273,11 +308,13 @@ total: <recommended count> = global <N> + project <M>
   "globally_active": ["..."],
   "delta_add": ["..."],
   "delta_remove": ["..."],
-  "actions_planned": ["link <skill> → .claude/skills/", "..."],
+  "actions_planned": ["link <skill> → .claude/skills/", "...", "write prepare.sh"],
   "actions_applied": ["..."],
   "user_gate_response": "apply | halt | refused",
   "skillshare_cli_available": true,
   "fallback_used": "none | ls",
+  "prepare_sh_path": "<project>/prepare.sh | null",
+  "prepare_sh_status": "created | refreshed | skipped-equivalent | halted-user-edited | n/a",
   "errors": []
 }
 ```
@@ -304,6 +341,8 @@ total: <recommended count> = global <N> + project <M>
 5. 输出了 disable / keep 字段 — **本版本只 enable 增量,不 disable**
 6. sentinel 段写到了 begin/end 之外
 7. refresh 多次跑结果不一致(说明非 idempotent,有 bug)
+8. `prepare.sh` 跟 sentinel "项目级补充"段不一致 — sentinel 是事实源,prepare.sh 运行时**必须**重读 sentinel,不能内嵌固定 skill 清单
+9. 写 `prepare.sh` 时没加 `# meta-skill prepare.sh v<N>` 头(无法区分用户脚本和 meta-skill 生成的)
 
 ## Rationalizations to Reject
 
@@ -376,4 +415,5 @@ total: 12 = global 7 + project 5
 - `references/recommendations.md` — stack × project_type → skill list lookup table
 - `references/project-detection.md` — 各种 manifest 文件的 signature → stack/type 映射细则
 - `references/failure-modes.md` — 完整 Red Flags + Rationalizations 清单
+- `references/prepare-sh-template.sh` — clone-portable 重建脚本模板(Step 6.4 写入项目根)
 - `tests/cases.md` — 回归基线
