@@ -103,6 +103,13 @@ def main():
 
 这条 bug 跟 budget read 失败叠加会**雪崩**:budget 读失败 → 走 retry 路径 → retry 也无法创建 cron(因 project) → 链彻底死。
 
+**第三条 robustness 规则**(2026-06-04 第 3 坑):**budget API 是 Anthropic 上游**,有 rate limit(实测 5 次连续后 429)。schedule.py 必须做 in-process retry + backoff:
+- 第 1 次失败 sleep 5s 重试,第 2 次 15s,第 3 次 30s
+- 还失败再走 5-min cron retry(外层)
+- 429 窗口可能 1-3 分钟,内层 retry + 外层 5-min retry 叠加吸收
+
+判定 429 的关键字:`429` / `rate_limit`(stderr 含其一)。其他错误不重试,直接走 5-min retry。
+
 ## burn.sh 关键逻辑(伪码)
 
 ```bash
