@@ -96,6 +96,13 @@ def main():
 
 **关键 robustness 规则**:budget 读失败时**绝不**直接 abort。必须自动排一个 5 min 后的 retry reschedule,否则一次偶发 API 错误就让链路死。watchdog 是兜底(最坏 12h),但 5 min retry 才是日常该有的容错。
 
+**第二条 robustness 规则**(2026-06-04 又踩):cron `--exec` 上下文**不继承** `CC_PROJECT` 环境变量,但 `cc-connect cron add/del` 在多项目场景下**必须**有 `--project <name>`,否则报 "project is required"。schedule.py / burn.sh 里所有 `cc-connect cron ...` 调用都必须显式带 `--project`,值可从:
+1. `$CC_PROJECT` env(主会话有,cron `--exec` 没)
+2. `~/.cc-connect/crons/jobs.json` 既有 cron 的 `project` field(推断)
+3. hardcoded 兜底
+
+这条 bug 跟 budget read 失败叠加会**雪崩**:budget 读失败 → 走 retry 路径 → retry 也无法创建 cron(因 project) → 链彻底死。
+
 ## burn.sh 关键逻辑(伪码)
 
 ```bash
