@@ -96,12 +96,17 @@ def main():
 
 **关键 robustness 规则**:budget 读失败时**绝不**直接 abort。必须自动排一个 5 min 后的 retry reschedule,否则一次偶发 API 错误就让链路死。watchdog 是兜底(最坏 12h),但 5 min retry 才是日常该有的容错。
 
-**第二条 robustness 规则**(2026-06-04 又踩):cron `--exec` 上下文**不继承** `CC_PROJECT` 环境变量,但 `cc-connect cron add/del` 在多项目场景下**必须**有 `--project <name>`,否则报 "project is required"。schedule.py / burn.sh 里所有 `cc-connect cron ...` 调用都必须显式带 `--project`,值可从:
-1. `$CC_PROJECT` env(主会话有,cron `--exec` 没)
-2. `~/.cc-connect/crons/jobs.json` 既有 cron 的 `project` field(推断)
-3. hardcoded 兜底
+**第二条 robustness 规则**(2026-06-04 + 06-05 各踩一次):cron `--exec` 上下文**既不继承** `CC_PROJECT` **也不继承** `CC_SESSION_KEY`。`cc-connect cron add` 在多项目 + 多会话场景下**必须**显式 `--project <name>` + `--session-key <key>`,否则分别报:
+- `Error: project is required (multiple projects configured)`
+- `Error: session_key is required: set CC_SESSION_KEY env, pass --session-key, or ensure exactly one active session exists`
 
-这条 bug 跟 budget read 失败叠加会**雪崩**:budget 读失败 → 走 retry 路径 → retry 也无法创建 cron(因 project) → 链彻底死。
+两个值都从 `~/.cc-connect/crons/jobs.json` 既有 cron 的同名 field 推断:
+```python
+def _get_project():    return env.CC_PROJECT     or jobs[0].project     or 'bot2'
+def _get_session_key(): return env.CC_SESSION_KEY or jobs[0].session_key or None
+```
+
+这条 bug 跟 budget read 失败叠加会**雪崩**:budget 读失败 → 走 retry 路径 → retry 也无法创建 cron(因 project / session_key) → 链彻底死。**先修这两条,再修 budget retry 才有意义**。
 
 **第三条 robustness 规则**(2026-06-04 第 3 坑):**budget API 是 Anthropic 上游**,有 rate limit(实测 5 次连续后 429)。schedule.py 必须做 in-process retry + backoff:
 - 第 1 次失败 sleep 5s 重试,第 2 次 15s,第 3 次 30s
