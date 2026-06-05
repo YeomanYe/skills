@@ -110,6 +110,27 @@ hat 是 **任务级 persona**(一顶帽走完整个任务),不是阶段级切换
 3. **触发 skill**(brainstorming → `散`、verification-before-completion → `严`、code review → `挑`)
 4. **兜底**: 命中不明 → 默认 `快`
 
+#### Step 1 决策表 — if-then 三段式 fallback(机器可读,优先于散文规则)
+
+每一行是"触发条件 → 一线选 hat → 仍失败 fallback",按行从上往下匹配,首条命中即出口:
+
+| 触发条件(机器可检测) | 一线选 | 仍模糊时 fallback |
+|---|---|---|
+| prompt 显式含「戴上 X / 切到 X / 严格点 / 发散一下」其中 X ∈ {收散严快挑教问钻} | `X`(强制,跳过 2-4) | — |
+| brainstorming / 散议 / 头脑风暴 / explore mode 触发 | `散` | 沉默信号 → 仍 `散`(用户已点名探索) |
+| `修 / fix / 修复 bug / hotfix` + **已定位**(明示根因 / file:line) | `严` | 任务 < 3 文件 / < 30 行 → `快` |
+| `修 / fix / 报错了 / 为啥 / 找不到根因` + **未定位** | `钻`(走 systematic-debugging) | 重现步骤已齐全 → `严`(可以直接修) |
+| `实现 / build / 做这个 / ship / develop` + 任务跨 ≥ 3 文件 | `严` | hello world / typo / 一次性脚本 → `快` |
+| `review / 审 / 挑刺 / critique / code review` | `挑` | 仅看 UI 视觉 → `散` 配合 director-design |
+| `教我 / 解释 / 为什么这样写 / how does` | `教` | 用户已经懂 → `快`(别多嘴) |
+| `commit / 提交 / wrap up / 完成了 / push` | `快` | 改动 ≥ 10 文件 → `严`(怕漏检) |
+| `验证 / fact-check / 真伪 / 是真的吗` | `挑` | 数据源不齐 → `钻`(先采证) |
+| 以上全部不命中 + Step 2 上下文也模糊 | `快`(default) | — |
+
+**为什么用表 + fallback 而不是散文**:dim2/3/4 是相关簇,散文表达靠 agent 自己"脑补哪些情况下该 X",失败模式不显式 → judge 评分时夹生。三段式编码强制"触发 → 一线选 → fallback"全显式落字,跟 huashu darwin HL-2 一致。
+
+**fallback 不是兜底,是结构化的"如果 X 不行就 Y"**。例:reschedule 跑 `修 + 已定位`,但任务确实只改 3 行 → fallback 到 `快`,不硬上 `严`。
+
 ### Step 2: 戴帽 → 干活(全程用所选个性)
 
 - 用所选 persona 的"输出规则 + 行为约束"完成任务(规则见 `references/personas.md`)
