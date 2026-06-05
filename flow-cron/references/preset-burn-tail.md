@@ -121,6 +121,15 @@ claude -p "$(cat $BURN_PROMPT)" --permission-mode bypassPermissions
 ```
 controlled prompt(我们自己写的,无外部输入)可安全 bypass。否则 burn 会持续 abort,日志写满"环境阻断"。
 
+**第五条 robustness 规则**(2026-06-06 第 5 坑):budget cmd 失败时**用 `subprocess.run(capture_output=True)` 显式捕获 stderr**,而不是 `check_output`(默认 stderr 直接打到 console 看不到)。否则 CalledProcessError 只带 returncode,根因不明。日志该有一行 `DIAG budget stderr: <前 300 字>`。
+
+**第六条 robustness 规则**(2026-06-06 同时踩):5-min retry 循环必须有**上限**,否则连续失败几小时累积 30+ 个 retry cron 噪音。建议:
+- retry 用编号 desc(`darwin-reschedule-retry-N`)
+- schedule.py 读 jobs.json 看自己是第几代 retry
+- N ≥ 6(≈ 30 min)→ give-up,不再排 retry,等 watchdog 12:00/22:00 救活
+
+这把"瞬时网络抖动"(30 min 内自愈)跟"长期 broken"(等 watchdog)分开,日志不再被淹没。
+
 ## burn.sh 关键逻辑(伪码)
 
 ```bash
