@@ -115,6 +115,12 @@ def _get_session_key(): return env.CC_SESSION_KEY or jobs[0].session_key or None
 
 判定 429 的关键字:`429` / `rate_limit`(stderr 含其一)。其他错误不重试,直接走 5-min retry。
 
+**第四条 robustness 规则**(2026-06-05 第 4 坑):`claude -p` headless 模式**默认不能跑 Bash / Edit / Write**(每次会要 interactive approval,cron 里没人按 → 工具调用全失败 → burn agent 在 budget 自检 + STATUS 写状态时全卡住,只能 abort)。burn.sh 调 `claude -p` **必须**带 `--permission-mode bypassPermissions`:
+```bash
+claude -p "$(cat $BURN_PROMPT)" --permission-mode bypassPermissions
+```
+controlled prompt(我们自己写的,无外部输入)可安全 bypass。否则 burn 会持续 abort,日志写满"环境阻断"。
+
 ## burn.sh 关键逻辑(伪码)
 
 ```bash
