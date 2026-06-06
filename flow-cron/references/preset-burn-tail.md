@@ -130,6 +130,12 @@ controlled prompt(我们自己写的,无外部输入)可安全 bypass。否则 b
 
 这把"瞬时网络抖动"(30 min 内自愈)跟"长期 broken"(等 watchdog)分开,日志不再被淹没。
 
+**第七条 robustness 规则**(2026-06-06 + user 一句话点破根因):**`claude-usage` 用 claude CLI 同一套 auth token,token 会随用户活跃自动续期,但长期 idle(整夜 / 周末)会过期**。过期表现为 stderr 含 `401 / 403 / unauthorized / authentication / token expired`。
+
+这意味着 5-min retry 在 user idle 期间**注定失败**(token 直到 user 跟 claude 对话才会 refresh)。所以 schedule.py 检测到 auth-class 错误关键字时**立即 give-up**,不浪费 retry slot,直接等 watchdog 12:00/22:00。watchdog 触发时 user 通常已醒/在用 → token 已 refresh → 链路自愈。
+
+判定关键字(stderr 全小写匹配):`401` / `403` / `unauthorized` / `authentication` / `token expired`。
+
 ## burn.sh 关键逻辑(伪码)
 
 ```bash
