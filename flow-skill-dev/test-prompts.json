@@ -1,0 +1,17 @@
+[
+  {
+    "id": "happy-path-new-skill",
+    "prompt": "帮我写个 skill,用来在 PR 合并前自动检查 changelog 有没有更新,触发条件是用户说『准备合 PR』或者『merge 前看一下』。",
+    "expected": "进入 flow-skill-dev 编排流程:scope → 调 skill-creator/writing-skills 真实落盘 SKILL.md → 跑 skill-doctor lint → 跑 skill-behavior-test 验证触发短语命中 + references 路径 → 必要时跑 skill-integration-test → sync 到中心库 → 输出交付报告。全程默认执行不是只给建议,SKILL.md 真实写到磁盘。"
+  },
+  {
+    "id": "substantial-update-with-shared",
+    "prompt": "之前那几个 flow-* skill 我都加了角色信条段,现在想给 flow-codex-goal 也补上,顺便把触发条件改严一点。",
+    "expected": "识别为 substantial-update(改触发条件 = 实质性变更),进入编排。因为角色信条段已经跨 ≥3 个 flow-* skill 出现,必须同步更新 _shared/flow-template.md 元规范,否则下一个新 flow-* skill 会不一致。改完跑 behavior test 验证新触发条件命中预期场景 + 不命中反例场景,最后报告里明确列出 _shared 同步状态。"
+  },
+  {
+    "id": "boundary-reject-minor",
+    "prompt": "我刚发现 flow-dev-task SKILL.md 里有个错别字,『编排』写成了『偏排』,顺手改一下。",
+    "expected": "应拒绝进入 flow-skill-dev 编排(SKILL.md 明确写 Do NOT use for: 只改文案/错别字 / 不影响行为的 reference / 很小的 metadata 改动)。正确响应是直接 Edit 改字,或建议走 minor-update 路径,不启动 scope→writing→test→sync 全流程。如果误启动则属于越界编排,浪费 behavior test/integration test 环节。"
+  }
+]

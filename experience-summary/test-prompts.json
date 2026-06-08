@@ -1,0 +1,17 @@
+[
+  {
+    "id": "happy-path-where-to-put",
+    "prompt": "刚搞完一个 bug,发现每次改 vue 组件都得记得跑一遍 pnpm lint,不然 CI 必挂。这条经验该写到哪?",
+    "expected": "触发 experience-summary。先 Step 1 锁定一句话经验,然后跑判断树。预期命中 Q5(只对该项目 vue 文件目录有效)或 Q8(项目级常驻),输出 5 段契约:一句话沉淀 + 分诊结论 + 推荐位置(nested CLAUDE.md 或项目 CLAUDE.md)+ 写作模板 + 后续提醒。不直接落盘 MEMORY,不擅自修改文件。"
+  },
+  {
+    "id": "ambiguous-multi-layer",
+    "prompt": "复盘下今天:agent 反复忘记我喜欢用 pnpm 不是 npm,被纠正了三次。是不是该写进 constitution 强制一下?",
+    "expected": "触发 experience-summary。识别为 Honeypot 类信号 — 用户主动推 L1 constitution,但实际属 L9b auto memory(per-user 个人偏好,适用范围 < 3 skill)。预期 RF6 拦截 L1 提案,降级到 L9b auto memory,5 段输出推荐位置 = MEMORY.md,并在【后续提醒】里给出上移信号说明(若跨 ≥ 3 场景再考虑上移)。"
+  },
+  {
+    "id": "edge-case-no-evidence",
+    "prompt": "我感觉 agent 应该更主动点,这种经验沉淀一下?",
+    "expected": "触发 experience-summary,但 Pre-action Self-Check 应直接拦截:SC1 无证据(file:line/对话片段/命令输出 全无,只有'我感觉')+ SC4 命中位写不出。预期输出'本次不沉淀'短报告,终止流程,不进 Step 2 判断树,不出 5 段产物。"
+  }
+]

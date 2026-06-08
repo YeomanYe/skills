@@ -1,0 +1,17 @@
+[
+  {
+    "id": "happy-path-feature",
+    "prompt": "帮我在用户设置页加一个『深色模式开关』，状态存在 localStorage，切换后立刻生效。做完直接 commit。",
+    "expected": "skill 应被触发；判定为 feature 分支（task_type=feature）；先做 Context Harvest（并行读 package.json/项目结构推断框架），不询问能推断的字段（如 React/Vue、CSS 方案）；问题数 ≤ 3；按 plan→code→test→verify→change-recap→commit 全流程推进，不中途询问『要不要顺便做 X』。"
+  },
+  {
+    "id": "bugfix-with-error-log",
+    "prompt": "线上报这个错你看看：`TypeError: Cannot read properties of undefined (reading 'map')` 出现在 OrderList 组件，复现是用户购物车空的时候打开订单页。修一下然后提交。",
+    "expected": "skill 应被触发；判定为 bugfix 分支（task_type=bugfix），走修复链；先 systematic-debugging 定位根因再动手，不立刻贴补丁；test-driven-development 先写能复现 bug 的失败测试，再实现 fix；verification-before-completion 跑测试确认通过；最后 commit。不扩大 scope（不顺手重构 OrderList 其他部分）。"
+  },
+  {
+    "id": "negative-exploration-no-target",
+    "prompt": "我们这个项目最近性能有点问题，你帮我看看怎么优化比较好？想听听你的思路。",
+    "expected": "skill 不应被触发（或被触发后立刻 handoff）。这是 open-ended exploration 没有具体任务，属于 When NOT to Use 中的『用户还在发散探索，没有明确任务』情况，应路由到 superpowers:brainstorming，而不是进入 flow-dev-task 的 plan→commit 流程。"
+  }
+]

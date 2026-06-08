@@ -1,0 +1,17 @@
+[
+  {
+    "id": "happy-path-long-refactor",
+    "prompt": "我有个大重构想让 codex 后台跑几个小时,把 unimail 的 MobX store 全部从装饰器写法迁到 makeObservable+annotations,涉及大概 40 个文件。我下班了不想盯着,你帮我用 codex goal 跑起来,跑完截图和分数推到我飞书,我明早回来看就行。",
+    "expected": "进入 flow-codex-goal。Phase 0 先和我确认 APPROVAL.md(范围/AC/Run Mode/stop condition/IM 推送通道),签字后才开跑。Run Mode 自动探测(应选 CLI-YOLO 或 TMUX-YOLO,因为长跑无人值守)。开跑后 orchestrator 保持 idle,watcher 负责 poll + mini-review + 截图推飞书。Reviewer Codex 必须硬隔离(独立 worktree/独立 session/独立凭据)。每轮 snapshot,最终 commit 最高分 snapshot(HIGHEST_TAG)而不是最后一轮。"
+  },
+  {
+    "id": "complex-ui-with-interrupt",
+    "prompt": "帮我用 codex-goal 跑一下 huashu 的新 landing page,要求做完三个版本(简约/赛博/插画),每个版本要桌面+移动端截图,跑的过程中我可能会随时插话改 brief。AC 我现在还想不全,你先帮我列一版我们确认,跑起来之后如果连续 3 轮分数不涨就停别浪费 token。",
+    "expected": "用户明示 '用 codex-goal' → 尊重判断进入(即使任务可能不算特别长,也只一次性告知代价不阻断)。Phase 0 协助起草 AC(三个版本 + 桌面/移动截图 + UI evidence checklist),不替用户拍板,签字后开跑。UI 任务自动加载 ui-review-checklist.md + score-rubric-extensions.md。stop condition 写入 '连续 3 轮 score 不涨自动停'。orchestrator idle 但保留 IM inbound poll 通道,人类随时 ping 可加规则(watcher 写 SIGNAL 文件触发唤醒)。截图作为强制 UI evidence 周期推 IM。最终回退到 HIGHEST_TAG commit。"
+  },
+  {
+    "id": "negative-short-task-misroute",
+    "prompt": "帮我把 src/utils/format-date.ts 里那个 formatRelativeTime 函数改成支持中文,加个单元测试就行。",
+    "expected": "不应进入 flow-codex-goal。任务范围明显是单文件小改动 + 单测,没有长跑/无人值守/AC 契约/UI evidence 需求,也没有用户明示 '用 codex-goal'。自动路由应判定 → flow-dev-task 而非 flow-codex-goal(SKILL.md frontmatter 明示 'Do NOT use 自动路由时 for short tasks → flow-dev-task')。如果误进 flow-codex-goal,Phase 0 契约门 + reviewer 硬隔离 + snapshot 机制对单文件改动是严重 overkill,应在 hat/routing 阶段就拦下。"
+  }
+]

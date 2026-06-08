@@ -1,0 +1,17 @@
+[
+  {
+    "id": 1,
+    "prompt": "刚 clone 下来一个新项目,帮我看看这个项目要装哪些 skill 比较合适?",
+    "expected": "meta-skill 应自动激活;先只读探测(package.json / Cargo.toml 等)识别 stack + project_type,跑 skillshare list --json 拿全局集,算 delta,然后输出 markdown plan 列出『已全局可用』+『项目级要新增 symlink』+ 将要做的 7 个动作,末尾要求用户回 apply/yes/go,在用户明确同意前不能动任何文件"
+  },
+  {
+    "id": 2,
+    "prompt": "meta-skill refresh,中心库我刚加了个新 skill 想看看这项目要不要补",
+    "expected": "meta-skill 应识别显式 refresh 触发;重跑探测 + delta 计算,跟当前 CLAUDE.md sentinel 段对比,分类输出 add / remove / unchanged;若用户在 sentinel begin/end 之间手改过,要 diff 给用户看并问『重算覆盖你的手改吗?』;同样要 apply gate 才动 fs;若无变化输出 verdict: refresh-no-change"
+  },
+  {
+    "id": 3,
+    "prompt": "帮我写个新的 skill 用来自动整理 git commit message",
+    "expected": "meta-skill 不应触发(这是新建 skill,归 flow-skill-dev 管,SKILL.md 的 When NOT to Use 和 Do NOT use for 明确排除);agent 应路由到 flow-skill-dev 而不是把它当成『配项目级 skill』来处理"
+  }
+]
