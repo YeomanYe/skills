@@ -53,6 +53,9 @@
 ### lark
 - lark-wiki-docs-use-lark-cli
 
+### web-fetch
+- webfetch-blocked-use-browser
+
 ---
 
 ## 按 symptom 关键词反查(精确召回)
@@ -75,6 +78,10 @@
 | skillshare list 显示装好的 skill 在 agent 段不在 skill 段 | skillshare-external-repo-wrong-kind | skillshare |
 | 期望是 skill 却被自动分类为 agent | skillshare-external-repo-wrong-kind | skillshare |
 | ~/.config/skillshare/agents/_<source>/ 出现意外目录 | skillshare-external-repo-wrong-kind | skillshare |
+| WebFetch 返回'当前环境异常,完成验证后即可继续访问'(微信公众号文章) | webfetch-blocked-use-browser | web-fetch |
+| mp.weixin.qq.com/s/<id> 拉到的内容全是导航按钮和验证提示,没有正文 | webfetch-blocked-use-browser | web-fetch |
+| 公开 web 链接 WebFetch 拿不到正文,但同一 URL 浏览器打开正常 | webfetch-blocked-use-browser | web-fetch |
+| 知乎专栏 / 小红书 web / 部分 Medium 等反爬墙后的公开页 | webfetch-blocked-use-browser | web-fetch |
 
 ---
 
