@@ -1,0 +1,17 @@
+[
+  {
+    "id": "p1",
+    "prompt": "我要做一个面向自由职业者的记账 Web App。帮我从头初始化项目，定 MVP、工程规范、推荐几套设计系统，最后给我一个能跑的 preview 页。",
+    "expected": "Triggers flow-project-bootstrap (combines MVP + rules + design + preview = full kickoff). Runs Stage 1 first: calls project-prep to lock MVP/main interaction/tech stack/preview decision, then 1.3 director-design produces 3 direction cards + 3 parallel preview mockups, routes deploy target by repo visibility, assembles a single 总设计文档 (docs/design.md or DESIGN.md). Does NOT write code or scaffold in Stage 1. Then halts at the explicit user gate asking the 4 lock-in questions (MVP slice / pick 1 mockup / deploy target / follow-up plan) before any Stage 2 work."
+  },
+  {
+    "id": "p2",
+    "prompt": "I want to bootstrap a small internal tool for QA engineers to triage flaky tests. Give me the full kickoff: MVP, engineering rules, design candidates, a logo, and a deployed preview page.",
+    "expected": "Triggers flow-project-bootstrap (English paraphrase, full multi-stage kickoff with >=2 of MVP/rules/design/logo/preview/deploy). Stage 1 yields the consolidated design doc (no code), with >=2 differentiated design directions and 3 mockups, plus deploy-credential pre-check at Stage 1.5 (prompts for token if private repo / Cloudflare and waits for user). Stops at the user gate. Only after user picks a mockup + confirms deploy does Stage 2 run, producing engineering scaffold via director-architect, >=2 logo directions via huashu-design, an accessible deployed preview page via frontend-design, and bidirectional links (design doc URL backfilled + 'return to design doc' link in preview)."
+  },
+  {
+    "id": "p3",
+    "prompt": "新项目启动：一个团队周报生成器。先把 MVP 范围和要配的视觉风格候选定下来，然后完整启动到能部署的预览。",
+    "expected": "Triggers flow-project-bootstrap (kickoff intent + >=2 stages: MVP scoping + design candidates + preview/deploy). Auto-fills the missing dimensions the user didn't explicitly mention (preview decision, >=2 design candidates, deploy plan, logo) rather than skipping them. Stage 1 produces full 总设计文档 and reaches the user gate; does not unilaterally pick a single design or jump to Stage 2. Stage 2 (after gate) outputs engineering rules + logo + deployed preview with bidirectional links. Does not behave like project-prep (single-stage) — runs the full two-stage chain with the stage gate enforced."
+  }
+]

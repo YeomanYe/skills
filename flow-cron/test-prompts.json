@@ -1,0 +1,17 @@
+[
+  {
+    "id": "p1",
+    "prompt": "我要把这 16 个 skill 全部演化一遍，估计要跨 6 个多小时、肯定撞 5h 额度。你帮我挂上 cron 自己跑，deadline 今晚 23:30 之前完事，额度过 90% 就跳过这一轮。我去忙别的了。",
+    "expected": "触发 flow-cron。Phase 0 一次性确认 4 项（任务可拆 ~30-40min/批、deadline=2026-06-08T23:30、budget threshold=90%、cron 频率），已给的值直接采纳不重复追问。Phase 1 写 <workspace>/.experiment-state/<task-id>/STATUS.md（含 deadline / budget 阈值 / 预算检测命令 / 工作目录 / cron job ID / 任务结构表 / pointer 字段）。配 cron 与删 cron 前走 user gate。Phase 2 配 cron（cc-connect cron add 或 crontab），cron prompt 自包含 4 步协议且用绝对路径（无 ~/）。Phase 3 必跑 smoke test（sentinel smoke_pending→smoke_ok 验证唤醒链路）后才进 Phase 4。Phase 4 跑第一批并更新 STATUS，回报 STATUS 路径 + cron job ID + smoke 结果 + 下次唤醒时间。"
+  },
+  {
+    "id": "p2",
+    "prompt": "This batch job will take about 4 hours and will likely hit the 5h budget limit. Set up a scheduled wake-up that resumes the work each time my quota recovers, and halt automatically if budget exceeds 95%. Schedule it to keep going across multiple windows.",
+    "expected": "匹配英文触发词（scheduled wake-up / budget gating / resume / halt if budget exceeds），触发 flow-cron。Phase 0 批量问清可拆性 / deadline / threshold（用户已给 95%）/ cron 频率，缺失项用默认（threshold=95%、频率 55 * * * *）并在报告里显式标注默认来源。落地 STATUS.md + 配 cron + 必跑 smoke test + 启动第一批 + halt 等下次唤醒。cron prompt 含 budget 检测命令、'命令失败当 100% 跳过' 的 failure mode、判停规则、自删 cron 与通知指令。报告含 cron job ID 与 smoke test 通过证据。"
+  },
+  {
+    "id": "p3",
+    "prompt": "帮我每天早上 6 点发一份 GitHub trending 给我就行。",
+    "expected": "不触发 flow-cron（这是一次性纯定时提醒，无续作业、无 STATUS 续作、无 budget/deadline gate）。agent 应说明本 skill 不适用，并建议直接用 cc-connect cron add --prompt（普通 recurring cron），不创建 STATUS.md、不配 budget gate、不跑 smoke test。"
+  }
+]

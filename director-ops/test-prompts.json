@@ -1,0 +1,17 @@
+[
+  {
+    "id": "p1",
+    "prompt": "帮我装一下 ripgrep",
+    "expected": "Triggers director-ops in mode=install. Runs Step 1 env check (uname -s -m, sw_vers, which ripgrep, package-manager probe incl. brew). Step 2 checks ~/Documents/knowledge/ripgrep-install.md first, then enumerates MULTIPLE candidate install methods (e.g. Homebrew and cargo) with pros/cons + a recommended one and reason — not just the first runnable command. Step 3 plan lists step type/command/risk/source. Step 4 shows plan and WAITS for explicit user confirmation before executing — no sudo/PATH changes before 'go'. After confirm: install, then Step 6 verify (rg --version + which rg + a basic rg run), then Step 7 writes ~/Documents/knowledge/ripgrep-install.md, then a Director-Ops Report with verdict/aggregate/tool/mode/version_installed/verify_pass/knowledge_path."
+  },
+  {
+    "id": "p2",
+    "prompt": "帮我卸载 macOS 上通过 Homebrew 装的 ghostty，先备份配置，确认没问题再删残留，记录到知识库",
+    "expected": "Triggers director-ops in mode=uninstall. Step 1 confirms ghostty actually present (command -v / brew list); if it can't confirm existence, gives a locate method instead of generating delete steps. Step 2 reads local knowledge (ghostty-uninstall.md then ghostty-install.md) and judges applicability to current macOS+Homebrew. Step 3 uninstall plan follows the destructive order: stop processes -> export version/state -> BACKUP config -> brew uninstall -> verify -> delete residue -> record; lists backup paths, retained data, optional-delete paths. Step 4 waits for explicit user confirmation. Execution backs up BEFORE uninstalling. Residue deletion happens ONLY after Step 6 verification passes (command -v ghostty empty, brew list shows no ghostty, /Applications + LaunchAgents checked). Step 7 writes ~/Documents/knowledge/ghostty-uninstall.md with time/version/backup path/deleted paths/verification. Outputs Director-Ops Report."
+  },
+  {
+    "id": "p3",
+    "prompt": "install bun on my mac",
+    "expected": "Triggers director-ops in mode=install. Step 1 env check (macOS arch, which bun, brew/npm/pipx probe). Step 2: even if 'brew search bun' returns nothing, does NOT fall back to recommending npm/curl alone — checks official docs and enumerates at least Homebrew official tap (brew tap oven-sh/bun + brew install bun), npm global, official install script, and direct binary/Docker if documented, each annotated with trust/OS fit/sudo/PATH/upgrade/uninstall/risk. Step 3 recommends a method (e.g. Homebrew official tap when brew present + user prefers maintainable install) with stated reasoning and notes upgrade=brew upgrade bun / uninstall=brew uninstall bun. Step 4 shows candidate comparison + recommendation and WAITS for explicit confirmation before running. After confirm: install, Step 6 verify (bun --version + which bun + basic run), Step 7 writes ~/Documents/knowledge/bun-install.md, then Director-Ops Report."
+  }
+]

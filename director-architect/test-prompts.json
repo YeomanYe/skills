@@ -1,0 +1,17 @@
+[
+  {
+    "id": "p1",
+    "prompt": "帮我梳理一下这个项目的工程规范，现在 RULE.md 和 ai/ 里几个 md 文件内容有点乱，规则放得到处都是",
+    "expected": "触发 director-architect，输入识别为 research+approval+land。Step 1 盘点现有规则文件（列出 RULE.md / ai/*.md 等路径并标注入口 vs 正文，带 [file:line] 证据）；Step 2 读元信息识别技术栈并产出明确 stack 列表；Step 3 扫本地 skill 目录动态匹配 best-practice skill（找不到的栈如实标'未覆盖'）；Step 4 跑联合评估并按 规范缺失/偏差/冗余/放错层 四类分类；Step 6 出目标结构（CONTRIBUTING.md 入口 + 分域，每域含 index.md+rules.md）+ 含决策记录段；进入 Approval Gate 输出方案+文件级 diff 预览并显式问'是否可以落地'，在收到明确 yes 前不写任何文件。"
+  },
+  {
+    "id": "p2",
+    "prompt": "audit a bit—审一下当前项目的规则结构有没有问题，先别动",
+    "expected": "触发 director-architect，输入识别为 research only（不进 land）。跑完 Step 1-6 research（无参考项目则跳过 Step 5），输出调研报告：盘点现有规则文档+证据引用、识别栈、联合评估四类问题分类、按 audit-rubric 给维度评分与 verdict。明确不进入 Land Phase、不写文件，也不追着用户要批准；结尾以建议形式提出'若要梳理/落地我再继续'。Output Contract 中 phase 为 research。"
+  },
+  {
+    "id": "p3",
+    "prompt": "按 shadcn-admin 那套规则结构来对齐我们这个项目（react + tailwind + shadcn-ui）",
+    "expected": "触发 director-architect，输入识别为 research(含镜像)+approval+land。Step 5 镜像检查触发：按 mirroring-checklist 分析参考项目（shadcn-admin）的目录骨架/分域，并与当前项目栈做兼容性对齐——栈一致故判定可大幅借鉴，但不直接 cp，方案明确写出'借鉴了什么 / 哪些不适用 / 为什么'。Step 6 产出目标结构（含 index.md/rules.md 双骨架）+ 决策记录；进入 Approval Gate 显式求批，未获明确 yes 前不落地、不执行 cp -r。"
+  }
+]

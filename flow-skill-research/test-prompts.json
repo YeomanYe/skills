@@ -1,0 +1,17 @@
+[
+  {
+    "id": "p1",
+    "prompt": "我想给 React/Next.js 前端项目找几个能帮我做组件拆分和性能优化的 agent skill,有没有现成的?帮我调研一下哪个值得装,先别装。",
+    "expected": "进入 flow-skill-research。Step1 提炼调研目标(领域=React/Next.js 前端,任务=组件拆分+性能优化)并扩展关键词(react/nextjs/frontend/performance/component/refactor)。Step2 先检查本地已安装 skill(会话 skill 列表 + ~/.agents/skills/ 等),读 SKILL.md 判断满足度而非只看目录名。Step3 用 `npx skills find` 至少 2 个关键词变体搜外部候选,保留搜索词。Step4 按来源可信度/安装量初筛,低 install/旧框架标低信心。Step5 读入围候选真实 SKILL.md 内容(不为查看而安装)。Step6 输出含本地检查结果+搜索词+候选表+每个推荐的具体证据点(哪些触发条件/流程/references 匹配需求)+安装命令,但默认不执行安装。"
+  },
+  {
+    "id": "p2",
+    "prompt": "find-skills 里那个排第一的 deno fresh 的 skill,里面到底写了什么?能不能真满足我做 Preact SSR 的需求,别光给我看搜索摘要。",
+    "expected": "进入 flow-skill-research,聚焦 Step5 读取真实内容。明确不能只复述 `npx skills find` 摘要/标题/安装量,必须读取候选真实 SKILL.md(从已安装目录/临时 clone 到 /tmp/可信原始页面),提炼触发条件、核心流程、是否带脚本/references/assets、适用场景、能满足 Preact SSR 的具体条目、未覆盖项与版本/生态风险。区分直接匹配 vs 相邻匹配(不把 deno/fresh 相邻技术栈说成 Preact SSR 直接匹配)。未明确要求安装时不安装。"
+  },
+  {
+    "id": "p3",
+    "prompt": "帮我看看现在生态里有没有适合自动写飞书发布文档的 skill,如果没有靠谱的我就自己搓一个。",
+    "expected": "进入 flow-skill-research。先 Step2 本地检查(可能命中本地 release-doc 类 skill,若强匹配优先推荐本地并说明无需安装),再 Step3 搜外部候选并初筛+Step5 读真实内容。Step6 给结论:若有强匹配则给证据点+安装命令(默认不装);若无可靠候选,明确说'未找到可靠候选'而不是凑数推荐,并进入 Handoff 转交 flow-skill-dev,handoff 内容含调研目标/已搜关键词/为何现有候选不够/新 skill 应覆盖的触发条件与边界。"
+  }
+]

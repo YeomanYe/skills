@@ -1,0 +1,17 @@
+[
+  {
+    "id": "p1",
+    "prompt": "在 features/checkout/ 下帮我加一个 PriceSummary 组件，显示小计、运费和总价",
+    "expected": "Triggers director-frontend in implement mode. Agent first runs Step 1 project-convention probe (component dir / naming / state mgmt / className tool cn|cva|clsx / styling Tailwind|CSS-Modules / design tokens / existing UI deps) and looks for reusable existing components BEFORE writing any code; passes Step 0 question gate (one round, <=3 questions with defaults, or proceeds if unambiguous); writes the actual PriceSummary JSX/TSX file following the detected project conventions (not a generic shadcn/clsx template); then self-runs the 9-dimension audit checklist as post-write review (every dimension marked [check] or [n/a], scored 1-5) and produces an Output Contract with mode=implement, files_touched listing the real file, aggregate score, and verdict. Does NOT skip Step 1 probe, does NOT skip post-write audit, does NOT just hand back a spec without writing code."
+  },
+  {
+    "id": "p2",
+    "prompt": "看下我这段 React 组件写得怎么样，有没有要改的地方",
+    "expected": "Triggers director-frontend in audit mode. Agent runs Step 1 to detect project conventions/strength, then scores all 9 audit dimensions (Boundary Clarity, Layer Placement, Local Convention Fit, API Consistency, State Design, Style Organization, Props Design, Reuse Evidence, AI Slop) each 1-5 with each dimension marked [check] or [n/a] and every score below 4 backed by concrete [file:line + snippet] evidence; computes aggregate and maps to a verdict (ready / ready-with-fixes / needs-revision / needs-rewrite); outputs findings split into must-fix and should-fix. Does NOT modify the code (audit mode only judges). Honors the priority rule (project convention > existing impl > stack > external ref) when suggesting fixes rather than blindly applying shadcn/antd patterns."
+  },
+  {
+    "id": "p3",
+    "prompt": "This AI-generated landing page is one giant 300-line component, can you split it into proper components?",
+    "expected": "Triggers director-frontend in extract mode (running boundaries first to produce candidates). Agent runs Step 1 convention probe, then applies the focus-outward discovery method to find candidate component boundaries (e.g. HeroSection / FeatureGrid / PricingSection / FinalCTASection), classifies each into the 4-layer model (primitive / shared / business / page-local) with page-section components kept page-local and shared only with >=2 real reuse evidence, then performs the real file migration and verifies no circular import boundaries and intact interaction states, finishing with a self-run audit review. Output Contract has mode=extract with boundaries_extracted listing the component names and files_touched. Does NOT promote a single-use component into shared/, does NOT put business components into components/ui/."
+  }
+]

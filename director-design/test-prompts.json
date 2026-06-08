@@ -1,0 +1,17 @@
+[
+  {
+    "id": "p1",
+    "prompt": "帮我从设计师角度看下这个 popup 截图怎么样，像不像专业产品？[附截图]",
+    "expected": "Triggers director-design in mode=audit. Records evidence as screenshot + viewport (not code-only). Self-runs the 9-dimension audit checklist (信息层级/布局密度/字体/色彩/组件一致性/交互状态/响应式/产品气质/完成度) WITHOUT delegating to huashu-design; each dimension scored 1-5 with <4 producing fix suggestions. Outputs Output Contract JSON with verdict (one of pass/pass-with-fixes/needs-redesign/blocked), aggregate score, must_fix/should_fix lists, evidence_paths, and a delegation note saying '自做 (all 9 dimensions)' rather than 'not invoked'. Does NOT write production React/CSS."
+  },
+  {
+    "id": "p2",
+    "prompt": "这个 dashboard 想换个风格，给我出 3 个不同的设计方向看看。",
+    "expected": "Triggers director-design in mode=variants. Probes project design system (tailwind.config/theme/tokens) first. Dispatches 3 parallel huashu-design subagents (variant-1/2/3), each subagent prompt explicitly states '必须调用 huashu-design' and writes to its own .agent/jobs/variant-N/ dir. Orchestrator goes idle then reduces into a variants report. The 3 directions are genuinely differentiated across >=2 dimensions (layout/info-hierarchy/style), NOT just different accent colors. Does NOT skip variants to produce a mockup directly. Output Contract lists all 3 delegations with per-variant output paths."
+  },
+  {
+    "id": "p3",
+    "prompt": "out a mockup for the second direction — give me an eff/效果图 I can show the team.",
+    "expected": "Triggers director-design in mode=mockup (user has already chosen a direction, so skipping variants is allowed). Calls huashu-design for an HTML prototype (or web-image for a fixed-size image), then dispatches parallel screenshot subagents across viewports 375/768/1024/1440, each subagent prompt explicitly invoking agent-browser. Output Contract includes mockup_path, viewport_covered list, and delegation entries for huashu-design + screenshot subagents. Does NOT hand off to or call frontend-design/director-frontend to write production code."
+  }
+]
