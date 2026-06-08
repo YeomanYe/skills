@@ -163,24 +163,34 @@ cc-connect cron del $self_id
 
 ## burn-prompt.md 必含元素
 
+**关键**:burn agent **必须最大化并发**,串行跑 1 个 sub-agent 浪费 99% 的 5h budget。
+设计意图是"把尾巴 burn 干净",所以 prompt 必须强制并发。
+
 ```md
-[<task-id> burn] 你被 cron 在 5h 窗口尾巴的 20 min 内唤起,跑 1 batch <任务>。
+[<task-id> burn] 你被 cron 唤起,**立刻最大化并发干活**。
 
 ## 硬约束
-- 5h util 任何时刻 ≤ 95(每完一段子任务自检 1 次,接近 95 立即停手 + commit)
+- shell 已经判过触发条件,你不要二次 skip(util 低不是停手的理由)
+- 5h util 任何时刻 ≤ 95(每完一段自检,接近 95 立即停手 + commit)
 - 本轮工作 ≤ 18 min
-- 只跑 1 batch(per STATUS.md 当前 pointer)
+- **最大化并发**:每次 burn 4-6 个 Agent tool 并发 sub-agent(目标 util 从 ~80% 推到 ~93%)
 
-## 4 步
-1. Read <workspace>/.experiment-state/<task>/STATUS.md → 看当前 pointer
-2. 跑 pointer 的"下一步动作"
-3. 更新 STATUS pointer(完成的标 ✅,推进到下个)
-4. git commit(若 workspace 是 git);写 burn-output.log 终止前一行 summary
+## 3 步
+1. Read STATUS + budget cmd 看初始 util
+2. **并发 dispatch**:
+   - 1 关键路径任务(当前 pointer skill 的当前 round)
+   - 3-5 个并行无依赖任务(其他 pending skill 的 Phase 0.5 test-prompts 设计)
+   - 同消息内多 Agent tool call → 真并发
+3. 收尾:全 done → commit + 更新 STATUS
 
-## 预算自检
+## 反例补 2 条(本预设独有)
+9. ❌ 串行跑 1 个 sub-agent 就收手 → 浪费 5h 尾巴
+10. ❌ 多 sub-agent 改同 1 skill 同 1 维 → race + 违反 huashu 规则 5
+
+## 预算自检(每完一段并发批跑 1 次)
 node /Users/falcom/Documents/projects/node-scripts/dist/claude-usage/index.js --json | python3 -c "
 import json,sys; print(json.load(sys.stdin)['fiveHour']['utilization'])
-" → 输出 ≥ 95 立即停手 + commit + exit
+" → 输出 ≥ 93 立即停手 + commit(留 2% 安全垫到 hard cap 95)
 ```
 
 ## 配 cron 的具体命令(供 bootstrap 用)
