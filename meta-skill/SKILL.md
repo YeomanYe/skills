@@ -111,8 +111,13 @@ read-only 动作(读 `package.json` / `git log -1` / `skillshare list --json` / 
 ### Step 3 — 计算 globally_active
 
 ```bash
+# skillshare list --json 返回的是**扁平数组**(无 .skills 键),每项 keys:
+# disabled / kind / name / relPath / repoName。
+# .name 带 source 前缀(如 _YeomanYe-skills__meta-skill / _HKUDS...__skills__cli-hub),
+# 前缀形态不统一;**最干净的 leaf skill 名 = relPath 的 basename**,直接用它。
 skillshare list --json 2>/dev/null \
-  | jq -r '.. | .skills? // empty | .[]?.name' \
+  | jq -r '.[] | select(.disabled | not) | .relPath' \
+  | sed 's#.*/##' \
   | sort -u
 ```
 
@@ -185,10 +190,30 @@ halt 时**不留任何 fs 残留**(plan 只在对话里,没落盘任何文件)�
 
 #### 6.1 建 symlink
 
+source 解析**必须**和 `references/prepare-sh-template.sh` 的 `resolve_source()` 一致:
+`skillshare list --json` 是**扁平数组**,每项只有 `disabled/kind/name/relPath/repoName`(**无 `.path`**)。
+leaf skill 名 = `relPath` 的 basename;真实 source 目录 = `$SKILLSHARE_ROOT/<relPath>`
+(`SKILLSHARE_ROOT` 默认 `~/.config/skillshare/skills`)。**不要**再用 `realpath ~/.config/skillshare/skills/<source>/$skill` 这种猜前缀的旧写法。
+
 ```bash
+SKILLSHARE_ROOT="${SKILLSHARE_ROOT:-$HOME/.config/skillshare/skills}"
 mkdir -p <project>/.claude/skills <project>/.codex/skills <project>/.agents/skills
+
+# 与 prepare.sh 同一 resolver:用 relPath 重建真实 source 路径
+resolve_source() {
+  local name="$1" relpath path
+  relpath=$(skillshare list --json 2>/dev/null \
+    | jq -r --arg n "$name" '.[] | select((.relPath | sub(".*/"; "")) == $n) | .relPath' \
+    | head -1)
+  [[ -n "$relpath" ]] || return 1
+  path="$SKILLSHARE_ROOT/$relpath"
+  [[ -d "$path" ]] && { echo "$path"; return 0; }
+  return 1
+}
+
 for skill in $delta; do
-  src=$(realpath ~/.config/skillshare/skills/<source>/$skill)
+  src=$(resolve_source "$skill" || true)
+  if [[ -z "$src" ]]; then echo "errors[]: source 推断失败,跳过 $skill" >&2; continue; fi
   for target_dir in .claude/skills .codex/skills .agents/skills; do
     dst=<project>/$target_dir/$skill
     if [[ -L $dst ]]; then continue; fi          # 已是 symlink → 跳
@@ -198,7 +223,9 @@ for skill in $delta; do
 done
 ```
 
-`<source>` 由 `skillshare list --json` 给出(每个 skill 来自哪个 source repo,如 `_YeomanYe-skills`)。
+> source 路径**只**经 `relPath` 重建,与 `prepare.sh` 的 `resolve_source()` 单一写法,
+> 不再有"主体伪码 vs reference 双写法"漂移。`prepare.sh` 多一层 `SKILLSHARE_ROOT` 目录扫描兜底
+> (新机器 CLI 可能缺失),apply 阶段 CLI 必在,故此处只保留 CLI 路径。
 
 #### 6.2 写 sentinel 段
 

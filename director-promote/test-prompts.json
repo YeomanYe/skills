@@ -1,0 +1,17 @@
+[
+  {
+    "id": "p1",
+    "prompt": "帮我把这个项目宣传一下，发到 v2ex 和 Twitter。项目就在当前目录，README 里有介绍。",
+    "expected": "触发 director-promote。先 Step 1 收集材料（读 README/package.json/项目内 hero 图），Step 0 Q gate 一轮 ≤3 问澄清（如 v2ex 节点 create/share、配图选哪张）。因有明确发布意图但有多平台，进 draft→（按需）audit→dispatch；不得跳过 audit 直接 dispatch（除非用户明示材料 OK）。dispatch 串行不并行，每平台先填表→调 playwriter 出预览→等用户确认→才发，绝不擅自点最终发布。Twitter 与 v2ex 必须出差异化稿（不一稿通发）。文案避开"神器/碾压/革命性"等营销词。最后按 Output Contract 输出 9 维评分 + 各平台 dispatch_receipts(URL/状态/预览截图) + 委派记录。"
+  },
+  {
+    "id": "p2",
+    "prompt": "给我这个工具写几个不同调性的推广文案，正经技术向、调皮大众向都来一版，让我挑。",
+    "expected": "触发 director-promote，mode=variants。先收集材料 + Q gate（如目标平台、variants 路数，带默认值）。并行派 2-3 路 subagent（每路独立目录 .agent/jobs/promote-variant-N/），每路出一个真正差异化的调性版本——标题/开头/结构/语气至少 2 维不同，禁止只换 emoji 或 hashtag。每路以 9 维 audit checklist 为评分基线，严守目标平台字符/格式限制。subagent 是 Claude 不是 Codex。orchestrator 派工后 idle，collect-all 汇总成 variants 报告，单路失败不阻塞其他。不擅自把调性拉成过度营销。最终返回多版本供用户挑选。"
+  },
+  {
+    "id": "p3",
+    "prompt": "我这个 Chrome 扩展准备上架，帮我把商店要的促销图、截图和描述文案做出来。",
+    "expected": "触发 director-promote，draft 模式生成 Chrome Web Store 上架素材（生成素材但不执行上架——上架是 flow-ext-publish 的活）。按 references/chrome-store-assets.md spec 派 director-design subagent（显式指挥 invoke，mode=mockup）：promo tile 440×280/920×680/1400×560 且必含真实截图、1-5 张截图至少 1 张 1280×800 且多张必须差异化（功能/场景/取景≥2 维不同）、icon 128×128、short_description ≤132 字符 + long_description。素材写盘到 .agent/promote-handoff/<task-id>/store-assets/chrome/，显式标记"交付目标=flow-ext-publish，本 skill 不执行上架"，并把路径返回上游。图片零敏感信息、原始素材不拉伸失真。"
+  }
+]

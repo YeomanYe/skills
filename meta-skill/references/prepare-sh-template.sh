@@ -60,14 +60,20 @@ resolve_source() {
   local name="$1"
 
   # 1. skillshare CLI (preferred)
+  # skillshare list --json is a FLAT array; each item has keys:
+  # disabled/kind/name/relPath/repoName (NO .path). The real source dir is
+  # $SKILLSHARE_ROOT/<relPath>, and the leaf skill name = basename of relPath.
   if command -v skillshare &>/dev/null && command -v jq &>/dev/null; then
-    local path
-    path=$(skillshare list --json 2>/dev/null \
-      | jq -r --arg n "$name" '.. | objects | select(.name? == $n) | .path? // empty' \
+    local relpath path
+    relpath=$(skillshare list --json 2>/dev/null \
+      | jq -r --arg n "$name" '.[] | select((.relPath | sub(".*/"; "")) == $n) | .relPath' \
       | head -1)
-    if [[ -n "$path" && -d "$path" ]]; then
-      echo "$path"
-      return 0
+    if [[ -n "$relpath" ]]; then
+      path="$SKILLSHARE_ROOT/$relpath"
+      if [[ -d "$path" ]]; then
+        echo "$path"
+        return 0
+      fi
     fi
   fi
 
