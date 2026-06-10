@@ -254,7 +254,7 @@ uninstall 计划必须额外列出：需备份的路径、需保留的数据、�
 
 ### Step 6.5 — 7 维 Quality Audit + Verdict 映射
 
-按 `references/audit-rubric.md` §2 跑 7 维基线评分。本 skill install/uninstall 锚点重定义:
+按 `references/audit-rubric.md` §2 跑 7 维基线评分。详细 7 维 1/3/5 锚点 + 每维 must-fix 触发条件见 `references/ops-principles.md`。本 skill install/uninstall 锚点重定义(摘要):
 
 - 维度 1(scope)→ 环境探测充分性: 1=只跑 1 命令 / 3=核心 3 项 / 5=系统+包管理器+冲突全查
 - 维度 4(可执行性)→ 用户确认清晰度: 1=模糊确认 / 3=用户明确同意 / 5=明确同意+理解 sudo/破坏影响
@@ -418,3 +418,4 @@ uninstall: 无法确认目标存在 / 目录含用户数据 / 非 macOS 资料�
 - 测试用例在 `tests/cases.md`
 - 本地知识与引文规则在 `references/knowledge-and-citation.md`
 - 知识库记录模板（装 / 卸两套）在 `references/record-template.md`
+- 7 维 audit 详细 1/3/5 锚点在 `references/ops-principles.md`

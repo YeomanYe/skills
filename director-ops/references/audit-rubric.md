@@ -137,6 +137,8 @@ experience-summary 不强制每次都跑 rubric——judgment-tree 是主路径,
 
 各 skill 的 SKILL.md "Audit Checklist" 段因此从 ~30-60 行压缩到 ~15-20 行。详细领域锚点全部下沉到该 skill 的 `references/<role>-principles.md`。
 
+> 本 skill(director-ops)的 `<role>` = `ops`,详细 7 维 1/3/5 锚点见 `references/ops-principles.md`。
+
 ## 8. 反模式(maintainer 红线)
 
 - **改基线维度名 / 编号** → 失去跨 skill 对齐意义,违反者退回
