@@ -24,7 +24,7 @@ description: >
 - 先用 preflight 查出所有待完成项
 - 对缺失的商店营销位图默认直接进入补齐分支，并将固定尺寸网页出图工作路由给 `web-image`
 - 在所有缺口补齐前阻止发布
-- 用户明确确认生成结果和剩余缺口后，按顺序执行上架：Firefox AMO → Edge → Chrome Web Store
+- 用户明确确认生成结果和剩余缺口后，整理好分平台 payload 并**停在上架闸门**；只有用户再明确授权「自动上传 / 一把梭 / 直接提交」时，才按顺序真正上架：Firefox AMO → Edge → Chrome Web Store
 
 ## 角色信条
 
@@ -103,9 +103,17 @@ Chrome 最宽松放最后,前面踩的坑这边已经修了。**不要按"用户
 
 ## Execution Default
 
-默认一路推进到「已补齐可自动生成的营销素材、Step 3 用户明确确认后，直接执行分平台上架并输出最终报告」。
+默认一路推进到「已补齐可自动生成的营销素材、Step 3 用户明确确认素材就绪后，进入 Step 4 **填好分平台 payload 并停在上架闸门**，输出最终报告」。
 
-在缺失项补齐 + 用户明确确认自动生成素材和剩余缺口前，不得进入 Step 4。
+**两道闸门，缺一不可：**
+
+1. **Step 3 素材确认闸门**：在缺失项补齐 + 用户明确确认自动生成素材和剩余缺口前，不得进入 Step 4。
+2. **Step 4 上架闸门（安全默认）**：实际向商店提交（调 store API / 带 OAuth 的上传 / Playwriter / agent-browser 点提交）是**高风险动作**，需用户**明确**授权。Step 3 的「素材可用」确认**不等于**授权实际上传。
+   - **默认**：Step 4 只 build + `web-ext lint` + 填好每个平台的 payload（信息、素材路径、zip 路径），然后**停在上架闸门**，输出 payload + 报告，并问用户是否要实际提交。
+   - **仅当**用户明确说「自动上传 / 一把梭 / 调 API / 直接提交到商店 / 帮我发上去」这类无歧义授权时，才越过上架闸门，按 Firefox AMO → Edge → Chrome 顺序真正提交并收集审核 ID。
+   - 含糊回应（嗯 / ok 吧 / 随便 / 继续）既不算 Step 3 确认，也不算上架授权。
+
+若用户最初的请求里已含无歧义的「准备好就直接提交 / publish it / 最后提交上去」这类全自动授权，可在 Step 3 确认后连同上架闸门一并越过——但越过的依据必须是用户原话里的明确授权，而非自行推断。
 
 ## Required Workflow
 
@@ -114,10 +122,10 @@ Chrome 最宽松放最后,前面踩的坑这边已经修了。**不要按"用户
 1. 运行 `ext-preflight`
 2. 分类缺失项 → 可补齐的位图交给 `web-image` / 素材不足项列入 user-must-provide / 非图片列入 checklist
 3. 输出已生成素材 + 缺口清单 → 等待用户明确确认「生成结果可用且全部就绪」
-4. 执行上架：填写信息 + 提交，顺序为 **Firefox AMO（Playwriter）→ Edge（Playwriter）→ Chrome（agent-browser --profile Default）**
+4. 整理 payload + 停在上架闸门：build + `web-ext lint` + 填好每平台 payload（信息 / 素材 / zip）；**默认到此停下**输出 payload。**仅当**用户明确授权「自动上传 / 一把梭 / 直接提交」时，才越过闸门，按 **Firefox AMO（Playwriter）→ Edge（Playwriter）→ Chrome（agent-browser --profile Default）** 顺序真正提交
 5. 输出最终报告
 
-Step 3 前不得进入 Step 4。不允许「看起来都 OK」就自己补全再提交。
+Step 3 前不得进入 Step 4。不允许「看起来都 OK」就自己补全再提交。**无明确上架授权时，Step 4 止于填好 payload，不实际调用任何 store API / OAuth 上传 / 浏览器点提交。**
 
 ## Step 1: 运行 preflight
 
@@ -285,9 +293,25 @@ orchestrator 派 A 路 + C 路并行后**进入 idle**，等所有 A 路 subagen
 
 收到用户明确回复「某项还没好」「这张图要改」或「先不发 X 平台」时，更新素材或 payload 范围，再次等待确认；不要跳过。
 
-## Step 4: 执行上架（填写信息 + 提交）
+## Step 4: 整理 payload + 上架闸门（填写信息 → 闸门 → 提交）
 
-Step 3 用户明确确认后，直接进入本步骤，不需要再次征询授权。
+Step 3 用户明确确认素材后进入本步骤。本步骤分两段，**中间有一道上架闸门**：
+
+### Step 4a：整理 payload（默认止步于此）
+
+无论是否会实际提交，先做这些无副作用的准备：
+
+- build 产物 + `web-ext lint`（允许执行）
+- 对每个目标平台填好 payload：商店信息（name / description）、素材路径（icon / screenshots / promo tiles，均来自 Step 2/3 确认清单）、category、privacy policy URL、permissions justification、zip 路径
+- 若 `package.json` 有 `release:chrome` 之类发布脚本，优先复用，不自己拼上传命令
+
+**默认到此停下**：输出整理好的 payload + Step 5 报告，并明确询问用户「是否要我现在实际提交到商店？（这会真正调用上传 / 浏览器自动化）」。**此时不得**执行任何 store API、带 OAuth 的上传命令、或用 Playwriter / agent-browser 点提交。
+
+### Step 4b：实际提交（仅在明确上架授权后）
+
+**仅当**用户明确说「自动上传 / 一把梭 / 调 API / 直接提交 / publish it / 帮我发上去」这类无歧义授权（或最初请求里已含此类全自动授权）时，才越过上架闸门执行实际提交。含糊回应（嗯 / ok 吧 / 继续 / 随便）不算授权，应再次澄清。
+
+越过闸门后，按下述提交顺序与工具路由真正提交。
 
 ### 提交顺序
 
@@ -425,7 +449,11 @@ Step 3 用户明确确认后，直接进入本步骤，不需要再次征询授�
 - 非图片缺口: ...
 
 ### 提交情况
-- <平台>: 已准备 payload / 已提交（<ID>）/ 已跳过（<原因>）
+- <平台>: payload 已就绪待授权上架 / 已提交（<ID>）/ 已跳过（<原因>）
+
+### 上架闸门
+- <未授权时>: payload 已整理完毕，是否要我现在实际提交到商店？（这会真正调用上传 / 浏览器自动化）
+- <已授权时>: 已按 Firefox → Edge → Chrome 顺序提交，审核 ID 见上
 
 ### 遗留
 - 待用户跟进: ...
@@ -450,6 +478,8 @@ Step 3 用户明确确认后，直接进入本步骤，不需要再次征询授�
 
 - 跳过 Step 3 的用户确认直接进入 Step 4
 - 把含糊回应（嗯 / ok 吧 / 随便）当作 Step 3 确认
+- **在用户未明确授权「自动上传 / 一把梭 / 调 API / 直接提交」时，越过 Step 4 上架闸门实际调用 store API / OAuth 上传 / Playwriter / agent-browser 点提交**（默认只整理 payload 并停下）
+- 把 Step 3 的「素材可用」确认当作实际上架授权（两道闸门是独立的）
 - 用 Playwriter 提交 Chrome Web Store（Google 拦截自动化）
 - 用 agent-browser 提交 Firefox AMO 或 Edge（Firefox / Edge 固定走 Playwriter）
 - 颠倒提交顺序（必须 Firefox → Edge → Chrome）
@@ -470,13 +500,22 @@ Step 3 用户明确确认后，直接进入本步骤，不需要再次征询授�
 
 ## 完成判定
 
-同时满足以下条件才算本次编排完成：
+编排有两种合法终态，取决于用户是否给出明确上架授权：
+
+**终态 A — 停在上架闸门（默认，无明确上架授权时）：**
 
 - 已运行 preflight（或明确降级）
 - 已分流缺失项并生成 / 整理所需素材
 - 已收到用户对 Step 3 素材和缺口的明确确认
+- 已对所有目标平台填好 payload（信息 / 素材路径 / zip），并执行了 build + `web-ext lint`
+- **未**调用任何 store API / OAuth 上传 / 浏览器点提交
+- 已输出最终报告，报告里把各平台标为「payload 已就绪，待用户授权后提交」，并明确询问是否要实际上架
+
+**终态 B — 已实际提交（仅在用户明确授权「自动上传 / 一把梭 / 直接提交」后）：**
+
+- 满足终态 A 的全部素材 / 确认前提
 - 已按顺序（Firefox → Edge → Chrome）对所有目标平台执行填写 + 提交，或记录了跳过原因
 - Firefox AMO 若在目标平台内，已验证「图像」区存在 icon 和已确认截图，或明确记录为用户手动补齐项
 - 已输出最终报告（含各平台审核 ID 或手动跳过说明）
 
-若用户在 Step 3 或 Step 4 暂停任务，报告中如实记录停在哪一步。
+若用户在 Step 3 或 Step 4（含上架闸门）暂停任务，报告中如实记录停在哪一步。
