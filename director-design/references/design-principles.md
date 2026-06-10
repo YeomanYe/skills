@@ -149,14 +149,16 @@ aggregate = sum(应用维度分数) / 应用维度数
 
 **verdict 判定**：
 
+**单一真相源**：band 边界与标签以 `SKILL.md`「Aggregate → Verdict 映射」段为准（与 `references/audit-rubric.md` §4.1 的 director-design 列一致）。本文件**不再重列**该表以避免漂移。速记（权威定义见上述两处）：
+
 | aggregate | verdict |
 |---|---|
-| ≥ 4.5 | pass |
-| 4.0 - 4.5 | pass-with-fixes |
-| 3.0 - 4.0 | needs-direction |
-| < 3.0 | needs-redesign |
+| ≥ 4.5 | `pass` |
+| 4.0 - 4.4 | `pass-with-fixes` |
+| 3.0 - 3.9 | `needs-redesign` |
+| < 3.0 | `blocked` |
 
-**任一维度 ≤ 2/5** → 即使 aggregate 高，verdict 降级为 needs-redesign（局部塌方）。
+**任一维度 ≤ 2/5** → 即使 aggregate 高，verdict 降级为 `needs-redesign`（局部塌方）。详细降级红线见 SKILL.md「本 skill 红线触发」。
 
 ---
 
