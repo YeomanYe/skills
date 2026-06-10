@@ -22,6 +22,8 @@ description: >
 每个 director-* 都是一个"虚拟专家角色"：专业判断 + 调度自己领域的工具，
 但**不越界到其他角色的领地**。详见顶层 [README.md](../README.md) 的 director-* 段。
 
+**命名 tie-break（路由唯一标识）**：本 skill 作为路由/角色入口，被引用时以 frontmatter `name`（`director-design`）为唯一权威标识；若目录名与 frontmatter `name` 不一致，**以 frontmatter `name` 为准**，目录名仅作文件系统定位。
+
 ## Overview
 
 `director-design` 是"设计师"角色——给定设计任务，**先判断真实诉求**（审查 / 出方向 /

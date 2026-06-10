@@ -47,8 +47,8 @@ Prompt：
 - mode: handoff
 - 写设计 spec 到 `.agent/design-handoff/<task-id>/spec.md`
 - 输出路径回传给 orchestrator
-- **不调用** flow-jsx-ui 或 frontend-design（只交付，不实现）
-- "Next Step" 明示 "handoff 给 flow-jsx-ui"
+- **不调用** director-frontend 或 frontend-design（只交付，不实现）
+- "Next Step" 明示 "handoff 给 director-frontend"
 
 ### T5. 触发关键词覆盖
 
@@ -71,14 +71,14 @@ Prompt：
 Prompt：
 > 这个组件命名规范吗 / props 接口设计合理吗。
 
-预期：**不**触发，路由给 `jsx-ui-audit`。
+预期：**不**触发，路由给 `director-frontend`。
 
 ### N3. JSX UI 工程实现不触发
 
 Prompt：
 > 帮我实现这个 React 组件。
 
-预期：**不**触发，路由给 `flow-jsx-ui`。
+预期：**不**触发，路由给 `director-frontend`。
 
 ### N4. 纯后端 / API 不触发
 
@@ -92,7 +92,7 @@ Prompt：
 Prompt：
 > 直接按这个 mockup 实现，不用设计审查。
 
-预期：**不**触发，进 flow-jsx-ui 或 flow-dev-task。
+预期：**不**触发，进 director-frontend 或 flow-dev-task。
 
 ## 主流程
 
@@ -119,7 +119,7 @@ Prompt：
 预期：
 - evidence: code-only
 - 不下"设计通过"结论
-- Output Contract verdict: needs-direction（需要补证据）
+- Output Contract verdict: needs-redesign（需要补证据）
 - Red Flag 命中
 
 ### G2. 9 维度有维度跳过但不标 n/a → STOP
@@ -142,7 +142,7 @@ Prompt：
 
 场景：handoff 时本 skill 顺手调 frontend-design。
 
-预期：越界，Red Flag 命中。frontend-design 由 flow-jsx-ui 接手或用户直接调。
+预期：越界，Red Flag 命中。frontend-design 由 director-frontend 接手或用户直接调。
 
 ### G6. 用 ui-ux-pro-max 推荐覆盖项目 tokens → STOP
 
@@ -194,7 +194,7 @@ Prompt：
 4. ✅ 委派情况段真实记录（不允许"全部 not invoked"+ Output 还有完整 findings）
 5. ✅ 9 维度每个都 [✓ + 评分] 或 [n/a + 原因]
 6. ✅ aggregate 按 references/design-principles.md 公式计算
-7. ✅ verdict 4 选 1（pass / pass-with-fixes / needs-redesign / needs-direction）
+7. ✅ verdict 4 选 1（pass / pass-with-fixes / needs-redesign / blocked，权威定义见 SKILL.md / audit-rubric §4.1）
 8. ✅ findings 含 must-fix / should-fix 区分
 9. ✅ Next Step 推荐明确
 10. ✅ 不在职责内段明确告知 orchestrator handoff 出口
