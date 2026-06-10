@@ -155,7 +155,9 @@ if grep -q '^\s*-?\s*terminated_at:' STATUS.md:
     exit 0
 
 # 1. budget check (pure shell, 0 LLM)
-util, remaining = parse(claude-usage --json)
+# ⚠️ JSON 只有 .fiveHour.utilization + .fiveHour.resetsAt(camelCase),没有 remaining_minutes!
+# remaining 要自己算: (resetsAt - now_utc) / 60。一行实现见 budget-gate.md「算 remaining_min」。
+util, remaining = parse_budget()   # util=.fiveHour.utilization; remaining=(resetsAt-now)/60
 
 # 2. skip 规则
 util > 95         → log skip=safety-cap;      self-delete; exit
