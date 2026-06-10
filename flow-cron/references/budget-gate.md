@@ -13,25 +13,48 @@
 node ~/Documents/projects/node-scripts/dist/claude-usage/index.js --json
 ```
 
-输出 JSON 结构:
+输出 JSON 结构(**实测真实 schema**,以此为准):
 ```json
 {
   "fiveHour": {
     "utilization": 87,
-    "remaining_minutes": 38,
-    "resets_at": "2026-06-03T10:50:00Z"
+    "resetsAt": "2026-06-03T10:50:00Z"
   },
   "weekly": { ... }
 }
 ```
 
-**解析方法**:
+⚠️ **schema 陷阱**:真实输出**只有** `fiveHour.utilization`(number,百分比)和 `fiveHour.resetsAt`(ISO 时间戳,**camelCase**)。
+**没有** `remaining_minutes`,**也不是** `resets_at`(snake_case)。
+需要"剩余分钟数"时**必须自己算**:`remaining_min = (resetsAt - now_utc) / 60`。
+任何引用 `remaining_minutes` / `resets_at` 字段的旧 snippet 都是坏的,会读出 `None` / 报 KeyError。
+
+**解析 util(判停只需要 util)**:
 ```bash
 # 用 jq
 util=$(node <path>/claude-usage/index.js --json | jq -r '.fiveHour.utilization')
 
 # 或 python3
 util=$(node <path>/claude-usage/index.js --json | python3 -c "import json,sys;print(json.load(sys.stdin)['fiveHour']['utilization'])")
+```
+
+**算 remaining_min(从 `resetsAt` 自己算,不要找 `remaining_minutes` 字段)**:
+```bash
+# 一行出 util 和 remaining_min(整数分钟,向下取整);命令失败时不输出 → 调用方按 fail-safe 处理
+node <path>/claude-usage/index.js --json | python3 -c '
+import json, sys, datetime as dt
+d = json.load(sys.stdin)["fiveHour"]
+util = int(d["utilization"])
+resets = dt.datetime.fromisoformat(d["resetsAt"].replace("Z", "+00:00"))
+now = dt.datetime.now(dt.timezone.utc)
+remaining_min = int((resets - now).total_seconds() // 60)
+print(util, remaining_min)
+'
+# 输出形如: 87 38   →  util=87, remaining_min=38
+
+# 纯 jq 版(只算 remaining_min):
+node <path>/claude-usage/index.js --json | jq -r '
+  ((.fiveHour.resetsAt | fromdateiso8601) - now) / 60 | floor'
 ```
 
 **判停**:
