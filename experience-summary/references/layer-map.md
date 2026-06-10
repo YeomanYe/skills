@@ -1,10 +1,10 @@
-# Layer Map —— 11 个出口完整说明
+# Layer Map —— 12 个出口完整说明
 
 > 本文档是 `experience-summary` 的层级出口字典。每层定义 = **叙事模板** + 性质 + 该放什么 + 不该放什么 + 写在哪里 + 写完后续动作。
 >
 > **叙事模板**用于 SKILL.md Step 5 输出契约的【一句话沉淀】行 — 不带技术细节、用户口语可读、3 槽位(X 做了什么 / Y 变成了什么载体 / Z 沉淀到哪个概念位置)。
 
-## 11 层叙事模板速查
+## 12 层叙事模板速查
 
 | 出口 | 一句话叙事模板(X→Y→Z) | 套用例子 |
 |---|---|---|
@@ -18,7 +18,8 @@
 | L6 director-* | 把**<某个领域的专业判断>**变成了**专家角色**,沉淀到了**领域专家库** | 把"图片合规审查 9 维"变成了宣发专家的能力,沉淀到了领域专家库 |
 | L7 flow-* | 把**<多步任务的标准流程>**变成了**编排步骤**,沉淀到了**流水线库** | 把"扩展上架的 12 步"变成了编排步骤,沉淀到了流水线库 |
 | L8 CLAUDE.md/AGENTS.md | 把**<每次会话都该知道的项目知识>**变成了**启动手册**,沉淀到了**项目说明书** | 把"本项目用 pnpm"变成了启动手册的一条,沉淀到了项目说明书 |
-| L9 auto memory | 把**<你的长期偏好>**变成了**对你的认识**,沉淀到了**长期记忆** | 把"用户偏好简洁回复"变成了对你的认识,沉淀到了长期记忆 |
+| L9a unblock-recipes | 把**<踩过的坑和绕过去的办法>**变成了**通用错题本案例**,沉淀到了**跨 agent 错题集** | 把"这个坑的解法"变成了通用错题本案例,沉淀到了跨 agent 错题集 |
+| L9b auto memory | 把**<你的长期偏好>**变成了**对你的认识**,沉淀到了**长期记忆** | 把"用户偏好简洁回复"变成了对你的认识,沉淀到了长期记忆 |
 | L10 兜底丢弃 | 这条经验太抽象/太私人,现在还不该沉淀 | "希望 agent 更聪明" → 兜底丢弃 |
 
 **叙事行使用规则**:
@@ -217,11 +218,12 @@
 
 **性质**: 多步流程 / 跨多个 skill / 强制阶段推进的流水线。
 
-**7 类已实现 flow-***:
+**8 类已实现 flow-***:
 | Skill | 编排链 |
 |---|---|
 | `flow-dev-task` | 单任务 dev(brainstorm → plan → code → verify → commit) |
 | `flow-codex-goal` | 长跑 codex 任务(GOAL/EVAL/STATUS + reviewer 仲裁) |
+| `flow-cron` | 跨 wake-up 分批长跑(STATUS + budget/deadline gate + cron 自唤醒) |
 | `flow-ext-publish` | 浏览器扩展上架全流程 |
 | `flow-project-bootstrap` | 项目初始化 |
 | `flow-project-finish` | 项目收尾 |
@@ -272,16 +274,45 @@
 
 ---
 
-## L9: auto memory(跨会话长期偏好)
+## L9a: `unblock-recipes/recipes/<slug>.md`(跨 agent 卡壳-解法,优先于 L9b)
 
-**性质**: 模型在对话中自动沉淀的、跨会话加载的个人偏好 notes。
+**性质**: 跨 agent 通用的"卡壳现象 → 已验证解法"错题本案例。**通用工程知识 > per-user 偏好**,故优先于 L9b。
+
+**该放什么**:
+- "踩过的坑 + 怎么绕过去"的可复用工程解法
+- 换一个 agent / 换一个用户来做仍然适用的解法
+- 反复改不对 / 走不通后找到的已验证 fix
+
+**不该放什么**:
+- per-user 个人偏好(放 L9b auto memory)
+- 跨 skill 价值观 / 安全(放 constitution)
+- 项目特定规则(放 CLAUDE.md)
+
+**路径**: `~/Documents/projects/skills/unblock-recipes/recipes/<slug>.md`
+
+**强制结构**: 必须含 **symptom(卡壳现象)+ solution(解法步骤)双段**,按 `l9a-recipe-template.md` 输出;缺任一段 → STOP(见 SKILL.md RF10)。
+
+**后续动作**:
+1. 按 `l9a-recipe-template.md` 输出完整骨架
+2. 落盘到 `unblock-recipes/recipes/<slug>.md`
+3. **必须同步更新** `unblock-recipes/INDEX.md` 两处(按 tag 分类 + 按 symptom 关键词反查)
+4. commit 到中心 — pre-commit hook 跑 skill-doctor 检查 frontmatter
+
+**唯一合法入口**: unblock-recipes/recipes/ 只能经本 skill Q9a 生成,直接写入会被 unblock-recipes 拒绝。
+
+---
+
+## L9b: auto memory(per-user 跨会话长期偏好)
+
+**性质**: 模型在对话中自动沉淀的、跨会话加载的 **per-user** 个人偏好 notes。Q9a 未命中再判。
 
 **该放什么**:
 - 用户偏好(简洁回复 / 不要 emoji / 用某种 framework)
 - 反复被纠正的细节(用户的工作时区 / 常用工具版本)
-- 跨项目通用的工作习惯
+- 跨项目通用但**换个用户就不适用**的工作习惯
 
 **不该放什么**:
+- 跨 agent 通用工程解法(放 L9a unblock-recipes)
 - 项目特定规则(放 CLAUDE.md)
 - 一次性任务上下文
 - 任何安全 / 价值观(放 constitution)
@@ -294,13 +325,13 @@
 - project(具体项目的进行中状态)
 - reference(外部系统资源指针)
 
-**后续动作**: auto memory 默认自动沉淀,本 skill 只在用户**显式说"记住这个"**时主动写入。检查 Q1-Q8,确认不是其实更高优先级的层。
+**后续动作**: auto memory 默认自动沉淀,本 skill 只在用户**显式说"记住这个"**时主动写入。检查 Q1-Q8 + Q9a,确认不是其实更高优先级的层(尤其先排除 Q9a 跨 agent 解法)。
 
 ---
 
 ## L10: 兜底丢弃
 
-同 L0,但走完所有 Q1-Q9 都不命中时的兜底。
+同 L0,但走完所有 Q1-Q9b 都不命中时的兜底。
 
 **典型例子**:
 - "我希望 agent 写代码更优雅" → 太抽象,落不到位置
