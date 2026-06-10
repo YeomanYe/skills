@@ -1,6 +1,7 @@
-# Judgment Tree —— Q0-Q10 完整决策流
+# Judgment Tree —— Q0-Q10 完整决策流(12 个出口)
 
 > 顺序问 Q0 → Q10,**第一个 yes 即出口**,后续 Q 不再问。
+> 第 9 层已拆分为 **Q9a(unblock-recipes)优先于 Q9b(auto memory)**,详见下方 Q9a/Q9b。
 
 ---
 
@@ -182,7 +183,7 @@
 - ✅ "本项目用 pnpm" → 项目 CLAUDE.md
 - ✅ "所有 API 走 auth 中间件" → 项目 CLAUDE.md
 - ❌ "发版 checklist" → 多步流程,Q7(flow-release)
-- ❌ "我喜欢简洁回复" → 跨项目个人偏好,Q9
+- ❌ "我喜欢简洁回复" → 跨项目个人偏好,Q9b
 
 **写之前先检查**:
 ```bash
@@ -194,26 +195,46 @@ wc -l <project>/CLAUDE.md
 
 ---
 
-## Q9: 是不是"跨会话的长期个人偏好 / 反复被纠正的经验"?
+## Q9a: 是不是"跨 agent 通用的卡壳-解法案例"?(优先于 Q9b)
+
+**判定信号(任一命中即 yes)**:
+- 是一条"卡壳现象 → 已验证解法"的工程级案例(不是个人偏好)
+- 换一个 agent / 换一个用户来做,这条解法**仍然适用**
+- 属于"踩过的坑 + 怎么绕过去"的可复用知识
+
+**示例**:
+- ✅ "MobX 装饰器在 X 配置下不生效,改用 makeObservable+annotations 解决" → 跨 agent 通用解法,unblock-recipes
+- ✅ "pnpm 在 monorepo 下 install 卡死,需加 --filter,任何 agent 都受用" → unblock-recipes
+- ❌ "用户偏好简洁回复" → per-user 偏好,不跨 agent,Q9b
+- ❌ "agent 不能泄漏 token" → 价值观,Q1
+
+**Q9a vs Q9b 优先级**: 通用知识 > 个人偏好。任何"卡壳-解法"先尝试 9a;只有"换 agent / 换用户不适用"才落 9b。
+
+**yes → L9a(`unblock-recipes/recipes/<slug>.md`,按 `l9a-recipe-template.md` 输出 symptom+solution 双段 + 改 INDEX.md 两处 + commit)**
+
+---
+
+## Q9b: 是不是"per-user 个人偏好 / 反复被纠正的经验"?(Q9a 未中再判)
 
 **判定信号**:
-- 关于用户本人(不是关于项目)
-- 跨项目通用
+- 关于用户本人(不是关于项目,也不是跨 agent 工程解法)
+- 跨项目通用,但**换个用户就不适用**
 - 用户已经纠正过 ≥ 2 次(或显式说"记住这个")
 
 **示例**:
-- ✅ "用户偏好简洁回复" → user memory
-- ✅ "用户用 pnpm 不用 npm(跨所有项目)" → user memory
+- ✅ "用户偏好简洁回复" → auto memory
+- ✅ "用户用 pnpm 不用 npm(跨所有项目)" → auto memory
+- ❌ "MobX 改用 makeObservable 的通用解法" → 跨 agent 通用,Q9a
 - ❌ "本项目用 pnpm" → 项目级,Q8
 - ❌ "agent 不能泄漏 token" → 价值观,Q1
 
-**yes → L9(auto memory,用户显式说"记住"时主动写)**
+**yes → L9b(auto memory,用户显式说"记住"时主动写)**
 
 ---
 
 ## Q10: 兜底
 
-走到这里 = 前面 9 个都不命中。
+走到这里 = 前面所有出口都不命中。
 
 **典型情况**:
 - 描述太抽象
@@ -256,7 +277,9 @@ wc -l <project>/CLAUDE.md
        ↓ 否
   Q8 项目级常驻? → 是 → L8 CLAUDE.md/AGENTS.md
        ↓ 否
-  Q9 跨会话个人偏好? → 是 → L9 auto memory
+  Q9a 跨 agent 卡壳-解法? → 是 → L9a unblock-recipes（优先于 9b）
+       ↓ 否
+  Q9b per-user 个人偏好? → 是 → L9b auto memory
        ↓ 否
   L10 兜底丢弃
 ```
@@ -269,5 +292,6 @@ wc -l <project>/CLAUDE.md
 2. 强制(hook)> 决策(skill)> 常驻(CLAUDE.md)
 3. 单角色(director-*)> 跨角色(flow-*)
 4. 模块级(nested CLAUDE.md)> 项目级(CLAUDE.md)> 用户级(~/.claude/CLAUDE.md)
+5. 跨 agent 通用解法(L9a unblock-recipes)> per-user 个人偏好(L9b auto memory)
 
 按 Q0 → Q10 顺序问就自然满足这个优先级。

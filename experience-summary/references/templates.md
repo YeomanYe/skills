@@ -249,7 +249,7 @@ fi
 
 ### 新建 flow-*(罕见)
 
-参考已有 7 个 flow-* 结构:
+参考已有 8 个 flow-* 结构:
 - Overview / When to Use / When NOT to Use
 - Workflow(分阶段,每阶段强制门)
 - Decision Rules(硬写死,不询问)
@@ -288,7 +288,13 @@ ln -sf CLAUDE.md AGENTS.md
 
 ---
 
-## L9 模板: auto memory
+## L9a 模板: unblock-recipes 案例
+
+L9a(跨 agent 卡壳-解法)模板**单独成文**,见 `l9a-recipe-template.md`(symptom + solution 双段 + INDEX.md 两处更新)。本文件不重复,避免漂移。
+
+---
+
+## L9b 模板: auto memory
 
 **位置**: `/Users/falcom/.claude/projects/<project-slug>/memory/<type>_<topic>.md`
 
@@ -325,7 +331,7 @@ type: user | feedback | project | reference
 【一句话沉淀】把<X 经验>变成了<Y 载体>,沉淀到了<Z 概念位置>。
 ```
 
-每层的 X/Y/Z 模板见 `layer-map.md` "11 层叙事模板速查"段。禁用词清单见 SKILL.md。
+每层的 X/Y/Z 模板见 `layer-map.md` "12 层叙事模板速查"段。禁用词清单见 SKILL.md。
 
 输出末尾附:
 

@@ -173,10 +173,10 @@ subagent 派工回报必须把完整 markdown 复述到 stdout。两个真实问
 
 ## 已使用本模板的 skill
 
-下列 skill 必须按本规范出具 Output Contract(共 16 个):
+下列 skill 必须按本规范出具 Output Contract(共 17 个):
 
 - 5 个 director-*: director-design / director-frontend / director-promote / director-ops / director-architect
-- 7 个 flow-*: flow-dev-task / flow-codex-goal / flow-project-finish / flow-project-bootstrap / flow-ext-publish / flow-skill-dev / flow-skill-research
+- 8 个 flow-*: flow-dev-task / flow-codex-goal / flow-cron / flow-project-finish / flow-project-bootstrap / flow-ext-publish / flow-skill-dev / flow-skill-research
 - experience-summary
 - change-recap
 - hat
