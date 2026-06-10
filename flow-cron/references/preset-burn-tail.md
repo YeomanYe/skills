@@ -166,6 +166,20 @@ cc-connect cron del $self_id
 **关键**:burn agent **必须最大化并发**,串行跑 1 个 sub-agent 浪费 99% 的 5h budget。
 设计意图是"把尾巴 burn 干净",所以 prompt 必须强制并发。
 
+**并发分桶架构**(避免不同任务类型的依赖冲突):
+
+| 桶 | 改不改 SKILL.md | 是否 git revert 风险 | 是否需 worktree | 并发 N |
+|---|---|---|---|---|
+| A. round(改维度评分) | ✓ | ✓(Δ<0 必 revert) | **要**(按 skill 隔离,失败不撤其他)| 2-4 |
+| B. baseline(评分) | ✗ | ✗(read-only) | 不要 | 3-5 |
+| C. test-prompts | ✓ 新建文件 | ✗(独立文件,不会失败 revert) | 不要 | 3-5 |
+
+**为什么 round 桶必须 worktree**:多 skill 并行改 SKILL.md,任一失败要 `git revert HEAD` 会撤掉同 batch 其他成功 commit。worktree 把每个 round 隔离在独立 branch:
+- Δ>0 → `git merge --no-ff` 进主 branch
+- Δ≤0 → `git worktree remove --force` + `git branch -D`(等价 revert,不影响他人)
+
+coordinator 单点 commit,STATUS.md 单点更新,避免并发写文件冲突。
+
 ```md
 [<task-id> burn] 你被 cron 唤起,**立刻最大化并发干活**。
 
