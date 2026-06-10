@@ -1,16 +1,10 @@
-# 预设 #1 — burn-tail(5h budget 尾巴 burn)+ 可选 fixed 模式
+# 预设 #1 — burn-tail(5h budget 尾巴 burn)
 
 > 用 5h budget 窗口 reset 前的尾巴跑长任务,**不抢用户日常额度,只用反正会被 reset 掉的剩余**。
-> 进阶:加 **fixed 时段 burn**(13:00 / 17:00 等)用 user 空闲时段的 budget,触发条件 util ≤ 90%。
 >
-> 两种模式互补:
-> | 模式 | 触发 | 何时跑 | budget 上限 |
-> |---|---|---|---|
-> | **main**(tail) | `0 < remaining_min ≤ 20 AND util ≤ 95` | 5h 窗口尾巴 | 95% |
-> | **fixed**(window-in) | 固定时间点 `util ≤ 90` | 用户空闲时段(13:00 / 17:00) | 90% |
->
-> burn.sh 单一文件,通过 `bash burn.sh main` vs `bash burn.sh fixed` 切换模式。
-> fixed 是 recurring cron,不自删;main 是一次性,跑完自删。
+> **唯一触发**:`0 < remaining_min ≤ 20 AND util ≤ 95`(必须同时满足两个条件)。
+> 不要加"固定时间点 burn"或"util 低就 burn"等简化变种 —— 实测会偷走用户主动用 claude 的额度。
+> 详见下方反例小节「⚠️ 已废弃尝试: hybrid / fixed mode」。
 
 ## 适用场景
 
@@ -257,6 +251,43 @@ watchdog 配一次永远在,因为它是 recurring。main + reschedule 由 sched
 - 任务无法切成 ~18 min 独立 batch → 用 `--prompt --session-mode new-per-run` 跑更长 single session
 - 任务必须每 N 小时触发(无关 budget)→ 用普通 recurring cron
 - 不在乎 budget 抢占,user 同意"全天都可能被打扰" → 用普通 5min poll(老方案)
+
+## ⚠️ 已废弃尝试: hybrid / fixed mode(反例,不要复用)
+
+2026-06-10 实测出严重坑,**fixed mode 已从预设移除**。此节作为反例 + 设计教训保留。
+
+### 当时设计
+
+为了"工作时段也能 burn"(不只是 5h 尾巴),加了 fixed mode:
+- recurring cron 在固定时间点(如 13:00 / 17:00 Mon-Fri)触发
+- burn.sh 切 `mode=fixed` 分支,**只检查 util ≤ 90,不查 remaining_min**
+- 跟 tail mode(main)互补 = "hybrid"
+
+### 为什么不行
+
+实测 2026-06-10 13:00 触发:
+- 当时 `util=15% remaining=179min`(5h 窗口刚开始)
+- fixed mode 没看 remaining,认为 "util < 90 就 burn 没毛病" → 跑了 23 min
+- burn 后 util 飙到 95%,后续 2 小时用户主动用 claude 撞 rate limit
+- **本质问题**:burn-tail 预设的核心契约是"只用反正会被 reset 掉的余量"。任何不查 `remaining_min` 的 mode 都违反这个契约,会偷走用户白天的可用额度。
+
+### 教训
+
+| 错觉 | 真相 |
+|---|---|
+| util 低 = budget 多 = 可以 burn | util 低 ≠ "反正要 reset",可能只是 5h 窗口刚启动,后续都是 user 的可用预算 |
+| "工作时段定点 burn 让链路更活" | 链路活靠 reschedule + watchdog 自愈,不靠多触发点 |
+| "fixed mode 跟 tail mode 互补" | 真互补需要 fixed 也查 remaining,但那就跟 tail 一样了 → 没必要存在 |
+
+### 如果未来又想要"工作时段多 burn 几次"
+
+**正确做法**:不是加固定时间点 burn,而是**在工作时段让 5h 窗口多 reset 几次**:
+- 早上 6:00 cron 发 "hi" → 窗口 11:00 reset → 11 点附近有一次 tail burn 机会
+- 中午 11:30 再发"hi" → 窗口 16:30 reset → 16:10 附近又一次
+- 每个 reset 都对应一次 tail burn(由 main cron 自动排)
+
+这个方案下,burn 还是只用尾巴,user 主动用 claude 不受影响。
+关键:**永远不要绕开 `remaining_min ≤ 20` 这个 gate**。
 
 ## 实战来源
 
