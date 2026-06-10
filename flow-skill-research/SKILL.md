@@ -171,6 +171,26 @@ npx skills find "<query>"
 - skill 附带的脚本、references、assets 能提供什么能力
 - 哪些需求未覆盖或需要组合其他 skill
 
+## Output Contract
+
+按 `references/output-contract-schema.md` 基线 JSON 字段返回 + 本 skill 扩展字段（机器读，主流程裁决用）。完整 markdown 调研报告 **落盘** 到 `.agent/jobs/flow-skill-research-<slug>/output.md`，派 subagent 时返回 JSON 含 `artifact_path`，主流程展示或 handoff 时再 `Read artifact_path` lazy load（subagent 不要在 stdout 复述全文）。
+
+```json
+{
+  "verdict": "recommend | recommend-with-caution | no-reliable-candidate | already-installed",
+  "must_fix": [],
+  "artifact_path": ".agent/jobs/flow-skill-research-<slug>/output.md",
+  "search_terms": ["<query1>", "<query2>"],
+  "local_hits": [{"name": "<skill>", "status": "本地已安装 | 部分满足 | 不满足", "path": "<dir>"}],
+  "recommended_skills": [{"name": "<owner/repo:skill>", "source": "<source>", "installs": 0, "evidence": "<触发条件/流程/references 如何满足需求>", "install_cmd": "<npx skills add ...>"}],
+  "cautioned_skills": [{"name": "<skill>", "reason": "<低安装量 | 旧框架 | 相邻匹配>"}],
+  "needs_custom_skill": false,
+  "notes": "<≤200 字补充>"
+}
+```
+
+字段语义：`verdict` 区分推荐 / 谨慎 / 无可靠候选 / 本地已满足；`search_terms` 记录实际用过的查询；`local_hits` 是 Step 2 本地检查结论；`recommended_skills[].evidence` 必填且具体到机制（禁止只写"相关"）；`needs_custom_skill=true` 时触发下方 Handoff。
+
 ## 安装边界
 
 默认不要安装。
@@ -194,16 +214,24 @@ npx skills add owner/repo -g -y --skill skill-name
 
 ## Handoff
 
-如果调研发现没有合适候选，并且用户希望沉淀为能力，应转交：
+如果调研发现没有合适候选（`needs_custom_skill=true`），并且用户希望沉淀为能力，应转交 `flow-skill-dev`。
 
-- `flow-skill-dev`
+handoff 字段遵循 `_shared/handoff-payload-template.md`，最小结构化 payload：
 
-handoff 内容至少包含：
+```json
+{
+  "task_id": "<date>-<slug>",
+  "objective": "<一句话：要沉淀的能力>",
+  "risk_class": "low | medium | high",
+  "search_terms": ["<已搜索的关键词>"],
+  "gap_reason": "<为什么现有候选不够：覆盖缺口 / 旧框架 / 无可靠来源>",
+  "suggested_triggers": ["<新 skill 应覆盖的触发条件>"],
+  "suggested_non_goals": ["<明确不覆盖的边界>"],
+  "context_files": [".agent/jobs/flow-skill-research-<slug>/output.md"]
+}
+```
 
-- 调研目标
-- 已搜索关键词
-- 为什么现有候选不够
-- 新 skill 应覆盖的触发条件和边界
+下游 `flow-skill-dev` 必须先读此 payload 再决定是否追问，已传字段（目标 / 关键词 / 触发条件 / 边界）不重复问用户。
 
 ## 常见错误
 
