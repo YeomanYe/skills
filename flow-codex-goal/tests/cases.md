@@ -194,13 +194,13 @@ Prompt：同 T1。
 - 修完后**重新跑 Step 5-6**（不能直接 commit）
 - 计入 review failure count
 
-### R5. Review 连续 2 次 fail → 强制终止
+### R5. Review 连续 3 轮 fail → 强制终止
 
-场景：第 2 次 review 也 fail。
+场景：第 3 轮 review 也 fail。
 
 预期：
 - 强制 kill Codex
-- 写 STOPPED: review-2-fail 到 STATUS.md
+- 写 STOPPED: review-3-fail 到 STATUS.md
 - 通知人类强制终止 + 提供 4 选项
 
 ### R6. Verdict pass 但 orchestrator agent 必须自验

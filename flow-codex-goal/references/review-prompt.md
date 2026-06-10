@@ -259,4 +259,4 @@ orchestrator agent 读到 `Verdict: fail` 后：
 1. 把 Must Fix 列表写入 STATUS.md 的 "Next Action"
 2. 重新触发 Goal Codex 修
 3. 修完后**重新跑 Step 5-6**（不能跳 review）
-4. 计入 review failure count；连续 2 次 → 强制终止（Stop Condition）
+4. 计入 review failure count；连续 3 轮 → 强制终止（Stop Condition，对齐 SKILL.md / stop-conditions.md / watcher.sh）
