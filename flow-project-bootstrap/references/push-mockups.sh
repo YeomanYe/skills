@@ -98,6 +98,8 @@ cc-connect send \
   --image "$MOCKUP_3/screenshots/375.png" \
   --image "$MOCKUP_3/screenshots/1440.png" \
   2>>"$LOG"
+# 立刻捕获 send 退出码——后面的管道/grep 会覆盖 $?
+send_rc=$?
 
 # 幂等 marker：基于 3 路 mockup 路径生成稳定 hash，避免重跑追加多段
 MARKER_HASH=$(echo -n "$MOCKUP_1|$MOCKUP_2|$MOCKUP_3" | shasum -a 256 | awk '{print $1}' | head -c 12)
@@ -107,7 +109,7 @@ MARKER_TAG="<!-- pending-decision-mockup-$MARKER_HASH -->"
 if grep -q "$MARKER_TAG" "$TASK_DIR/STATUS.md" 2>/dev/null; then
   log "STATUS.md already has marker $MARKER_TAG; skip duplicate write"
 else
-  if [[ $? -eq 0 ]]; then
+  if [[ $send_rc -eq 0 ]]; then
     log "Pushed 6 screenshots + message to feishu OK"
     cat >> "$TASK_DIR/STATUS.md" <<EOF
 
@@ -122,10 +124,12 @@ $MARKER_TAG
 - 不超时 auto-pick；用户回复后 orchestrator 才继续 Step 3.3
 EOF
   else
-    log "ERR: cc-connect send failed (recorded)"
+    # 发送失败：不写幂等 marker（否则重跑会被去重逻辑误判为已推送而静默跳过）
+    # 仅记录一条失败诊断，重跑仍会重新尝试发送
+    log "ERR: cc-connect send failed (rc=$send_rc; not marking, retry will resend)"
     cat >> "$TASK_DIR/STATUS.md" <<EOF
 
-$MARKER_TAG
+<!-- push-failed-mockup-$MARKER_HASH -->
 ## Pending Decision (落地页 mockup 选择) — 飞书推送失败
 - TS: $(date '+%Y-%m-%d %H:%M:%S')
 - 请手动查看 mockup:
