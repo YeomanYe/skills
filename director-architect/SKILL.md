@@ -195,6 +195,22 @@ director 根据用户输入信号自动选内部路径，**不需要用户先挑
 3. 用户明确点名的 skill 直接纳入
 4. 项目规则架构方法本身——本 skill **自己**承担（不再调 `project-rules-design`，它已被本 skill 吸收）
 
+**目录名 vs frontmatter `name` 冲突时——`name` 字段是唯一权威身份**（tie-break 硬规则）：
+本生态里 skill 的**规范身份 = `SKILL.md` frontmatter 的 `name` 字段**；目录名只是物理落盘位置，
+常带安装来源前缀（如 `_<author>-...-official`、`_<repo>-...`），**不可当作 skill 身份**。
+扫描候选可用目录名做粗筛（命中 stack 关键字即入候选池），但**去重、引用、调度、最终列表
+一律以 frontmatter `name` 为准**；目录名和 `name` 不一致时，**永远用 `name`**，目录名只在报告里
+作"来源路径"附注。仅当 frontmatter 缺失 / 无 `name` 字段时才退化用目录名（见 reference 边界表）。
+
+> **Worked example**：目录是 `_vercel-react-best-practices-official/`，但其 `SKILL.md` 的
+> `name: deploy-to-vercel`。
+> - ❌ 错误：按目录名把它当作 "vercel-react-best-practices" 调度 / 在报告里这样列 / 用目录名去重。
+> - ✅ 正确：候选粗筛阶段它因目录名含 `react`/`vercel` 入池；但它的**身份是 `deploy-to-vercel`**——
+>   报告列 `deploy-to-vercel (~/.claude/skills/_vercel-react-best-practices-official/) — 结论: …`，
+>   去重 key 用 `deploy-to-vercel`，下游若要真跑 review 也按 `deploy-to-vercel` 派工。
+> - 推论：若同一 `name` 在两个不同前缀目录各有一份，按 `name` 视为**同一个 skill**（去重保留扫描顺序最前的），
+>   不会因目录名不同而误算两个。
+
 去重后产出本次评估的 skill 列表，**在 Output Contract 显式列出来源路径**。
 某个栈完全找不到对应 skill，**如实标注"未覆盖"**，不要硬套不相关的 skill。
 

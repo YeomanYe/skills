@@ -24,9 +24,33 @@
 
 ## 匹配规则（从高到低优先级）
 
+### 规则 0（tie-break，凌驾所有匹配规则）：frontmatter `name` 是唯一权威身份
+
+skill 的**规范身份 = `SKILL.md` frontmatter 的 `name` 字段**。目录名只是物理落盘位置，
+经常带安装来源前缀（`_<author>-...-official`、`_<repo>-...`），**不是 skill 身份**。
+
+- **粗筛**：可以用目录名命中 stack 关键字把 skill 拉进候选池（规则 1 第一种命中方式）。
+- **身份 / 去重 / 引用 / 调度 / 最终列表**：一律以 frontmatter `name` 为准。
+- **目录名与 `name` 不一致时，永远用 `name`**；目录名只在报告里当"来源路径"附注，不当身份。
+- **退化**：仅当 frontmatter 缺失或无 `name` 字段，才用目录名当 name（见末尾"边界情况"表）。
+
+> **Worked example**（路由器最易翻车的场景）：
+> 目录 `_vercel-react-best-practices-official/`，但 `SKILL.md` 内 `name: deploy-to-vercel`。
+>
+> | 步骤 | ❌ 错（按目录名） | ✅ 对（按 frontmatter `name`） |
+> |---|---|---|
+> | 粗筛入池 | 目录名含 `react`/`vercel` → 入池 ✓ | 同样入池 ✓（粗筛可用目录名） |
+> | 身份 | 当成 "vercel-react-best-practices" | 是 `deploy-to-vercel` |
+> | 报告列出 | `vercel-react-best-practices (...)` | `deploy-to-vercel (~/.claude/skills/_vercel-react-best-practices-official/) — 结论: …` |
+> | 去重 key | 目录名 | `deploy-to-vercel` |
+> | 下游派工 | 派给一个不存在的 `vercel-react-best-practices` | 派给 `deploy-to-vercel` |
+>
+> 同一 `name` 出现在两个不同前缀目录 → 按 `name` 视为**同一 skill**（去重保留扫描顺序最前的），
+> 不因目录名不同误算两个。
+
 ### 规则 1：skill 目录名 / `name` 字段含 stack 关键字
 
-最高优先级。例：
+最高优先级（受规则 0 约束：匹配/粗筛可用目录名，**身份与去重必须回落到 `name`**）。例：
 
 | 识别到的栈 | 关键字 | 命中示例 |
 |---|---|---|
@@ -70,7 +94,7 @@
 ```
 
 **禁止**：
-- 把同一 skill 在不同目录的副本算两次（用 `name` 字段去重）
+- 把同一 skill 在不同目录的副本算两次（用 frontmatter `name` 字段去重，**不是目录名**——见规则 0）
 - 用 `npx skills` / 网络调用（只读本地目录）
 - 凭"我以为有 X skill"凭印象列（必须真的扫到才算）
 
