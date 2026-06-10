@@ -1,6 +1,16 @@
-# 预设 #1 — burn-tail(5h budget 尾巴 burn)
+# 预设 #1 — burn-tail(5h budget 尾巴 burn)+ 可选 fixed 模式
 
 > 用 5h budget 窗口 reset 前的尾巴跑长任务,**不抢用户日常额度,只用反正会被 reset 掉的剩余**。
+> 进阶:加 **fixed 时段 burn**(13:00 / 17:00 等)用 user 空闲时段的 budget,触发条件 util ≤ 90%。
+>
+> 两种模式互补:
+> | 模式 | 触发 | 何时跑 | budget 上限 |
+> |---|---|---|---|
+> | **main**(tail) | `0 < remaining_min ≤ 20 AND util ≤ 95` | 5h 窗口尾巴 | 95% |
+> | **fixed**(window-in) | 固定时间点 `util ≤ 90` | 用户空闲时段(13:00 / 17:00) | 90% |
+>
+> burn.sh 单一文件,通过 `bash burn.sh main` vs `bash burn.sh fixed` 切换模式。
+> fixed 是 recurring cron,不自删;main 是一次性,跑完自删。
 
 ## 适用场景
 
