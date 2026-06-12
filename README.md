@@ -254,7 +254,7 @@ director-* 现状与扩展：
 
 | 上下文 | First Pick | Alternatives | 决定依据 |
 |---|---|---|---|
-| 反复试错没进展 | `unblock-recipes` | brainstorming(发散探索)| 错题本 vs 头脑风暴 |
+| 反复试错没进展 | `mem`(unblock 分类,原 unblock-recipes) | brainstorming(发散探索)| 错题本 vs 头脑风暴 |
 | 探索性问题 / 需求模糊 | `brainstorming` | huashu-design(设计方向顾问 fallback)| 需求 vs 设计方向 |
 | 任务跑完想沉淀经验 | `experience-summary` | — | 11 层架构分诊 |
 | 切个心态干活 | `hat` | — | 任务开头默认激活 |

@@ -1,14 +1,14 @@
-# L9a Recipe Template —— unblock-recipes 写作骨架
+# L9a Recipe Template —— mem unblock 分类写作骨架(原 unblock-recipes)
 
 > experience-summary 判断树命中 Q9a(跨 agent 卡壳-解法) 时,按本模板输出可直接 copy-paste 到
-> `~/Documents/projects/skills/unblock-recipes/recipes/<slug>.md` 的骨架。
+> `~/Documents/projects/skills/mem/data/unblock/<slug>.md` 的骨架。
 > 主体 SKILL.md 不再内嵌完整骨架,避免主文件膨胀。
 
 ## 何时使用
 
 experience-summary 路由到 L9a 时:
-- 用户/agent 把本骨架填值后落盘到 `recipes/<slug>.md`
-- **必须同步更新** `unblock-recipes/INDEX.md` 两处(见末段"INDEX 同步硬约束")
+- 用户/agent 把本骨架填值后落盘到 `mem/data/unblock/<slug>.md`(2026-06-12 起,原 `unblock-recipes/recipes/` 路径已迁入 mem)
+- **必须同步更新** `mem/INDEX.md (unblock 段)` 两处(见末段"INDEX 同步硬约束")
 
 ## Recipe 骨架(用户填值后 copy-paste)
 
@@ -22,7 +22,7 @@ symptoms:                                  # INDEX 索引用关键词(≥3 个,�
 first_seen: <today YYYY-MM-DD>
 last_hit: <today YYYY-MM-DD>
 hit_count: 1
-tags: [<tag1>]                            # 至少 1 个,选自 unblock-recipes/INDEX.md "按 tag 分类"段已有词典
+tags: [<tag1>]                            # 至少 1 个,选自 mem/INDEX.md (unblock 段) "按 tag 分类"段已有词典
 ---
 
 ## <slug> — <一句话症状,≤30 字>
@@ -52,7 +52,7 @@ tags: [<tag1>]                            # 至少 1 个,选自 unblock-recipes/
 | `symptoms` | 必填 | ≥3 条,要是 agent 真会读到的错误信息片段或行为描述,不要写抽象总结 |
 | `first_seen` / `last_hit` | 必填 | YYYY-MM-DD |
 | `hit_count` | 必填 | 首次 = 1,后续复现 +1 |
-| `tags` | 必填 | ≥1 个,从 `unblock-recipes/INDEX.md` "按 tag 分类"已有词典选 |
+| `tags` | 必填 | ≥1 个,从 `mem/INDEX.md (unblock 段)` "按 tag 分类"已有词典选 |
 
 ## 四段正文要求
 
@@ -63,7 +63,7 @@ tags: [<tag1>]                            # 至少 1 个,选自 unblock-recipes/
 
 ## INDEX 同步硬约束(experience-summary 输出时必须同步提示用户)
 
-落盘 recipe 文件**还不算入册**,必须同步更新 `unblock-recipes/INDEX.md` 两处:
+落盘 recipe 文件**还不算入册**,必须同步更新 `mem/INDEX.md (unblock 段)` 两处:
 
 1. 在"按 tag 分类"对应分类下追加 `- <slug>` 一行
 2. 在"按 symptom 关键词反查"表为**每个** symptom 追加一行(同 slug 可重复)

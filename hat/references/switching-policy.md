@@ -15,7 +15,7 @@
   - 理由:用户卡壳时不该被自动切到 `问`(被反问反而更焦虑),必须用户同意
   - 适用场景:`快`(1)/`散`(2) → `问`(3) 本来是增强(opt-out),但卡壳例外强制 opt-in
 - **例外 2: 子 skill override 路径** → **完全跳过本 policy**(opt-in/opt-out 都不走)
-  - 适用:agent 进入 `clean-commit` / `brainstorming` / `systematic-debugging` / `unblock-recipes` / `delivery-gate` 等子 skill 时,**该子 skill 自己 override hat**,无需用户确认
+  - 适用:agent 进入 `clean-commit` / `brainstorming` / `systematic-debugging` / `mem`(原 unblock-recipes) / `delivery-gate` 等子 skill 时,**该子 skill 自己 override hat**,无需用户确认
   - 理由:子 skill 主调用是工作流硬约束,弱化切换(如严→快 -4)若走 opt-in 会被拦,与"默认推进不默认提问"信条冲突
   - **不计入** 3 次/对话频率上限
   - 路由仲裁规则详见 `detection.md` 优先级 3 段末尾的"⚡子 skill override 路径"说明

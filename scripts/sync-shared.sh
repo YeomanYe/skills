@@ -82,7 +82,7 @@ question_gate_target_skills=(
   director-architect
 )
 
-# constitution.md 给所有 director-* + flow-* + experience-summary + hat + unblock-recipes (15 skill 顶层契约)
+# constitution.md 给所有 director-* + flow-* + experience-summary + hat + unblock-recipes + mem (16 skill 顶层契约)
 constitution_target_skills=(
   director-design
   director-frontend
@@ -100,6 +100,7 @@ constitution_target_skills=(
   hat
   unblock-recipes
   change-recap
+  mem
 )
 
 # audit-rubric.md 给 5 director-* + experience-summary (7 维质量评分共用)

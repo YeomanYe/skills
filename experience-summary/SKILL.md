@@ -62,7 +62,7 @@ description: Use after finishing a real task to triage the lesson/pattern/gotcha
 - **Q7**: 是不是"**多步流程、跨多个角色**、需要 orchestrator 编排"? → 出口: **L7 改对应 flow-***
 - **Q8**: 是不是"每个会话都应该知道的**项目级高频默认行为**"? → 出口: **L8 `CLAUDE.md` / `AGENTS.md`**
   - **硬约束**: CLAUDE.md 控制在 **200 行以内**(Anthropic 官方);超了说明专题流程混进来了,该下沉到 skill
-- **Q9a**(优先于 Q9b): 是不是"**跨 agent 通用的卡壳-解法**案例"? → 出口: **L9a `unblock-recipes/recipes/<slug>.md`**
+- **Q9a**(优先于 Q9b): 是不是"**跨 agent 通用的卡壳-解法**案例"? → 出口: **L9a `mem/data/unblock/<slug>.md`**(原 unblock-recipes 已并入 mem)
 - **Q9b**(Q9a 未中再判): 是不是"**per-user 个人偏好 / 反复被纠正**的经验"? → 出口: **L9b auto memory**
 - **Q10**(兜底): 都不命中? → 出口: **L10 不沉淀**
 
@@ -129,12 +129,12 @@ description: Use after finishing a real task to triage the lesson/pattern/gotcha
 | 6 | 单一专业判断 | `director-*/` | Q6 |
 | 7 | 跨角色编排 | `flow-*/` | Q7 |
 | 8 | 项目级常驻 | `CLAUDE.md` / `AGENTS.md` | Q8 |
-| **9a** | **跨 agent 卡壳-解法** | **`unblock-recipes/recipes/<slug>.md`** | **Q9a(优先于 9b)** |
+| **9a** | **跨 agent 卡壳-解法** | **`mem/data/unblock/<slug>.md`**(原 unblock-recipes 已并入 mem) | **Q9a(优先于 9b)** |
 | 9b | per-user 个人偏好 | auto memory | Q9b |
 | 10 | 兜底丢弃 | 不沉淀 | Q10 |
 
 **关键变化**: 第 9 层拆分为 9a / 9b,**9a 优先**。原"长期个人偏好 → auto memory"现属 9b;
-新增 9a"跨 agent 卡壳-解法 → unblock-recipes"是 2026-05-25 增加的目标层。
+新增 9a"跨 agent 卡壳-解法 → mem(unblock 分类)"是 2026-05-25 增加的目标层,2026-06-12 起原 `unblock-recipes` 并入 `mem`,出口路径改为 `mem/data/unblock/<slug>.md`。
 
 完整层级说明见 `references/layer-map.md`。每层写作草稿见 `references/templates.md`。
 
@@ -168,11 +168,12 @@ Rationalizations 给自己台阶。
     4. `skillshare sync --force`(分发到 `~/.claude/skills/` 等 agent 目标)
   - 出口是 skill-doctor 规则 → 切到 `~/Documents/projects/node-scripts/` 项目走 `flow-dev-task`
   - 出口是单个 skill 同步 → `sync-skills`(把单个 skill 目录同步到中心,**不是**用于 _shared 分发)
-  - **出口是 unblock-recipes(L9a)**:
-    1. 本 skill 按 `references/l9a-recipe-template.md` 输出完整骨架
-    2. 用户/agent 把模板落盘到 `~/Documents/projects/skills/unblock-recipes/recipes/<slug>.md`
-    3. **必须同步更新** `unblock-recipes/INDEX.md` 两处(按 tag 分类 + 按 symptom 关键词反查)
-    4. commit 到中心 — pre-commit hook 跑 skill-doctor 自动检查 frontmatter 完整性
+  - **出口是 mem unblock 分类(L9a)**:(2026-06-12 起,原 unblock-recipes 并入 mem)
+    1. 本 skill 按 `references/l9a-recipe-template.md` 输出完整骨架(schema 跟 mem 的 unblock 分类规则一致,见 `mem/` 目录)
+    2. 用户/agent 把模板落盘到 `~/Documents/projects/skills/mem/data/unblock/<slug>.md`
+    3. **必须同步更新** `mem/INDEX.md` unblock 段两处(按 tag 分类 + 按 symptom 关键词反查)
+    4. append `mem/data/access-log.jsonl` op=write 一行
+    5. commit 到中心 — pre-commit hook 跑 skill-doctor 自动检查 frontmatter 完整性
 
 **不替代**:
 - `flow-skill-dev`(那是写 skill 本身)

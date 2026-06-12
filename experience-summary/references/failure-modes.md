@@ -14,7 +14,7 @@
 - 推荐 constitution 但没提示跑 sync-shared.sh
 - 输出"建议沉淀到 xxx 层"但不给具体路径 + 草稿
 - 路由到 L9 但没先判 L9a(跨 agent 通用 > per-user 个人偏好,顺序不能反)
-- 路由到 L9a 但没提示用户同步更新 `unblock-recipes/INDEX.md` 两处
+- 路由到 L9a 但没提示用户同步更新 `mem/INDEX.md` unblock 段两处(原 `unblock-recipes/INDEX.md`)
 - 输出叙事行【一句话沉淀】含禁用词(L1 / hook / CLAUDE.md / 绝对路径 等)
 - 输出 5 段缺段或顺序错乱(顺序固定: 沉淀 → 结论 → 位置 → 模板 → 提醒)
 
@@ -27,9 +27,9 @@
 | "用户很想沉淀,就别 Q0 拦了" | Q0 是过滤"沉淀冲动"的关键阀门 |
 | "走 flow-skill-dev 太重,直接帮用户写 SKILL.md 落盘" | 跳过 scope/test/sync 三个门 = 引入低质量 skill |
 | "constitution 改起来麻烦,塞 CLAUDE.md 算了" | 跨 skill 通用约束放 CLAUDE.md = 其他 skill 看不到 |
-| "用户说'记住这个',就直接写 auto memory" | 检查 Q1-Q8,是不是其实是 constitution/CLAUDE.md 级;Q9 内先判 9a(unblock-recipes),不是个人偏好不要 default memory |
-| "卡壳-解法也是个人经验,丢 memory 就行" | memory 是 per-user 不跨 agent,通用解法该进 unblock-recipes 让任何 agent 受益 |
-| "unblock-recipes 不就是错题本嘛,直接 add 一条" | 写入入口唯一是 experience-summary Q9a 分诊,不允许绕过(防止 catalog 垃圾化) |
+| "用户说'记住这个',就直接写 auto memory" | 检查 Q1-Q8,是不是其实是 constitution/CLAUDE.md 级;Q9 内先判 9a(mem unblock 分类,原 unblock-recipes),不是个人偏好不要 default memory |
+| "卡壳-解法也是个人经验,丢 memory 就行" | memory 是 per-user 不跨 agent,通用解法该进 mem(unblock 分类,原 unblock-recipes)让任何 agent 受益 |
+| "mem 不就是错题本嘛,直接 add 一条" | 写入入口唯一是 experience-summary Q9a 分诊,不允许绕过(防止 catalog 垃圾化) |
 | "叙事行带点技术词更精准" | 叙事行是给人类一眼可读,带技术词 = 失去这层价值;技术细节进【分诊结论/推荐位置】段 |
 | "只触发一次的 director-* 改动也要走 flow-skill-dev?" | substantial-update 才走;只改文案/错别字直接 Edit。判定见 flow-skill-dev When NOT to Use |
 
