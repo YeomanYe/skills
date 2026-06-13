@@ -1,22 +1,27 @@
 ---
 name: unblock-recipes
 description: >
-  Agent 错题本 — 跨 agent 通用的"卡壳→解法"案例库。
-  agent 卡壳 / 反复改不对 / 走不通时,先翻这里找已踩过的同类坑 + 已验证的解法,
-  避免重蹈覆辙或盲目试错;首次出现的新坑解决后,通过 experience-summary 路由写入。
-  自动触发关键词: stuck / blocked / loop / 反复 / 卡 / 走不通 / hit a wall /
-  can't figure out / 试了 N 次都不行 / 死循环 / 同样错 N 次 / 之前踩过吗。
-  显式触发: 「查下错题本 / 看下 unblock-recipes / 这个之前踩过吗 / 卡壳记录 / 错题集 / lookup pitfalls」。
-  上游触发: flow-dev-task / flow-codex-goal 等 orchestrator 检测到 agent loop 信号时主动 lookup。
-  优先级: unblock-recipes(通用工程级解法,跨 agent)> auto memory(per-agent 个人偏好)> 其他。
-  Do NOT use for: 写入个人偏好(→ auto memory)、跨 skill 通用价值观(→ constitution.md)、
-  项目级规则(→ CLAUDE.md / AGENTS.md)、skill 自身可 lint 的硬规则(→ skill-doctor rule)、
-  一次性现象(→ 不沉淀)。写入时**必须**先经 experience-summary 分诊路由,不要直接落盘。
+  DEPRECATED(2026-06-12 起): 本 skill 已并入 [[mem]](unblock 分类)。
+  不要主动触发本 skill,新触发请走 mem。
+  本 SKILL.md 保留作过渡期重定向,2026-09-12 后考虑删除目录。
+  迁移清单见同目录 MIGRATED.md。
 ---
 
-> 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
+> ⚠️ **DEPRECATED — 已并入 [[mem]]**
+>
+> 本 skill 内容已迁入 `~/Documents/projects/skills/mem/data/unblock/`,触发也改走 mem(unblock 分类)。
+>
+> - 迁移清单: 见同目录 MIGRATED.md
+> - 触发硬规则(symptom-triggered): 迁入 mem 的 unblock 分类规则文件 + mem 的 SKILL.md 触发硬规则段
+> - recipe schema: 迁入 mem 的 unblock 分类规则文件
+> - INDEX 反向索引: 迁入 `~/Documents/projects/skills/mem/INDEX.md` unblock 段
+>
+> 本目录保留到 **2026-09-12** 作为历史引用 + 过渡期 redirect,届时考虑彻底删除。
+> 期间所有新触发请用 mem;期间所有写入请走 experience-summary 分诊到 mem。
 
-# unblock-recipes —— Agent 错题本
+> 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层) — 该宪法仍适用于 mem(已在 mem 引用 _shared/constitution.md)
+
+# unblock-recipes —— Agent 错题本 (DEPRECATED, 见 mem)
 
 ## Overview
 

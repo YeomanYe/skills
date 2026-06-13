@@ -79,7 +79,7 @@ hat 是 **任务级 persona**(一顶帽走完整个任务),不是阶段级切换
 |---|---|---|---|
 | **任务开头自动检测**(detection.md 优先级 1-4) | 走 detection.md 路由 | 否 | 否 |
 | **用户语言转向**(detection.md "任务转向信号"段) | 走 Step 4b 严格度差仲裁(opt-in/opt-out) | 是 | 是 |
-| **子 skill 主调用 hat override**(进入 brainstorming/systematic-debugging/clean-commit/unblock-recipes 等) | 该子 skill 自己 override,跳过 4b | **否** | **否** |
+| **子 skill 主调用 hat override**(进入 brainstorming/systematic-debugging/clean-commit/mem 等) | 该子 skill 自己 override,跳过 4b | **否** | **否** |
 | **用户显式换帽**("/hat strict") | 走 Step 4a 立即生效 | 否 | 否 |
 
 **关键**: 子 skill override 必须**跳过 4b**,否则严→快(-4)/钻→严(-1)等弱化切换会被 switching-policy.md 拦成 opt-in,与"默认推进不默认提问"信条冲突。这条规则在 `detection.md` 优先级 3 段也有冗余明示。

@@ -168,12 +168,12 @@
 | `clean-commit` / `delivery-gate` 通过后 | `快`(收尾简洁交付) |
 | `superpowers:systematic-debugging` 早期(找根因阶段) | `钻`(2026-05 改 — 之前是"严或教",现统一 `钻` 取证找因) |
 | `superpowers:systematic-debugging` 后期(已定位 → 修) | `严`(修阶段进入 严) |
-| `unblock-recipes` lookup | `钻`(查证案例库匹配度) |
+| `mem` lookup(原 unblock-recipes,通用工程经验) | `钻`(查证案例库匹配度) |
 
 > **⚡ 优先级 3 切换是"子 skill override 路径"**——本表所有映射(包括 2026-05 新增的 5 条)在 agent **进入对应子 skill 时由该子 skill 主动调 hat override** 触发,**跳过 Step 4b 的 opt-in/opt-out 仲裁机制**(否则严→快/钻→严等弱化切换会被 switching-policy.md 拦成 opt-in,拖慢编排)。
 >
 > 路由仲裁规则(本次明示):
-> - 子 skill 主调用(用户/orchestrator 显式进入 clean-commit / brainstorming / systematic-debugging / unblock-recipes 等)→ **该子 skill 自己 override hat**,跳过 Step 4b
+> - 子 skill 主调用(用户/orchestrator 显式进入 clean-commit / brainstorming / systematic-debugging / mem 等)→ **该子 skill 自己 override hat**,跳过 Step 4b
 > - 用户**语言**转向信号(用户说"挑刺一下" / "上线前" 等)→ 走 Step 4b 严格度差仲裁
 > - 子 skill override **不计入** Step 4b "3 次/对话" 频率上限(否则一条 flow-dev-task 链跨 brainstorming→systematic-debugging→clean-commit 必撞限额)
 >
