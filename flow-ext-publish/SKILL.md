@@ -4,9 +4,10 @@ description: >
   Use for the **end-to-end** browser extension submission flow (preflight check + asset
   preparation + store upload) to Chrome Web Store / Firefox AMO / Edge Add-ons.
   Trigger on phrases like "上架扩展", "发布扩展", "提交到商店", "准备上架", "帮我上架",
-  "submit extension", "publish extension", "上架到 Chrome Store". Especially when assets
-  (icons, screenshots, promo tiles, descriptions, permissions justifications, version bumps)
-  need to be discovered, composed, confirmed, and submitted per each platform's rules.
+  "submit extension", "publish extension", "上架到 Chrome Store", "Chrome Web Store
+  隐私政策链接被拒", "CWS 重提审". Especially when assets (icons, screenshots, promo
+  tiles, descriptions, permissions justifications, version bumps) need to be discovered,
+  composed, confirmed, and submitted per each platform's rules.
   For a single-shot readiness check without uploading, use `ext-preflight` instead.
 ---
 
@@ -25,6 +26,7 @@ description: >
 - 对缺失的商店营销位图默认直接进入补齐分支，并将固定尺寸网页出图工作路由给 `web-image`
 - 在所有缺口补齐前阻止发布
 - 用户明确确认生成结果和剩余缺口后，整理好分平台 payload 并**停在上架闸门**；只有用户再明确授权「自动上传 / 一把梭 / 直接提交」时，才按顺序真正上架：Firefox AMO → Edge → Chrome Web Store
+- 对 Chrome Web Store 已有条目的“小修字段 + 保存草稿 + 重提审”提供维护快路径；这条路径只操作商店后台，不负责 build、官网部署、素材生成或 zip 上传
 
 ## 角色信条
 
@@ -67,6 +69,7 @@ Chrome 最宽松放最后,前面踩的坑这边已经修了。**不要按"用户
 - 准备发布一个新版本（version bump + 提交 review）
 - 用户说「帮我发布这个扩展」「准备上架了」「submit to the store」「更新扩展版本」
 - 有多个素材项不确定状态，需要一次性梳理
+- Chrome Web Store 因隐私政策链接、metadata 字段等可定位问题被拒，需要更新已有草稿并重提审
 
 ## When NOT to Use
 
@@ -74,6 +77,7 @@ Chrome 最宽松放最后,前面踩的坑这边已经修了。**不要按"用户
 - 只做扩展内部功能调试
 - 发布 VSCode extension / Obsidian plugin / 其他非浏览器扩展（本 skill 锁定浏览器扩展）
 - 只是想跑一次 preflight 看看状态（直接用 `ext-preflight` 即可）
+- 只是发布官网、部署隐私政策页面、构建静态网站（这不属于商店提交）
 
 ## Codex Delegation Hook
 
@@ -105,6 +109,18 @@ Chrome 最宽松放最后,前面踩的坑这边已经修了。**不要按"用户
 
 默认一路推进到「已补齐可自动生成的营销素材、Step 3 用户明确确认素材就绪后，进入 Step 4 **填好分平台 payload 并停在上架闸门**，输出最终报告」。
 
+### Chrome Web Store 维护快路径
+
+若用户明确只要求处理 Chrome Web Store 已有条目的后台字段更新 / 保存草稿 / 重提审，且**不涉及**
+扩展 build、官网部署、素材生成、zip 上传、跨平台提交，则走维护快路径：
+
+1. 确认目标是 CWS 已有 item，拿到 publisher id、item id、要更新的字段和值
+2. 若只是查看状态，运行 dry-run；若要保存或提审，必须有用户明确授权
+3. 使用 `scripts/cws-update-submit.mjs`（详见 `references/cws-update-submit.md`）操作 CWS 后台
+4. 输出更新值、是否保存、是否提交、最终状态
+
+这条快路径**不要求**运行完整 preflight，也不触发 Step 2 的素材补齐；它只用于“材料已经在外部准备好，只需要修 CWS 后台并提交”的维护场景。
+
 **两道闸门，缺一不可：**
 
 1. **Step 3 素材确认闸门**：在缺失项补齐 + 用户明确确认自动生成素材和剩余缺口前，不得进入 Step 4。
@@ -117,7 +133,7 @@ Chrome 最宽松放最后,前面踩的坑这边已经修了。**不要按"用户
 
 ## Required Workflow
 
-按顺序执行：
+默认完整发布按顺序执行；若命中上面的 Chrome Web Store 维护快路径，则只执行维护快路径，不进入下面的端到端流程。
 
 1. 运行 `ext-preflight`
 2. 分类缺失项 → 可补齐的位图交给 `web-image` / 素材不足项列入 user-must-provide / 非图片列入 checklist
@@ -329,9 +345,9 @@ Step 3 用户明确确认素材后进入本步骤。本步骤分两段，**中�
 |------|------|
 | Firefox AMO | `Playwriter`（接管用户已登录的浏览器） |
 | Microsoft Edge | `Playwriter`（接管用户已登录的浏览器） |
-| Chrome Web Store | `agent-browser --profile Default`（复用真实 Chrome profile） |
+| Chrome Web Store | 首选 `agent-browser --profile Default`；若 Google 安全策略 / 登录态隔离阻塞，则使用 `cdp-browser-control` 风格的 `scripts/cws-update-submit.mjs` |
 
-**禁止**用 Playwriter 操作 Chrome Web Store（Google 会拦截自动化导航）。
+**禁止**用普通 Playwriter / Playwright 新开无登录浏览器操作 Chrome Web Store（Google 会拦截自动化导航）。唯一例外是 `cdp-browser-control` 模式：复制真实 Chrome 登录态到临时 profile，再用 CDP 直连。
 **禁止**用 agent-browser 操作 Firefox AMO 或 Edge（本流程 Firefox / Edge 固定走 Playwriter）。
 **禁止**在 Firefox / Edge 路径上使用 Playwright MCP（`mcp__playwright__*`）或任何新开 chromium 实例的工具 — 那种方式拿不到用户已登录的 Partner Center / AMO 会话，必须通过 `npx playwriter@latest -s <session-id> -e "..."` 接管用户当前浏览器。
 
@@ -350,6 +366,15 @@ Step 3 用户明确确认素材后进入本步骤。本步骤分两段，**中�
 - 若落到 Google 登录页，说明 Default profile 未登录或未复用；停下让用户手动登录这个 profile，不要切换到其他 Chrome 控制工具
 - 若 snapshot 命中 Gemini / 侧栏 / 错误 tab，用 `npx agent-browser tab` 列出 tabs，再 `npx agent-browser tab t<N>` 切回 Chrome Web Store Dev Console
 - 每次页面变化后刷新 snapshot refs，按最新 refs 点击和上传，不复用旧 ref
+
+#### cdp-browser-control 执行约束（Chrome Web Store 维护 / 受阻 fallback）
+
+- 仅用于 Chrome Web Store 已有条目的字段修复、保存草稿、重提审，或 `agent-browser --profile Default` 因 Google 安全策略 / 登录态隔离无法继续时
+- 使用 `node scripts/cws-update-submit.mjs ...`；该脚本只启动临时 Chrome，不关闭用户现有 Chrome
+- dry-run 不得改字段；实际保存必须显式传 `--save`；实际提审必须显式传 `--submit`
+- `--submit` 必须和 `--save` 同时出现，避免提交的草稿不是本次更新值
+- 若 CWS 重定向到 Google 登录页，停止并让用户登录源 Chrome profile，不要改用新开 Chromium / Playwright MCP
+- CWS 页面 DOM 变更后，先跑 dry-run 验证脚本仍能定位字段，再执行保存或提交
 
 ### 各平台上架步骤
 
@@ -392,6 +417,7 @@ Step 3 用户明确确认素材后进入本步骤。本步骤分两段，**中�
 - 需要时可用 eval 给已确认的正确 input 临时加 id，然后用 agent-browser upload 对准该 id
 - 保存草稿后再提交审核；最终弹窗若出现 auto publish checkbox，按用户要求保留或切换
 - 成功信号：出现“已将您的扩展程序提交送审”或状态进入“待审核 / In review”，记录提交 URL 和状态
+- 若只是修复隐私政策 URL 等已知字段并重提审，优先用 `scripts/cws-update-submit.mjs --privacy-url <url> --save --submit`，不要顺手触发 build、官网部署或素材生成
 
 #### Microsoft Edge Add-ons
 
@@ -470,7 +496,7 @@ Step 3 用户明确确认素材后进入本步骤。本步骤分两段，**中�
 - manifest 与 package.json 版本不一致 → 停在 Step 2，先让用户对齐版本，再继续
 - 用户只发一个平台 → 只提交该平台，不操作其它平台
 - `Playwriter` 无法访问目标平台登录态 → 记录为「需用户手动完成」，继续下一平台；不要降级为 Playwright MCP 新开浏览器
-- `agent-browser --profile Default` 无法访问 Chrome Web Store → 记录为「需用户手动完成」，输出需填字段清单；不要切换到其他 Chrome 控制工具
+- `agent-browser --profile Default` 无法访问 Chrome Web Store → 若是 CWS 维护/重提审场景，改用 `scripts/cws-update-submit.mjs`；若是完整上架且脚本覆盖不了当前操作，记录为「需用户手动完成」，输出需填字段清单
 - Edge 计划未注册 → 不要继续提交 Edge，先把注册入口给用户手动完成，再回到 Step 4
 - Playwriter 单次 `-e` 触达 10s 总超时 → 拆成多次短调用 + Bash `sleep` 等待，不要在 `-e` 内做长 polling，也不要改用新开浏览器的工具
 
@@ -480,7 +506,7 @@ Step 3 用户明确确认素材后进入本步骤。本步骤分两段，**中�
 - 把含糊回应（嗯 / ok 吧 / 随便）当作 Step 3 确认
 - **在用户未明确授权「自动上传 / 一把梭 / 调 API / 直接提交」时，越过 Step 4 上架闸门实际调用 store API / OAuth 上传 / Playwriter / agent-browser 点提交**（默认只整理 payload 并停下）
 - 把 Step 3 的「素材可用」确认当作实际上架授权（两道闸门是独立的）
-- 用 Playwriter 提交 Chrome Web Store（Google 拦截自动化）
+- 用普通 Playwriter / Playwright 新开无登录浏览器提交 Chrome Web Store（Google 拦截自动化）；只有 `cdp-browser-control` 临时 profile + CDP 直连模式例外
 - 用 agent-browser 提交 Firefox AMO 或 Edge（Firefox / Edge 固定走 Playwriter）
 - 颠倒提交顺序（必须 Firefox → Edge → Chrome）
 - 用占位图 / 截图蒙混缺失的真实截图

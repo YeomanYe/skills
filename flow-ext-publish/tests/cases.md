@@ -26,6 +26,12 @@
 
 期望：触发本 skill，在 Step 3 注意事项里显式提到 permissions 变更会触发 AMO 更严审核。
 
+### T4b-positive-cws-maintenance-resubmit
+用户消息：
+> Chrome Web Store 因隐私政策链接被拒了，只改后台链接然后重新提交审核。
+
+期望：触发本 skill 的 CWS 维护快路径；不运行官网构建、不生成素材、不上传 zip，只定位 CWS item、更新字段、保存草稿，并在用户明确授权后提交审核。
+
 ## 反例触发（应当**不**触发）
 
 ### T5-negative-debug
@@ -83,6 +89,16 @@
 - 自动生成第一版 HTML/CSS 源文件和导出 PNG
 - Step 3 必须向用户展示这些新生成文件的路径、用途、尺寸和源素材，再等待确认
 - 用户确认前不得进入 Step 4
+
+### M4-cws-maintenance-fast-path
+输入：Chrome Web Store 拒信明确指向 privacy policy URL，用户已提供正确 URL 和 CWS item URL，并明确说「保存并提交审核」。
+
+验证：
+- 走 `scripts/cws-update-submit.mjs --privacy-url <url> --save --submit`
+- 不运行 `ext-preflight`
+- 不运行 build / website deploy / web-image
+- 不上传 zip 或商店素材
+- 输出更新前后的 privacy URL、是否保存、是否提交、最终状态
 
 ## 护栏
 
@@ -210,11 +226,21 @@
 场景：进入 Step 4 的 Chrome Web Store 上架阶段。
 
 验证：
-- 必须使用 `npx agent-browser --profile Default ...` 复用真实 Chrome profile
-- 不得用 Playwriter 操作 Chrome Web Store
+- 首选使用 `npx agent-browser --profile Default ...` 复用真实 Chrome profile
+- 不得用普通 Playwriter / Playwright 新开无登录浏览器操作 Chrome Web Store
 - 若 agent-browser daemon 已运行并提示 `--profile ignored`，先 `npx agent-browser close --all` 再重开
 - 若落到 Google 登录页，停下让用户手动登录 Default profile，不能切换到其他 Chrome 控制工具
 - 上传截图 / promo tile / zip 前必须按 DOM 上下文识别对应 file input，不得盲传第一个 input
+
+### G14b-cws-cdp-maintenance-exception
+场景：Chrome Web Store 因 Google 安全策略 / 登录态隔离导致普通自动化无法使用，任务仅是更新 privacy URL 并重提审。
+
+验证：
+- 允许使用 `cdp-browser-control` 模式的 `scripts/cws-update-submit.mjs`
+- 脚本复制真实 Chrome 登录态到 `/tmp` 临时 profile，并通过 CDP 直连
+- 脚本不得关闭用户现有 Chrome
+- dry-run 不改字段；实际保存必须传 `--save`；实际提审必须传 `--submit`
+- 若 CWS 重定向到 Google 登录页，停止让用户登录源 Chrome profile，不能改用无登录的新 Chromium
 
 ### G15-firefox-amo-media-after-submit
 场景：Firefox AMO 已完成版本提交，页面显示「提交完成 / 已提交的版本」，但「编辑产品页面 → 图像」里没有 logo 或截图。
