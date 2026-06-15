@@ -222,6 +222,13 @@ director 根据用户输入信号自动选内部路径，**不需要用户先挑
 
 - **本 skill 自己**负责：入口结构、分域、层级、重复、混层、优先级、领域目录是否同时具备
   `index.md` 和 `rules.md`
+- **本 skill 自己**还负责：**工程化约束层 + 便捷自动化层**——项目有没有把规则变成"有牙齿"
+  的门禁（pre-commit / commit-msg hook、`lint-staged`、`prepublishOnly` 发布门禁、聚合
+  `check` 脚本、依赖分层守护）和"省心"的自动化（post-merge / post-checkout 自动 install）。
+  **规则只写在文档里、没有任何机制强制 = 跟没人读一样，等于不存在**（角色信条）。对照
+  [`references/stack-checklist.md`](references/stack-checklist.md) 的「工程化约束与自动化层」节，
+  具象样本见 [`references/exemplars/linwhale-ui.md`](references/exemplars/linwhale-ui.md)——
+  **实例是"对照问目标项目有没有等价物"的锚点，不是照抄的模板**。
 - **技术栈 skill** 负责：该栈应该被写入规范的工程约束
 - **用户额外指定的 skill**：按其自述职责审视
 
@@ -361,6 +368,7 @@ director 根据用户输入信号自动选内部路径，**不需要用户先挑
 - 维度 8 — **联合评估广度**: 1=未调任何 best-practice skill / 3=调 1-2 个 / 5=覆盖目标栈所有相关 skill,有冲突仲裁
 - 维度 9 — **参考项目对齐度**: 1=未对照 mirroring-checklist / 3=部分对照 / 5=完整对照 + 偏离项有明示理由
 - 维度 10 — **与现有规则一致性**: 1=与现规则冲突未识别 / 3=识别但未解决 / 5=识别 + 给出迁移/合并方案
+- 维度 11 — **工程化约束/自动化覆盖度**: 1=只看规则文档,完全没评估门禁机制(hook/lint-staged/发布门禁/聚合 check)与便捷自动化 / 3=点到约束层但没区分"有牙齿 vs 形同虚设"、未对照 stack-checklist 工程化节 / 5=约束(pre-commit/commit-msg/prepublishOnly/聚合 check/依赖分层)与便捷(auto-install)逐条对照目标项目,缺口按四类问题归类 + 判断每条机制对该项目是否真有收益(不照搬 exemplar)
 
 ### 本 skill 红线触发(§3 通用之外):
 
@@ -513,7 +521,8 @@ Codex 是对等 agent，能做本 skill 的所有执行工作。是否派工取�
 ## Reuse
 
 测试用例在 [`tests/cases.md`](tests/cases.md)。
-栈 → 规则域对照清单在 [`references/stack-checklist.md`](references/stack-checklist.md)。
+栈 → 规则域对照清单在 [`references/stack-checklist.md`](references/stack-checklist.md)（含「工程化约束与自动化层」跨栈通用节）。
+工程化约束/自动化层的具象样本在 [`references/exemplars/linwhale-ui.md`](references/exemplars/linwhale-ui.md)。
 skill 匹配规则在 [`references/skill-matching-rules.md`](references/skill-matching-rules.md)。
 Approval Gate 格式在 [`references/approval-format.md`](references/approval-format.md)。
 参考项目镜像检查清单在 [`references/mirroring-checklist.md`](references/mirroring-checklist.md)。

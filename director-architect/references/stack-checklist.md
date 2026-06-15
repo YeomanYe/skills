@@ -122,6 +122,36 @@
   - 构建与缓存策略（Turbo remote cache / Nx graph）
 - **参考 skill**：按项目现场匹配
 
+### 工程化约束与自动化层（**跨栈通用，不绑定具体栈**）
+
+这一节不是"某个栈的规则"，而是横切所有栈的一问：**项目有没有把规则变成"有牙齿"的
+门禁 + "省心"的自动化？** 规则只写在文档里、没有任何机制强制执行 = 跟没人读一样，
+等于不存在（呼应本 skill 角色信条"规则是为了被执行，不是写完归档"）。评估任何项目都该
+对照这一节，判断"约束有没有落到机制上、便捷有没有省掉重复劳动"。
+
+- **域**：`architecture`（机制与门禁编排）+ `coding`（"完成要求"指向这些门禁）+
+  `ai-guide`（交付闸门引用同一套 check）
+- **约束（有牙齿，把规则变成无法绕过的门禁）关键点**：
+  - **pre-commit hook**（husky / lefthook / simple-git-hooks）→ 配 `lint-staged`，
+    **只对暂存文件**跑 lint --fix + format + 相关单测，避免全量拖慢提交
+  - **commit-msg hook** → `commitlint` 强制 Conventional Commits（喂给 changesets / 自动 changelog）
+  - **发布门禁** → `package.json` 的 `prepublishOnly` / `prepack` 跑**聚合 check**（不止 `build`），
+    保证"发布即过全量门禁"，不靠人记得手跑
+  - **聚合 check 脚本** → 单命令串起 lint + typecheck + test + build + 产物校验
+    （`publint` / `are-the-types-wrong`）+ 依赖分层（`dependency-cruiser`）+ 体积（`size-limit`），
+    本地与 CI 共用同一入口
+- **便捷（省心，自动化掉重复劳动）关键点**：
+  - **post-merge / post-checkout hook** → lockfile 变化时**自动 install**，省掉"拉完代码忘装依赖"
+  - 一键本地回归脚本（`check` / `fix`）→ 名称约定统一，新人不必记一长串命令
+- **核心判断（评估时重点看）**：
+  - 门禁是否**前置到 commit / publish**，而不是只靠 CI 兜底（本地即过 > 推上去才发现）
+  - 约束是否**只对改动跑**（lint-staged 智能过滤），否则门禁太慢会被开发者用 `--no-verify` 绕过
+  - "有牙齿"和"省心"要配套：只加约束不加便捷 → 开发者烦；只便捷不约束 → 规则形同虚设
+- **参考 skill**：`team-frontend-feature-dev`（测试门禁 / 合并前回归）；其余按项目现场匹配
+- **具象实例**：见 [`exemplars/linwhale-ui.md`](exemplars/linwhale-ui.md)——一个 pnpm monorepo
+  组件库把这一层做齐的真实样本（含每条机制的落盘文件路径）。**实例是用来"对照问目标项目
+  有没有等价物"的锚点，不是"照抄这套结构"的模板**。
+
 ## 未覆盖栈的处理
 
 如果项目用到的栈不在上表中：

@@ -215,6 +215,26 @@
 
 ---
 
+## C4 — 工程化约束/自动化层评估（维度 11）
+
+**输入**：项目 `react + vite + typescript`，有完整 `docs/<domain>/` 规则文档，但 `.husky/` 不存在、
+`package.json` 无 `prepublishOnly`、无聚合 `check` 脚本、无 `lint-staged`
+
+**预期**：
+- Step 4 联合评估**必须**评估工程化约束层，不能只看规则文档就收工
+- finding 指出："规则有文档但无机制强制——pre-commit / commit-msg hook 缺失、无发布门禁、
+  无聚合 check"，按"规范缺失"归类
+- 对照 `stack-checklist.md` 工程化节 + 可引 `exemplars/linwhale-ui.md` 说明"齐备长什么样"
+- **但**：判断每条机制对该项目是否真有收益（如纯内部应用不强求 size-limit），不照搬 exemplar 全套
+- N 维 audit 维度 11 应能给出非 1 分（真评估了约束层）
+
+**失败信号**：
+- 只评估规则文档分域，完全没提 hook / 门禁 / 聚合 check（维度 11 = 1）
+- 把 linwhale-ui exemplar 当模板要求该项目照抄全套（含 Verdaccio / size-limit / 双发布模式）
+- 把组件库专属机制（Verdaccio 演练 / Tailwind 双发布）当成"应该有"塞给普通应用
+
+---
+
 ## 集成链路用例（与 skill-integration-test 共用）
 
 ### I1 — flow-project-bootstrap → director-architect
