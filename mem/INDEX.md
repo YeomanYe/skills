@@ -40,6 +40,9 @@
 #### playwright
 - (空)
 
+#### browser-automation
+- cdp-browser-control-blocked
+
 #### git
 - (空)
 
@@ -94,6 +97,12 @@
 | skillshare list 显示装好的 skill 在 agent 段不在 skill 段 | skillshare-external-repo-wrong-kind | skillshare |
 | 期望是 skill 却被自动分类为 agent | skillshare-external-repo-wrong-kind | skillshare |
 | ~/.config/skillshare/agents/_<source>/ 出现意外目录 | skillshare-external-repo-wrong-kind | skillshare |
+| 站点提示 此浏览器或应用可能不安全 无法登录 | cdp-browser-control-blocked | browser-automation |
+| computer-use 浏览器 read-only tier 无法点击 | cdp-browser-control-blocked | browser-automation |
+| Chrome DevTools MCP / Playwright 打开新浏览器不共享登录 cookie | cdp-browser-control-blocked | browser-automation |
+| ECONNREFUSED port 9222 CDP 自动化 | cdp-browser-control-blocked | browser-automation |
+| Browser context management is not supported | cdp-browser-control-blocked | browser-automation |
+| WebSocket 404 Not Found CDP session | cdp-browser-control-blocked | browser-automation |
 
 ---
 
