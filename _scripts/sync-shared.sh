@@ -46,6 +46,7 @@ parallelization_target_skills=(
   director-promote
   director-ops
   director-architect
+  director-pm
 )
 
 handoff_payload_target_skills=(
@@ -55,15 +56,17 @@ handoff_payload_target_skills=(
   director-promote
   director-ops
   director-architect
+  director-pm
 )
 
-# director-* 元规范、证据查找、Question Gate 三个共享给所有 4 个 director-*
+# director-* 元规范、证据查找、Question Gate 三个共享给所有 6 个 director-*
 director_template_target_skills=(
   director-design
   director-frontend
   director-promote
   director-ops
   director-architect
+  director-pm
 )
 
 evidence_discovery_target_skills=(
@@ -72,6 +75,7 @@ evidence_discovery_target_skills=(
   director-promote
   director-ops
   director-architect
+  director-pm
 )
 
 question_gate_target_skills=(
@@ -80,6 +84,7 @@ question_gate_target_skills=(
   director-promote
   director-ops
   director-architect
+  director-pm
 )
 
 # constitution.md 给所有 director-* + flow-* + experience-summary + hat + unblock-recipes + mem (16 skill 顶层契约)
@@ -89,6 +94,7 @@ constitution_target_skills=(
   director-promote
   director-ops
   director-architect
+  director-pm
   flow-codex-goal
   flow-dev-task
   flow-ext-publish
@@ -103,13 +109,14 @@ constitution_target_skills=(
   mem
 )
 
-# audit-rubric.md 给 5 director-* + experience-summary (7 维质量评分共用)
+# audit-rubric.md 给 6 director-* + experience-summary (7 维质量评分共用)
 audit_rubric_target_skills=(
   director-design
   director-frontend
   director-promote
   director-ops
   director-architect
+  director-pm
   experience-summary
 )
 
@@ -120,6 +127,7 @@ output_contract_schema_target_skills=(
   director-promote
   director-ops
   director-architect
+  director-pm
   flow-dev-task
   flow-codex-goal
   flow-project-finish
@@ -148,6 +156,7 @@ dispatcher_template_target_skills=(
   director-promote
   director-ops
   director-architect
+  director-pm
   experience-summary
   change-recap
 )

@@ -158,7 +158,7 @@ director-* 现状与扩展：
 | `director-promote` | 宣发者 | audit / draft / variants / dispatch / recap | 已实现(2026-05) |
 | `director-ops` | 运维 | install / uninstall | 已实现(2026-05) |
 | `director-architect` | 架构师 | research(联合评估) → approval → land(自带 mini-orchestration) | 已实现(2026-05) |
-| `director-pm` | 产品经理 | (规划中) | 未来 |
+| `director-pm` | 产品经理 | clarify / prd / prioritize / critique | 已实现(2026-06) |
 | `director-qa` | QA | (规划中) | 未来 |
 | `director-security` | 安全官 | (规划中) | 未来 |
 
@@ -179,7 +179,7 @@ director-* 现状与扩展：
 | 类别 | skill |
 |---|---|
 | 编排器（flow-*）| flow-codex-goal / flow-cron / flow-dev-task / flow-ext-publish / flow-project-bootstrap / flow-project-finish / flow-skill-dev / flow-skill-research |
-| **角色型 agent（director-*）** | **director-design / director-frontend / director-promote / director-ops / director-architect** |
+| **角色型 agent（director-*）** | **director-design / director-frontend / director-promote / director-ops / director-architect / director-pm** |
 | 共享工具 | clean-commit / delivery-gate / sync-skills |
 | **经验治理** | **experience-summary**（任务结束后分诊经验到 11 层架构正确出口） |
 | **个性切换** | **hat**（任务开始时戴帽:收/散/严/快/挑/教/问 7 种 persona，事后告知） |

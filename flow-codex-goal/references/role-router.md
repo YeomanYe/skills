@@ -88,6 +88,7 @@ grep -iE "装一下|卸载|环境配置|install|uninstall|setup" GOAL.md
 | 涉及 auth / 鉴权 / 支付 / 加密 / 密钥 | director-security(未实现) | 安全审计 |
 | 项目规则 / 技术栈选型 / 架构方案 / API schema / migration | **director-architect** ✅ | 架构 + 规则审,7 维 quality audit |
 | 跨服务接口 | director-architect ✅ + (未来 director-security) | 跨域评估 |
+| 需求澄清 / 该不该做 / 功能优先级 / PRD / 产品评审 | **director-pm** ✅ | 产品判断:用户价值 / scope / 优先级 / AC,N 维 quality audit |
 
 **当前行为**:director-architect 已实现(2026-05),自动接;director-security 仍未实现,
 在 GOAL.md 备注 `# TODO: director-security 实现后接入`,该类任务暂只跑内置 Reviewer Codex。

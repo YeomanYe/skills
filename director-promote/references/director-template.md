@@ -1,7 +1,7 @@
 # director-* 角色型 skill 元规范
 
 > 本文件定义 **director-*** 命名空间下所有角色 skill 的**标准结构**。
-> 新建角色 / 改造现有角色都必须对齐本规范。当前 5 个 director-* 都遵循此模板(部分有合理例外,见 §2 子类)。
+> 新建角色 / 改造现有角色都必须对齐本规范。当前 6 个 director-* 都遵循此模板(部分有合理例外,见 §2 子类)。
 
 ## 1. 命名空间含义
 
@@ -9,13 +9,13 @@
 
 | 类型 | 命名 | 本质 | 例子 |
 |---|---|---|---|
-| **角色型** | `director-<role>` | 一个虚拟专家:**专业判断 + 自己干活 + 调度同领域工具** | director-design / director-promote / director-frontend / director-ops / director-architect |
+| **角色型** | `director-<role>` | 一个虚拟专家:**专业判断 + 自己干活 + 调度同领域工具** | director-design / director-promote / director-frontend / director-ops / director-architect / director-pm |
 | **编排型** | `flow-<workflow>` | 一条流水线:**串联多个 skill,推任务从起点到终点** | flow-dev-task / flow-project-finish / flow-codex-goal |
 | **工具型** | `<tool>` | 单一能力,被 director-* 或 flow-* 调用 | web-image / clean-commit / delivery-gate |
 
 ## 2. 5 个核心角色(2026-06 现状)+ 子类型
 
-### 标准 director-*(4 个)— 单角色 + 同领域工具调度
+### 标准 director-*(5 个)— 单角色 + 同领域工具调度
 
 | Skill | 角色 | N modes 摘要 |
 |---|---|---|
@@ -23,6 +23,7 @@
 | `director-frontend` | 前端工程师 | audit / boundaries / implement / extract / handoff(5 modes) |
 | `director-promote` | 宣发者 | audit / draft / variants / dispatch / recap(5 modes) |
 | `director-ops` | 运维 | install / uninstall(2 modes,装卸主干) |
+| `director-pm` | 产品经理 | clarify / prd / prioritize / critique(4 modes) |
 
 ### 角色型 + 内部 mini-pipeline(1 个)— architect 子类
 
