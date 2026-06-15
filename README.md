@@ -185,7 +185,7 @@ director-* 现状与扩展：
 | **个性切换** | **hat**（任务开始时戴帽:收/散/严/快/挑/教/问 7 种 persona，事后告知） |
 | 设计/视觉 | web-image（出图） / director-design（视觉判断 / mockup） |
 | 前端工程 | director-frontend（合并自原 flow-jsx-ui + jsx-ui-audit + ui-extract） |
-| 浏览器自动化 | cdp-browser-control |
+| 浏览器自动化 | mem（unblock: cdp-browser-control-blocked；原 cdp-browser-control 已并入 mem） |
 | 系统运维 | director-ops（软件装 / 卸，合并自原 software-install + software-uninstall） |
 | 测试 meta | skill-behavior-test / skill-integration-test |
 | 宣发/发布渠道 | director-promote（合并自原 post-to-twitter / post-to-v2ex / appinn-forum-post / sspai-publish / producthunt-launch，5 平台内置） / ext-preflight（扩展上架前检查） |

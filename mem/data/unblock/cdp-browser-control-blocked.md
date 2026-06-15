@@ -25,7 +25,7 @@ tags: [browser-automation]
 直接用 Playwright MCP / computer-use / Chrome DevTools MCP → 被 Google 拦"不安全"、只读、或 session 隔离丢登录 cookie。
 
 ### 正确做法
-CDP 直连:复制用户 Chrome cookies→临时 profile → `--remote-debugging-port=9222 --user-data-dir=/tmp/chrome-debug-profile` 启动 → `npx playwriter session new --direct` 接入。⚠️ `pkill Chrome` 破坏性,先告知用户。**完整 4 步 + 错误速查见 `cdp-browser-control` skill**。
+CDP 直连:复制用户 Chrome cookies→临时 profile → `--remote-debugging-port=9222 --user-data-dir=/tmp/chrome-debug-profile` 启动 → `npx playwriter session new --direct` 接入。⚠️ `pkill Chrome` 破坏性,先告知用户。**完整 4 步 + 错误速查见 `mem/references/recipes/cdp-browser-control.md`**。
 
 ### 出处
 - 首次发现: 2026-06-16 / 从 cdp-browser-control skill 建召回入口

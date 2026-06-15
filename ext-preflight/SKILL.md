@@ -158,7 +158,7 @@ npx playwriter@latest session new 2>&1
 |------|------|---------|
 | `Extension connected` | ✅ 已连接 | 可继续 |
 | `Extension did not connect within timeout` | ❌ 未连接 | 在浏览器中点击 Playwriter 扩展图标 |
-| `ECONNREFUSED` | ❌ Debug Chrome 未运行 | 参考 `cdp-browser-control` skill 启动 Chrome |
+| `ECONNREFUSED` | ❌ Debug Chrome 未运行 | 查 mem(unblock: `cdp-browser-control-blocked`)启动 Chrome |
 
 ---
 
