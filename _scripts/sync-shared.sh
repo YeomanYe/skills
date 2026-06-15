@@ -9,8 +9,8 @@
 #   （SKILL.md 引用改成 `references/X.md`，同级相对路径 skillshare 同步后仍可达）。
 #
 # 用法:
-#   bash scripts/sync-shared.sh        # 同步并报告差异
-#   bash scripts/sync-shared.sh --check # 仅检查（exit 1 if 任一副本过时）
+#   bash _scripts/sync-shared.sh        # 同步并报告差异
+#   bash _scripts/sync-shared.sh --check # 仅检查（exit 1 if 任一副本过时）
 
 set -u
 
@@ -239,7 +239,7 @@ echo ""
 
 if [[ $CHECK_ONLY -eq 1 ]]; then
   if [[ $drift_count -gt 0 ]]; then
-    echo "FAIL: $drift_count file(s) drift; run 'bash scripts/sync-shared.sh' to fix"
+    echo "FAIL: $drift_count file(s) drift; run 'bash _scripts/sync-shared.sh' to fix"
     exit 1
   else
     echo "OK: all _shared/ files in sync"

@@ -149,7 +149,7 @@
 
 ## Plugin 前缀剥离 (SN 系列)
 
-这一组针对脚本 `scripts/sync_skill_to_center.sh` 的 plugin 前缀剥离启发。
+这一组针对脚本 `_scripts/sync_skill_to_center.sh` 的 plugin 前缀剥离启发。
 用 `live` 模式跑（实际 `bash` 脚本验证 stdout / stderr / 落盘结果），不要纯文本模拟。
 
 > 注：Case 1-5 的 fan-out 描述与当前 SKILL.md（默认不向 AI 工具目录 fan-out）不一致，
@@ -164,7 +164,7 @@
 > 必须用 `pwd -P` 把沙箱路径也 canonicalize，否则 glob 匹配不上。
 
 ```bash
-SCRIPT=~/Documents/projects/skills/sync-skills/scripts/sync_skill_to_center.sh
+SCRIPT=~/Documents/projects/skills/sync-skills/_scripts/sync_skill_to_center.sh
 
 RAW_SANDBOX="$(mktemp -d)"
 SANDBOX="$(cd "$RAW_SANDBOX" && pwd -P)"

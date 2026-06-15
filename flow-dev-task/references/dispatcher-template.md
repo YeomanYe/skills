@@ -227,7 +227,7 @@ Constraints:
 
 ## 已使用本模板的 skill(预期同步目标)
 
-`scripts/sync-shared.sh` 需把本文件同步到以下所有 orchestrator / dispatcher 类 skill 的
+`_scripts/sync-shared.sh` 需把本文件同步到以下所有 orchestrator / dispatcher 类 skill 的
 `references/dispatcher-template.md`:
 
 - **flow-* 编排器**:flow-codex-goal / flow-dev-task / flow-project-finish /

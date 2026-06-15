@@ -88,7 +88,7 @@ description: Use when a finished skill should be synced into the central skills 
 使用附带脚本：
 
 ```bash
-bash scripts/sync_skill_to_center.sh "<source-dir>"
+bash _scripts/sync_skill_to_center.sh "<source-dir>"
 ```
 
 脚本会完成以下动作：

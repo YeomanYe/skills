@@ -68,7 +68,7 @@
 **路径**: `~/Documents/projects/skills/_shared/constitution.md`
 
 **后续动作**:
-1. 改完跑 `bash scripts/sync-shared.sh` 分发到 12 个 skill 的 references/
+1. 改完跑 `bash _scripts/sync-shared.sh` 分发到 12 个 skill 的 references/
 2. 跑 `git add -A && git commit && git push origin main`
 3. `cd ~/.config/skillshare/skills && git pull origin main`
 4. `skillshare sync --force`

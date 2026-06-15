@@ -232,7 +232,7 @@ STOP 原因:**RF6**("记住偏好"不跨 ≥ 3 skill,是 L9b 本职)+ **RF4**(L1
   - 出口是 skill / director-* / flow-* → `flow-skill-dev` 完整流程
   - 出口是 hook → `update-config` 配置 settings.json
   - 出口是 constitution / _shared/ → **完整 4 步链**:
-    1. `bash scripts/sync-shared.sh`(分发到 12 个 target skill 的 references/)
+    1. `bash _scripts/sync-shared.sh`(分发到 12 个 target skill 的 references/)
     2. `git add -A && git commit && git push origin main`(推到 GitHub 单一事实源)
     3. `cd ~/.config/skillshare/skills && git pull origin main`(skillshare clone 拉更新)
     4. `skillshare sync --force`(分发到 `~/.claude/skills/` 等 agent 目标)

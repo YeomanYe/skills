@@ -2,7 +2,7 @@
 # pre-commit — 提交前跑 skill-doctor,有 ERROR 阻断
 #
 # 启用(一次性):
-#   git config core.hooksPath scripts/git-hooks/
+#   git config core.hooksPath _scripts/git-hooks/
 #
 # 行为:
 #   - 跑 node-scripts 的 skill-doctor 全规则

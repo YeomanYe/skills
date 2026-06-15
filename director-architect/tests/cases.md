@@ -262,4 +262,4 @@
     "director-architect（上游：flow-project-bootstrap，下游：本 skill 内自包含）"
   - 4 个 director-* 各自的 `references/handoff-payload-template.md` 副本同步更新
   - `flow-codex-goal/references/handoff-payload-template.md` 同步
-- 用 `bash scripts/sync-shared.sh --check` 验证无 drift
+- 用 `bash _scripts/sync-shared.sh --check` 验证无 drift

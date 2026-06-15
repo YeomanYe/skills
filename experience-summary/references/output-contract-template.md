@@ -103,7 +103,7 @@ experience-summary 的核心契约是"分诊结论可直接执行 + 一句话沉
 
 | 出口 | 必须提醒 |
 |---|---|
-| L1 / L2a | `bash scripts/sync-shared.sh` + git push + skillshare sync 4 步链 |
+| L1 / L2a | `bash _scripts/sync-shared.sh` + git push + skillshare sync 4 步链 |
 | L2b | 切到 node-scripts 项目走 flow-dev-task |
 | L3 | 用 update-config skill 配置,不要手动改 settings.json |
 | L4 | 脚本可独立执行 + 有 --help |

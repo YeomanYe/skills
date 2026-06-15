@@ -29,7 +29,7 @@
 ```bash
 cd ~/Documents/projects/skills
 # 编辑 _shared/constitution.md
-bash scripts/sync-shared.sh  # 分发到 12 skill 的 references/
+bash _scripts/sync-shared.sh  # 分发到 12 skill 的 references/
 git add -A && git commit -m "feat(constitution): add <段标题>"
 git push origin main
 cd ~/.config/skillshare/skills && git pull origin main
@@ -67,7 +67,7 @@ skillshare sync --force
 ```
 
 **写完后续动作**:
-1. 在 `scripts/sync-shared.sh` 加入 SHARED_FILES + target 数组
+1. 在 `_scripts/sync-shared.sh` 加入 SHARED_FILES + target 数组
 2. 跑 sync-shared.sh + git push + skillshare sync(同 L1)
 
 ---
@@ -237,7 +237,7 @@ fi
 12. References(constitution / evidence-discovery / question-gate)
 13. Reuse(tests/cases.md)
 
-跑 `bash scripts/sync-shared.sh` 注入共享 references。
+跑 `bash _scripts/sync-shared.sh` 注入共享 references。
 
 ---
 

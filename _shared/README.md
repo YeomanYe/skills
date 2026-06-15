@@ -22,7 +22,7 @@ skillshare 同步到目标环境。
 `references/` 目录：
 
 ```bash
-bash scripts/sync-shared.sh
+bash _scripts/sync-shared.sh
 ```
 
 各 SKILL.md 引用路径用 `references/X.md`（同级相对路径），skillshare 同步
@@ -33,14 +33,14 @@ GitHub + skillshare source（**用 `git push` + `git pull`，不是 `rsync`**）
 
 ## CI / pre-commit 检查
 
-`scripts/sync-shared.sh --check` 用于检查所有副本是否与 `_shared/` 源头一致。
+`_scripts/sync-shared.sh --check` 用于检查所有副本是否与 `_shared/` 源头一致。
 返回非 0 表示有副本漂移（需要重跑同步）：
 
 ```bash
-bash scripts/sync-shared.sh --check
+bash _scripts/sync-shared.sh --check
 # OK: all _shared/ files in sync
 # 或
-# FAIL: N file(s) drift; run 'bash scripts/sync-shared.sh' to fix
+# FAIL: N file(s) drift; run 'bash _scripts/sync-shared.sh' to fix
 ```
 
 建议接入 pre-commit hook 或 CI step，避免源头改了但忘记同步。
@@ -55,8 +55,8 @@ bash scripts/sync-shared.sh --check
 ## 加新共享文件的流程
 
 1. 在 `_shared/` 下新建 `<name>.md`
-2. 编辑 `scripts/sync-shared.sh`：在 `SHARED_FILES` 数组加 `<name>.md`，新建对应
+2. 编辑 `_scripts/sync-shared.sh`：在 `SHARED_FILES` 数组加 `<name>.md`，新建对应
    `<name>_target_skills` 数组列出要同步的 skill
 3. 在主调 `sync_one` 段加一行调用
-4. 跑 `bash scripts/sync-shared.sh` 验证
+4. 跑 `bash _scripts/sync-shared.sh` 验证
 5. 在引用 skill 的 SKILL.md 写 `references/<name>.md`（不是 `_shared/<name>.md`）

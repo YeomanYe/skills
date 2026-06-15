@@ -6,7 +6,7 @@ Claude / Codex / 其他 agent 共用的 skill 集合，**单一事实源**是 Gi
 
 ```bash
 # 1. 启用 skill-doctor pre-commit hook(每次 commit 自动 lint,ERROR 阻断)
-git config core.hooksPath scripts/git-hooks/
+git config core.hooksPath _scripts/git-hooks/
 
 # 2. 确保 skill-doctor 已编译(hook 依赖它)
 cd ~/Documents/projects/node-scripts && pnpm install && pnpm run build
@@ -53,7 +53,7 @@ skillshare 工具的配置在 `~/.config/skillshare/config.yaml`，定义了 `so
 │   ├── question-gate.md        # Step 0 Q gate 规则
 │   ├── parallelization-template.md
 │   └── handoff-payload-template.md
-├── scripts/
+├── _scripts/
 │   └── sync-shared.sh     # 把 _shared/ 复制到各 skill 的 references/
 ├── flow-codex-goal/       # 各 skill 目录（含 SKILL.md / references/ / tests/）
 ├── flow-dev-task/
@@ -68,7 +68,7 @@ cd ~/Documents/projects/skills
 # 改 SKILL.md / references / tests ...
 
 # 2. 如果改了 _shared/，同步副本到各 skill 的 references/
-bash scripts/sync-shared.sh
+bash _scripts/sync-shared.sh
 
 # 3. 提交并推到 GitHub（单一事实源）— pre-commit hook 会自动跑 skill-doctor
 git add -A && git commit && git push origin main
@@ -90,7 +90,7 @@ skillshare sync --force
 
 ```bash
 cd ~/Documents/projects/skills
-git config core.hooksPath scripts/git-hooks/
+git config core.hooksPath _scripts/git-hooks/
 ```
 
 启用后,commit 时若 ERROR > 0 会看到:
@@ -170,7 +170,7 @@ director-* 现状与扩展：
   + [`question-gate.md`](_shared/question-gate.md)(Q gate 规则)
 - 4 director-* Relationship 互引,Subagent 派工模板显式指挥
 
-新加 director-* 角色:照 `_shared/director-template.md` 模板填,跑 `bash scripts/sync-shared.sh` 分发共享 references。
+新加 director-* 角色:照 `_shared/director-template.md` 模板填,跑 `bash _scripts/sync-shared.sh` 分发共享 references。
 
 参考：这套设计与 [gstack 的 cognitive modes](https://gstacks.org/) 思路一致——"虚拟专家角色"。
 

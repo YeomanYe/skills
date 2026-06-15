@@ -182,7 +182,7 @@ subagent 派工回报必须把完整 markdown 复述到 stdout。两个真实问
 - hat
 - todo-flow
 
-新加产出报告类 skill 时同步加入 `scripts/sync-shared.sh` 的
+新加产出报告类 skill 时同步加入 `_scripts/sync-shared.sh` 的
 `output_contract_schema_target_skills` 数组。
 
 ## 引用方式
@@ -194,4 +194,4 @@ subagent 派工回报必须把完整 markdown 复述到 stdout。两个真实问
 ```
 
 skillshare 同步后,`references/output-contract-schema.md` 仍可达
-(由 `scripts/sync-shared.sh` 从 `_shared/` 分发)。
+(由 `_scripts/sync-shared.sh` 从 `_shared/` 分发)。
