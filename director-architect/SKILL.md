@@ -38,7 +38,7 @@ description: >
 `director-architect` 是"架构师"角色——给定一个项目，**先判断真实诉求**（审一下 / 梳理 /
 对齐参考 / 已定好让我写），再走内部 pipeline：
 
-1. **Research Phase**：盘点现状 + 识别技术栈 + 动态匹配 best-practice skill + 联合评估 +
+1. **Research Phase**：盘点现状 + 识别技术栈（greenfield 栈未定则先选型）+ 动态匹配 best-practice skill + 联合评估 +
    设计目标结构 + 合成改进方案（含**决策记录**：哪些是 best-practice 间冲突的自决，
    选了什么，为什么）
 2. **Approval Gate**：把方案 + 文件级 diff 预览交给用户，**显式等用户 yes**
@@ -87,14 +87,14 @@ description: >
 - **把冲突甩给用户** — "best-practice A 说要 X,best-practice B 说要 Y,你选哪个？"
   = **架构师没做架构判断**。我的工作是**自决 + 留痕**(为什么选 X 不选 Y),用户只需要
   在 Approval Gate 一次性 yes/no。把每个冲突都丢回去 = 退化成调度脚本。
-- **越界进设计 / 前端 / 运维领地** — 我管**规则结构 + 文档分域 + 决策记录**;
-  **设计 token 的具体取值找 director-design,JSX convention 找 director-frontend,
-  装什么工具找 director-ops**。越界 = 假装自己什么都懂 = 让每个领地的专家
-  rule 都被我半吊子的判断稀释。
+- **越界进设计 / 前端 / 运维领地** — 我管**规则结构 + 文档分域 + 决策记录**,greenfield 时
+  **也管主技术栈选型**(选什么栈是架构判断,不是越界);但**设计 token 的具体取值找 director-design,
+  JSX convention 找 director-frontend,装什么工具 / 怎么装找 director-ops**(选型 ≠ 装工具)。
+  越界 = 假装自己什么都懂 = 让每个领地的专家 rule 都被我半吊子的判断稀释。
 
 ## When to Use
 
-- 用户想新建一个工程规范体系（greenfield 项目，规则从 0 起步）
+- 用户想新建一个工程规范体系（greenfield 项目，规则从 0 起步；栈未定时本 skill 会先定主技术栈）
 - 用户想整理已有的项目规范、规则文档或 AI 协作规则
 - 用户要审查规则现状（"审一下"、"看看"、"诊断"）
 - 用户要按参考项目镜像规则结构（"按 X 项目做"、"对齐 Y"）
@@ -110,6 +110,7 @@ description: >
 - 只想讨论视觉设计 token 的具体取值 → `director-design`
 - 项目已进入实现中段，只想调整单一规则 → 直接编辑该规则文件
 - 完整多阶段项目启动（含 MVP / preview / 设计） → `flow-project-bootstrap`（它内部会调本 skill）
+- 只要开工前准备（MVP / 主交互 / preview 决策，不涉及规则结构） → `project-prep`（本 skill 只在做 greenfield 架构时**内部**补主栈选型，不接管完整 prep）
 
 ## 输入识别（单一入口，不让用户挑 mode）
 
@@ -177,6 +178,17 @@ director 根据用户输入信号自动选内部路径，**不需要用户先挑
 - `tsconfig.json` → `typescript`
 
 用户手动指定的栈**优先**。最终产出明确 stack 列表，如 `["fresh", "deno", "preact", "tailwindcss"]`。
+
+**Greenfield 选型（栈未定时不 punt）**：如果是新项目、上面元信息**探测不到栈**、上游也**没传
+`tech_stack`**，**不要假设栈已定就往下走**——先做一次**粗粒度主栈选型**，作为出规则的前置：
+
+- 优先级（同 `project-prep` Step 2）：① 用户明确声明的栈 ② 从项目类型 / 目标直接推断的主运行面
+  与主框架 ③ 实在不可推断 → 列为**开放决策**，不硬猜
+- 只定**主栈**：主运行面（web / extension / mobile / desktop / backend / hybrid）+ 主框架 / UI 宿主
+  + 主语言；**不**展开全部库清单
+- 选型结论随 plan 进 **Approval Gate** 一并求批，批准后据此出规则
+- 这是 architect 在 greenfield 架构流程**内部**补的选型，**不**新增"定技术栈"对外触发词去抢
+  `project-prep` 的"开工前准备"入口（MVP / 主交互 / preview 仍归 project-prep，见 Relationship 段）
 
 #### Step 3 — 动态匹配 best-practice skill（**禁止写死清单**）
 
@@ -494,6 +506,14 @@ Codex 是对等 agent，能做本 skill 的所有执行工作。是否派工取�
 - `project-rules-design` — 已被本 skill 吸收（规则结构设计 + stack-checklist）
 - `flow-project-rules` — 已被本 skill 吸收（联合评估 + 审批 + 落地编排）
 
+### 与 `project-prep` 的边界（**不重叠，不抢触发**）
+- `project-prep` = 独立的"开工前准备"入口：MVP 范围 / 主交互设计 / **主技术栈选型** / preview 决策。
+  用户单独要"开工前准备 / 定 MVP / 要不要做 preview" → 走 project-prep，**不归本 skill**。
+- `director-architect` = 只在**已被叫去给 greenfield 做架构、且栈未定**时，于 Research Phase Step 2
+  **内部**补一次粗粒度主栈选型（作为出规则前置）。**不**新增"定技术栈"对外触发词。
+- 二者都能"选栈"但触发面不同：project-prep 是产品侧 scoping 的**入口**；本 skill 是规则架构流程的
+  **内部步骤**。project-prep 不动、不删、不降级。
+
 ### 明确不调用（**主动调用属越界**）
 - `frontend-design` — 写生产代码，越界
 - `huashu-design` — 视觉原型，越界
@@ -509,7 +529,7 @@ Codex 是对等 agent，能做本 skill 的所有执行工作。是否派工取�
 | `task_id` | ✅ | 任务唯一标识 |
 | `objective` | ✅ | 一句话目标（"梳理规则" / "审规则" / "按 X 项目对齐"） |
 | `risk_class` | ✅ | low / medium / high（high = 涉及主入口 CONTRIBUTING / 跨多个 domain 重构） |
-| `tech_stack` | 推荐 | 项目已识别的技术栈（避免本 skill 重复探测） |
+| `tech_stack` | 推荐 | 项目已识别的技术栈（避免本 skill 重复探测）；**greenfield 且上游未传 → 本 skill 在 Step 2 自做粗粒度主栈选型** |
 | `project_root` | 推荐 | 项目根路径 |
 | `reference_project` | 可选 | 用户指定的参考项目路径或 URL |
 | `prior_context` | 可选 | 上游 Context Harvest 的 git/branch/diff 状态 |

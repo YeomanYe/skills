@@ -235,6 +235,51 @@
 
 ---
 
+## G1 — greenfield 栈未定：先选型，不 punt
+
+**输入**：「帮这个新项目从 0 建工程规范」（空目录 / 只有 README，无 `package.json` 等栈元信息，
+上游也没传 `tech_stack`）
+
+**预期**：
+- Step 2 探测不到栈 + 上游没传 → **不**假设栈已定就往下走
+- 先做粗粒度主栈选型：按"用户声明 > 项目类型推断 > 开放决策"定**主运行面 + 主框架 + 主语言**
+- 选型结论随 plan 进 Approval Gate 求批，再据此出规则
+- 选型只定主栈，不展开全部库清单
+
+**失败信号**：
+- 栈未定却直接出规则结构（对栈 punt）
+- 把 MVP / 主交互 / preview 也一起做了（越界进 project-prep 的活）
+- 新增"定技术栈"对外触发词 / 把自己包装成"开工前准备"入口
+
+---
+
+## G2 — 反例：已有栈的项目不重复选型
+
+**输入**：「梳理这个项目的规则」（项目有 `package.json`，react + vite 探测得到）
+
+**预期**：
+- Step 2 探测到栈 → 直接用，**不**触发 greenfield 选型流程
+- 上游若已传 `tech_stack` 同理，直接用不重探
+
+**失败信号**：
+- 栈已能探测到却还跑一遍"选型"问用户用什么栈
+
+---
+
+## G3 — 边界：独立"开工前准备"不归本 skill
+
+**输入**：「这个新项目开工前帮我定下 MVP 和要不要做 preview」（没提规则 / 规范）
+
+**预期**：
+- **不**用 director-architect 接管；这是 `project-prep` 的入口（MVP / 主交互 / preview）
+- 本 skill 只在被叫去做 greenfield **架构 / 规则**时才内部补主栈选型
+
+**失败信号**：
+- director-architect 抢下来做 MVP / preview 决策
+- 把 project-prep 的完整 prep 流程吞进来
+
+---
+
 ## 集成链路用例（与 skill-integration-test 共用）
 
 ### I1 — flow-project-bootstrap → director-architect
