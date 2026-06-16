@@ -127,18 +127,24 @@ controlled prompt(我们自己写的,无外部输入)可安全 bypass。否则 b
 
 **第五条 robustness 规则**(2026-06-06 第 5 坑):budget cmd 失败时**用 `subprocess.run(capture_output=True)` 显式捕获 stderr**,而不是 `check_output`(默认 stderr 直接打到 console 看不到)。否则 CalledProcessError 只带 returncode,根因不明。日志该有一行 `DIAG budget stderr: <前 300 字>`。
 
-**第六条 robustness 规则**(2026-06-06 同时踩):5-min retry 循环必须有**上限**,否则连续失败几小时累积 30+ 个 retry cron 噪音。建议:
-- retry 用编号 desc(`darwin-reschedule-retry-N`)
-- schedule.py 读 jobs.json 看自己是第几代 retry
-- N ≥ 6(≈ 30 min)→ give-up,不再排 retry,等 watchdog 12:00/22:00 救活
+**第六条 robustness 规则**(2026-06-06,2026-06-17 修正实现陷阱):5-min retry 循环必须有**上限**,否则连续失败几小时累积 30+ 个 retry cron 噪音。
 
-这把"瞬时网络抖动"(30 min 内自愈)跟"长期 broken"(等 watchdog)分开,日志不再被淹没。
+⚠️ **实现陷阱(ty-vibe-kanban 实测踩死)**:retry 代数**绝不能靠"数 jobs.json 里 retry cron 个数"来推**——schedule.py 在重排前会先 `cron del` 掉当前那个 retry cron,**删完再数永远是 0 → 代数恒为 1 → 上限永远触发不了 → 无限 5-min 重试**。
+- ✅ 正确:**用持久计数器**——写在 `cron-ids.json` 的 `retry_gen` 字段,失败时 `+1`、good read 时清 0。
+- retry cron 仍用编号 desc(`<task>-retry-N`)便于辨识,但**判上限以 `retry_gen` 为准,不数 cron**。
+- 配合第七条 wake-then-query 后,auth-idle 一周期即恢复,真到上限的只剩"命令真坏"的长期 broken → 不再排 retry,等 watchdog。
 
-**第七条 robustness 规则**(2026-06-06 + user 一句话点破根因):**`claude-usage` 用 claude CLI 同一套 auth token,token 会随用户活跃自动续期,但长期 idle(整夜 / 周末)会过期**。过期表现为 stderr 含 `401 / 403 / unauthorized / authentication / token expired`。
+这把"瞬时抖动"(自愈)跟"长期 broken"(等 watchdog)分开,日志不再被淹没。
 
-这意味着 5-min retry 在 user idle 期间**注定失败**(token 直到 user 跟 claude 对话才会 refresh)。所以 schedule.py 检测到 auth-class 错误关键字时**立即 give-up**,不浪费 retry slot,直接等 watchdog 12:00/22:00。watchdog 触发时 user 通常已醒/在用 → token 已 refresh → 链路自愈。
+**第七条 robustness 规则**(2026-06-06 起,2026-06-17 ty-vibe-kanban 实战修正根因与解法):**`claude-usage` 从凭证库读 OAuth access token 直接打 Anthropic API,token 长期 idle(整夜 / 周末)会过期**。
 
-判定关键字(stderr 全小写匹配):`401` / `403` / `unauthorized` / `authentication` / `token expired`。
+⚠️ **过期不一定报 `401/unauthorized`**——实测常表现为 **claude-usage 返回空 stdout**(budget JSON 解析失败 `Expecting value: line 1 column 1`),会被误判成 "other" 类错误。**靠 auth 关键字分类会漏**。
+
+❌ **已废弃的旧解法**:"检测到 auth-class 关键字 → 立即 give-up 等 watchdog"。两个致命问题:(1) 过期常是空输出、命中不了 auth 关键字 → 不 give-up 反而进 5-min 死重试;(2) 即便命中,give-up 等 watchdog(12:00/22:00,通常在工作窗外)= **丢掉整段窗口**。2026-06-17 ty-vibe-kanban 实测:03:12–05:52 空转 **2h40m**,直到 user 给 bot 发消息(= claude 活动刷新了 token)才恢复。
+
+✅ **正解:先唤醒刷新,再查询(wake-then-query)**。**每次 burn 唤醒,在读 budget 之前先跑一次 `claude -p hi --permission-mode bypassPermissions`**——它刷新共享凭证库里的 token,使后续 budget 查询永远在 fresh token 上做。idle-expiry 不再造成空转(根因是 user 点破:他跟 bot 对话本身就刷新了 token,把那招主动化即可)。
+
+兜底:schedule.py 的 watchdog 路径(不经 burn.sh)在 budget 读失败时也做一次 `claude -p hi` 自刷新 + 重读,再决定是否 5-min retry。
 
 ## burn.sh 关键逻辑(伪码)
 
@@ -147,6 +153,9 @@ controlled prompt(我们自己写的,无外部输入)可安全 bypass。否则 b
 if grep -q '^\s*-?\s*terminated_at:' STATUS.md:
     cc-connect cron del $self_id
     exit 0
+
+# 0.5 wake-then-query (见第七条): 读 budget 前先刷新 token,否则 idle 过期的 token 查 budget 必败 → 死重试
+claude -p hi --permission-mode bypassPermissions >/dev/null 2>&1 || true
 
 # 1. budget check (pure shell, 0 LLM)
 # ⚠️ JSON 只有 .fiveHour.utilization + .fiveHour.resetsAt(camelCase),没有 remaining_minutes!
