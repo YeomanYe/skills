@@ -280,6 +280,31 @@ agent 被 cron 唤醒后,**只做这 4 步**,不超出范围:
 
 **实战**:`~/Documents/projects/skills/.experiment-state/darwin-huashu/`(本 skill 来源,2026-06-03 编排)。
 
+### #2 — `window-burn`(指定时间窗整段 burn)
+
+**最适合**:长跑任务(几天到几周)+ 任务可切 ~50 min batch + user 划定一段"随便烧"的时段(典型:夜间),窗内要**尽量用光额度**。与 #1 相反:#1 只 burn 尾巴、不碰白天额度;#2 在指定窗内**整段连烧到 cap**。
+
+**核心机制**: 动态一次性 cron 自排程(由 `resetsAt` 算下次)+ watchdog:
+- **burn** @ 窗内 util<cap → +~50min 续烧本窗;当前窗烧满 → `resetsAt+1min` 等下一窗;出窗 → 下个窗起点
+- **每次唤醒先 `claude -p hi` 刷 token、再查 budget**(wake-then-query,见 preset-burn-tail robustness 第七条——idle 过期的 token 直接查必败)
+- **watchdog** @ daily 12:00 + 22:00(reboot 自愈)
+
+**默认参数**(均可改):
+- 工作窗口:每日 21:30 → 次日 11:30(CST)夜间
+- budget 上限:util ≤ 97%(尽量用光,留 3% 防 hard lockout)
+- **线性预留**:5h 窗口结束**晚于**窗末(11:30)时,只用落在窗内的比例 = (11:30−窗口起点)/5h(例窗口 07:30→12:30 = 用 80%、留 20% 给白天)
+- 单 batch:~50 min(收尾防下次唤醒重叠);窗内多批连烧
+- watchdog:每天 12:00 / 22:00
+
+**何时**不用**此预设**:
+- 不能影响 user 白天额度(只能用反正要 reset 的尾巴)→ 用 #1 `burn-tail`
+- 任务无法切成 ~50min 独立 batch → 改 `--prompt --session-mode new-per-run` 跑更长 single session
+- 无 budget 概念的纯定时 → 普通 recurring cron
+
+**完整实现**(budget-gate.py 线性预留 / schedule.py 自排程 / burn.sh wake-then-query / burn-prompt / 工作目录)见 [`references/preset-window-burn.md`](references/preset-window-burn.md)。robustness 规则与 #1 共用(见 preset-burn-tail.md 第 1–7 条)。
+
+**实战**:`~/Documents/projects/.experiment-state/ty-vibe-kanban-build/`(本预设来源,2026-06-17 编排)。
+
 ## Boundaries(本 skill 不做的事)
 
 - **不实现 cron 引擎本身**(dep:cc-connect cron / system crontab)
@@ -320,7 +345,8 @@ agent 被 cron 唤醒后,**只做这 4 步**,不超出范围:
 - 任务完成后自删 cron 协议(避免僵尸唤醒)
 
 参考:
-- `references/preset-burn-tail.md` — **预设 #1 burn-tail** 完整实现(schedule.py / burn.sh / 工作目录 / 实战参数)
+- `references/preset-burn-tail.md` — **预设 #1 burn-tail** 完整实现(schedule.py / burn.sh / 工作目录 / 实战参数 + 第 1–7 条共用 robustness 规则)
+- `references/preset-window-burn.md` — **预设 #2 window-burn** 完整实现(指定夜间窗整段 burn / 线性预留 / wake-then-query / resetsAt 自排程)
 - `references/cron-prompt-template.md` — cron prompt 套话
 - `references/status-md-template.md` — STATUS.md 结构 + 字段说明
 - `references/halt-protocol.md` — 自删 + 通知协议
