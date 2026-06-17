@@ -14,7 +14,7 @@
 - (空) — 通用 API key / token 登记,值存 `~/Documents/knowledge/local/.env`
 
 #### local-host
-- (空) — 本机装了什么、装在哪、PATH 怎么生效
+- knowledge-base-location — 本机装了什么、装在哪、PATH 怎么生效
 
 #### project-env
 - (空) — 跨 agent 共用的项目环境事实(不是项目内部 .env)
@@ -23,7 +23,10 @@
 
 | symptom 关键词 | entry slug | tag |
 |---|---|---|
-| (空表,等首条 entry 写入) | | |
+| 知识库在哪 / knowledge base 位置 / 个人知识库路径 | knowledge-base-location | local-host |
+| 安装/配置记录写到哪 / `<tool>-install.md` 放哪 | knowledge-base-location | local-host |
+| 明文密钥/.env/token 存哪(~/Documents/knowledge/local/.env) | knowledge-base-location | local-host |
+| TODOS 待办清单在哪 | knowledge-base-location | local-host |
 
 ---
 
