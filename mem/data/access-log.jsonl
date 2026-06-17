@@ -3,3 +3,4 @@
 {"ts":"2026-06-12T15:00:02.000Z","op":"write","category":"unblock","slug":"skillshare-multi-skill-repo-minimal-install","actor":"flow-skill-dev","session_id":"mem-bootstrap","note":"migrated from unblock-recipes"}
 {"ts":"2026-06-12T15:00:03.000Z","op":"write","category":"unblock","slug":"skillshare-external-repo-wrong-kind","actor":"flow-skill-dev","session_id":"mem-bootstrap","note":"migrated from unblock-recipes"}
 {"ts":"2026-06-17T06:37:09.000Z","op":"write","category":"env","slug":"knowledge-base-location","actor":"claude-code","session_id":"im-feishu"}
+{"ts":"2026-06-17T07:00:14.000Z","op":"write","category":"env","slug":"knowledge-base-location","actor":"claude-code","session_id":"im-feishu","note":"add query-via-llm-wiki"}

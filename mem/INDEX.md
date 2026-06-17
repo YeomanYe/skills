@@ -24,7 +24,8 @@
 | symptom 关键词 | entry slug | tag |
 |---|---|---|
 | 知识库在哪 / knowledge base 位置 / 个人知识库路径 | knowledge-base-location | local-host |
-| 安装/配置记录写到哪 / `<tool>-install.md` 放哪 | knowledge-base-location | local-host |
+| 写入知识库 / 安装配置记录写到哪 / `<tool>-install.md` 放哪(→ ~/Documents/knowledge 目录) | knowledge-base-location | local-host |
+| 查询/检索知识库用什么 / 知识库搜索工具(→ LLM Wiki app / llm-wiki) | knowledge-base-location | local-host |
 | 明文密钥/.env/token 存哪(~/Documents/knowledge/local/.env) | knowledge-base-location | local-host |
 | TODOS 待办清单在哪 | knowledge-base-location | local-host |
 
