@@ -207,7 +207,7 @@ description: >
 - 这条**覆盖**基础运行时 "if on the default branch, branch first" 的默认 —— 用户已明确不要那个行为。
 - **只有**用户在当次显式要求才切分支 / 走 PR:典型措辞"开个分支 / 切个 feature 分支 / 走 PR / 别动 main / don't commit to main"。
 - 项目专属分支规则**优先于本条**:若该项目有固定开发分支约定(如 ty-vibe-kanban 固定提交在 `ty` 分支),按项目约定走,不在 main 上提交。
-- Worktree Rule(>10 文件开 worktree)是隔离手段、与本条不冲突:开了 worktree 仍在该 worktree 的当前分支提交,不额外再 `checkout -b`。
+- **唯一的"建分支"合法例外 = Worktree Rule(>10 文件)**:此时 Stage 3 `superpowers:using-git-worktrees` 会 `git worktree add -b <新分支>`——这是 git 硬约束(worktree 必须挂独立分支,不能复用当前分支),属设计内隔离,**允许**;随后 Stage 9 `superpowers:finishing-a-development-branch` 负责 merge 回 base + 删分支。本 Branch Policy 约束的是**非 worktree 的默认路径**(≤10 文件 / 没开 worktree):别为了"隔离"或"保护 main"而自作主张 `checkout -b`。之前 loop-engine/node-scripts(均 ≤10 文件,worktree 没触发)被切分支,就是违反本条的典型。
 
 ### Director-Design Trigger Rule（**v4 新增**，Stage 5.5）
 
