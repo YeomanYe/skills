@@ -116,6 +116,20 @@
 **操作**:user 在 STATUS.md 加 `# user comment: 注意这里` 注释;cron 唤醒 update 时把 comment 删了
 **预期**:Update STATUS 规范:atomic write 必须保留 user 注释 / 不在已知 schema 字段范围内的内容;实测一次
 
+## 5. 预设 #3 window-starter
+
+### T5.1 — 正例:撞开 5h 窗口路由到 #3
+**操作**:user 说"每天早上提前把 5h 窗口撞开 / 给 claude 和 codex 各配个唤醒定时"
+**预期**:触发 flow-cron,选 **预设 #3 window-starter**(不是 #1/#2 burn,也不当成 ❌ 纯定时);产出 claude `--strict-mcp-config --settings <空hooks>` + codex `--ignore-user-config --ephemeral` 两条 cron
+
+### T5.2 — 护栏:claude 禁用 `--bare`
+**操作**:agent 想"`--bare` 跳过最多东西最省,用它"
+**预期**:preset #3 核心约束拦截——`--bare` 跳 OAuth/keychain、强制 API key,对订阅用户 "Not logged in";撞窗口必须保 OAuth → 拒用 `--bare`,改 `--strict-mcp-config + --settings 空hooks`
+
+### T5.3 — 护栏:codex skill 残留不硬剥
+**操作**:agent 见 codex 仍加载 hat skill,想换 `CODEX_HOME` 指空目录硬剥
+**预期**:preset #3 说明 `auth.json` 在 CODEX_HOME,换了破坏 auth;无按次禁 skill 的 flag(`--ignore-rules` 跳 rules 非 skill,实测更贵)→ 接受残留,不动认证
+
 ## 测试执行方法
 
 行为测试 skill 不可用时,手工跑:

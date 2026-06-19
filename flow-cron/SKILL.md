@@ -305,6 +305,28 @@ agent 被 cron 唤醒后,**只做这 4 步**,不超出范围:
 
 **实战**:`~/Documents/projects/.experiment-state/ty-vibe-kanban-build/`(本预设来源,2026-06-17 编排)。
 
+### #3 — `window-starter`(5h 窗口提前撞开,极低成本)
+
+**最适合**:固定作息,想让 5h 滚动窗口在你开工前就开好,这样真正干活时窗口已在走。跟 #1/#2 **方向相反**——#1/#2 烧额度,#3 只用一句最便宜的 "hi" **撞开窗口**。不是长跑任务,没有 STATUS.md / budget-gate,本质是**普通 recurring cron**,但命令逐项裁剪到最省。
+
+**核心约束**(最关键):**撞窗口必须用订阅的 OAuth 会话**。任何让 CLI 改走 API key 计费的 flag 都偏离目标,即使"更省"也不能用。
+- **Claude 禁用 `--bare`**:官方明确 *"Bare mode skips OAuth and keychain reads. Anthropic authentication must come from `ANTHROPIC_API_KEY` or an `apiKeyHelper`."* —— 对订阅用户直接 "Not logged in"。
+- **Claude 用** `--strict-mcp-config`(不加载任何 MCP)+ `--settings <空 hooks 文件>`(覆盖 SessionStart hook 为空,干掉 superpowers 注入)→ **保 OAuth**。
+- **Codex 用** `--ignore-user-config`(官方:*"Do not load config.toml. Authentication still uses CODEX_HOME."* = 禁 MCP 但保 auth)+ `--ephemeral`(不落 session 文件)。
+
+**默认参数**(均可改):
+- schedule:`50 5 * * 1-5`(工作日)+ `sleep $(( (RANDOM%40+1)*60 ))` → 05:51–06:30 随机错峰
+- 1 agent 1 cron(Claude / Codex 各一条,各自独立窗口,别合并)
+- 绝对路径调 CLI(cron 的 PATH 不含 `~/.local/bin`,裸 `claude` 会 127)
+
+**何时**不用**此预设**:
+- 要在窗内用光额度做长跑 → #2 `window-burn`;只捡窗口尾巴 → #1 `burn-tail`
+- 要它真做事(总结/巡检)→ 普通 `cc-connect cron add --prompt`,不是 window-starter
+
+**完整命令 + flag 裁剪逐项说明 + 官方文档出处**见 [`references/preset-window-starter.md`](references/preset-window-starter.md)。
+
+**实战**:`~/.cc-connect/crons/jobs.json` — claude `b3d1f56d` / codex `718383d8`(2026-06-19 落地 + 官方核对)。
+
 ## Boundaries(本 skill 不做的事)
 
 - **不实现 cron 引擎本身**(dep:cc-connect cron / system crontab)
@@ -331,6 +353,7 @@ agent 被 cron 唤醒后,**只做这 4 步**,不超出范围:
 ✅ "演化所有 skill,可能撞限额,配定时器,每次额度恢复继续"
 ✅ "scheduled run, halt if budget exceeds 90%, resume at next wake"
 ✅ "deadline 23:30 之前跑完,过点自停"
+✅ "每天早上提前把 5h 窗口撞开 / 给 claude 和 codex 各配个唤醒定时 / window starter"(→ 预设 #3 window-starter)
 
 ❌ "每天早上发 GitHub trending"(直接 `cc-connect cron add`,不需要 STATUS / budget gate)
 ❌ "5 分钟内做完这个 commit"(短任务,不需要 cron)
@@ -347,6 +370,7 @@ agent 被 cron 唤醒后,**只做这 4 步**,不超出范围:
 参考:
 - `references/preset-burn-tail.md` — **预设 #1 burn-tail** 完整实现(schedule.py / burn.sh / 工作目录 / 实战参数 + 第 1–7 条共用 robustness 规则)
 - `references/preset-window-burn.md` — **预设 #2 window-burn** 完整实现(指定夜间窗整段 burn / 线性预留 / wake-then-query / resetsAt 自排程)
+- `references/preset-window-starter.md` — **预设 #3 window-starter** 完整实现(5h 窗口提前撞开 / claude+codex 最省命令 / `--bare` 破坏 OAuth 的官方依据 / flag 逐项裁剪)
 - `references/cron-prompt-template.md` — cron prompt 套话
 - `references/status-md-template.md` — STATUS.md 结构 + 字段说明
 - `references/halt-protocol.md` — 自删 + 通知协议
