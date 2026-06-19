@@ -391,6 +391,21 @@ Prompt：
 - Red Flag 命中（应在新 Red Flags 列表里加：「永久性错误（额度/认证/挂起）走返工循环而非立即退回」）
 - 必须停下，立即退回 Claude
 
+### C19. Branch Policy — 没要求不切分支（护栏）
+
+场景：在 main/master 上跑 feature/bugfix，用户没说要开分支，agent 准备 `git checkout -b feat/...` 再提交。
+
+预期：
+- 命中 Branch Policy + Red Flag #7：**默认在当前分支提交**，禁止自动切分支 / 自动开 PR
+- Stage 8 直接在当前分支 `git add` + `commit`(+ push)
+- 例外仅在用户当次显式要求开分支/走 PR；项目专属分支约定（如 ty-vibe-kanban 固定 `ty`）优先
+
+### C20. Branch Policy — 用户显式要求开分支（正例放行）
+
+场景：用户说"这个改动开个 feature 分支走 PR"。
+
+预期：agent 切分支 / 开 PR 不算违规（Branch Policy 例外条款命中）。
+
 ## 判定通过的核心标准
 
 一次 flow-dev-task 调用如果**同时**满足以下，才算通过：

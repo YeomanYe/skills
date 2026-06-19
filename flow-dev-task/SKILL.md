@@ -200,6 +200,15 @@ description: >
 - 无 worktree 且 当前分支 ∈ {main, master, dev} → **跳过**
 - 有 worktree 或 非 default 分支 → 调用 `superpowers:finishing-a-development-branch`
 
+### Branch Policy（提交分支,硬写死）
+
+**默认在当前分支提交,不切分支**。没有特别说明时,Stage 8 直接 `git add` + `git commit`(+ push)在**当前分支**(含 main / master),**禁止**自动 `git checkout -b feat/...` 新建 feature 分支、**禁止**自动开 PR。
+
+- 这条**覆盖**基础运行时 "if on the default branch, branch first" 的默认 —— 用户已明确不要那个行为。
+- **只有**用户在当次显式要求才切分支 / 走 PR:典型措辞"开个分支 / 切个 feature 分支 / 走 PR / 别动 main / don't commit to main"。
+- 项目专属分支规则**优先于本条**:若该项目有固定开发分支约定(如 ty-vibe-kanban 固定提交在 `ty` 分支),按项目约定走,不在 main 上提交。
+- Worktree Rule(>10 文件开 worktree)是隔离手段、与本条不冲突:开了 worktree 仍在该 worktree 的当前分支提交,不额外再 `checkout -b`。
+
 ### Director-Design Trigger Rule（**v4 新增**，Stage 5.5）
 
 Stage 5 写代码完成后，按以下规则决定是否触发 Stage 5.5 UI Audit：
@@ -294,6 +303,7 @@ subagent 返回 JSON（`verdict` / `aggregate` / `must_fix` / `artifact_path`）
 4. delivery-gate 返 must-fix 但直接 commit
 5. 派 Codex 但没写 SPEC / Codex 报告 `spec_compliance != full` 还进 Stage 6
 6. 信 Codex 自报 `tests_passed: true`，没 Claude 自跑验证
+7. 用户没要求就 `git checkout -b` 切新分支提交（违反 Branch Policy，默认在当前分支提交）
 
 其余反模式（"小改动跳 TDD"、"高风险也派 Codex"、"Codex 改了 SPEC 外文件也接受"、"永久错误走返工循环" 等）→ 查 `references/failure-modes.md`。
 
