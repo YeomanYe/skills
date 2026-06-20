@@ -38,7 +38,7 @@
 
 但**仍必须**:
 - 对齐 Q gate / Output Contract / audit-rubric / constitution 引用
-- 包含 Codex Delegation Hook / Red Flags + Rationalizations / Relationship 等 14-16 段
+- 包含 Executor Selection / Red Flags + Rationalizations / Relationship 等 14-16 段
 - 明示**为什么**是子类(在 SKILL.md "关于命名"段说清楚)
 
 未来候选:`director-pm` / `director-qa` / `director-security`。
@@ -65,7 +65,7 @@
 11. Rationalizations to Reject
 12. Parallelization Plan
 13. Subagent 派工模板(调其他 director-* / 工具时必须显式指挥)
-14. Codex Delegation Hook
+14. Executor Selection
 15. Relationship to Other Skills (4 director-* 互引 + Handoff 出口 + Upstream Payload)
 16. Reuse (tests/cases.md + references 索引)
 ```
@@ -192,16 +192,14 @@ Task: <一句话任务>
 参考:`director-design` variants 模式 3 路并行 / `director-promote` dispatch 多平台串行 /
 `director-frontend` extract 通常串行 / `director-ops` 装多工具可并行(无依赖)。
 
-## 11. Codex Delegation Hook 规范
+## 11. Executor Selection 规范
 
-每个 director-* 必须有 Codex ROI 评估表,按 step / mode 标 🟢 / 🟡 / 🔴。
+每个 director-* 必须有 `## Executor Selection` 段,引 `../_shared/executor-selection-template.md`,**不内联 ROI 表**。
 
-参考准则:
-- **决策 / 判断类** → 🔴(Claude judgment-heavy)
-- **样板代码生成 / 机械执行** → 🟢(Codex 高效)
-- **混合(逻辑 + 样板)** → 🟡(Claude 做复杂逻辑 + Codex 做样板)
-
-派工细则全部以 `flow-dev-task` 的 Codex Delegation Hook 为唯一规范,各 director-* 不重复细则。
+通用准则(细则全在 _shared 模板,各 director-* 不重复):
+- **决策 / 判断 / 评分类** → 当前 agent 自写(judgment-heavy,不外派)
+- **大体量纯样板(脚手架 / 测试夹具 / 批量同结构)** → 派便宜档 subagent(haiku/sonnet)/ fast
+- **Codex 重委派** → 默认不走,仅 ≥2h 长跑 + 清晰验收 + 可并行/批量时考虑
 
 ## 12. Relationship 段规范
 

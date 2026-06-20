@@ -11,7 +11,7 @@ description: >
 ---
 
 > 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
-> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。Codex Delegation Hook 引 `../_shared/codex-delegation-template.md`。Output Contract 引 `references/output-contract-schema.md`(sync from `_shared/`)
+> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。Executor Selection 引 `../_shared/executor-selection-template.md`。Output Contract 引 `references/output-contract-schema.md`(sync from `_shared/`)
 
 # Orchestrating Skill Development
 
@@ -533,44 +533,8 @@ repo 的另一个 working copy），由 skillshare 用 `git pull` / `skillshare 
 
 它默认是一条执行链，而不是一份建议清单。
 
-## Codex Delegation Hook
+## Executor Selection
 
-派工 ROI 判定遵循 `../_shared/codex-delegation-template.md` 通用规范。
+执行者选择遵循 `../_shared/executor-selection-template.md`:默认当前 agent 自写;大体量纯样板(脚手架/测试夹具/格式转换/批量)派便宜档 subagent(haiku/sonnet)/ fast;高风险代码 / 决策仲裁 / 评分 / 强会话上下文不下放。
 
-本 skill 的核心结论(SPEC 压缩比 ≈ 1,见下):
-
-### 🔴 低 / 负 ROI 不建议派（覆盖本 skill 全部步骤）
-
-**核心原因：SPEC 压缩比 ≈ 1**。
-
-要让 Codex 写出合格的 SKILL.md，Claude 必须把以下全部写进 SPEC：
-- 触发关键词列表（5-15 个）
-- 流程步骤（10-20 步）+ 每步的 gate
-- Red Flags 措辞
-- Rationalizations 反例
-- Output Contract 字段
-
-**这些写完，SKILL.md 已经被 Claude 设计完了 80%**。派 Codex 只剩 20% 的"格式化/排版"工作，但要承担：
-- 协调成本（启动 Codex + 传 SPEC + 收结果）
-- Review 成本（必须逐字检查触发条件、gate、Red Flag 措辞是否准确）
-- 质量风险（一句话措辞失准就让 skill 触发不到/放过违规）
-
-**ROI 净值通常为负**。
-
-### 各步骤独立判断
-
-| 步骤 | 工作性质 | ROI |
-|---|---|---|
-| Step 1 分类 | 决策 | 🔴 |
-| Step 2 skill-creator scope | 设计输入梳理 | 🔴 |
-| **Step 3 writing-skills** | **写 SKILL.md** | **🔴 SPEC ≈ 输出，无压缩** |
-| Step 4 skill-behavior-test | 测试设计 | 🔴 需理解 skill 契约 |
-| Step 5-6 skill-integration-test | 链路验证 | 🔴 全局判断 |
-| Step 7 sync-skills | 一条 Bash | 🔴 自跑 1 秒 |
-| Step 8 最终报告 | 整理输出 | 🔴 上下文依赖 |
-
-### 例外：批量"按模板复制"场景
-
-如果你要**按已有 skill 模板批量克隆 30+ 个变体**（如 lark-* 系列），SPEC 撰写成本可能 < 输出。但这种场景罕见，且即使如此每个克隆出来的 skill 仍需 Claude 逐个调整触发条件——派工净收益不显著。
-
-派工 SPEC 模板 / prompt 模板 / review checklist / 错误分类细则,跟 `flow-dev-task` 一致 — 不在本 skill 重复。
+本 skill 特例:写 / 改 SKILL.md 是 SPEC 压缩比 ≈ 1 的决策类工作,**不外派**(描述跟产出一样大,等于让当前 agent 设计两遍),全程自写。

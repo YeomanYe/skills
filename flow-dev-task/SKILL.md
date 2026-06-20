@@ -14,7 +14,7 @@ description: >
 ---
 
 > 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
-> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。Codex Delegation Hook 引 `../_shared/codex-delegation-template.md`(2026-06-03 之前本 skill 是"唯一规范源",已上移)
+> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。Executor Selection 引 `../_shared/executor-selection-template.md`(2026-06 改版:Codex 重委派降级为可选,默认便宜档 subagent)
 
 # flow-dev-task
 
@@ -121,7 +121,7 @@ description: >
 | **2** Writing Plan | 条件跳过（Writing-Plans Skip Rule），否则调 `superpowers:writing-plans` | 多数跳过：根因明朗 + 单点修复 → 跳；跨模块才走 |
 | **3** Worktree | 文件数 > 10 → 调 `superpowers:using-git-worktrees` | 多数跳过（bug 修复通常小） |
 | **4** Execute Mode | 按 Execute Mode Rules 表自动选，不问 | 单点修复通常 direct；复杂场景按表 |
-| **5** 写代码 | 先按 Codex Delegation Hook 选执行者：<br>• Codex 路径：写 SPEC（不在 TDD Whitelist → SPEC 强制 RED→GREEN）→ `codex exec` → JSON 报告 → Claude review → 通过 / 返工（≤ 3 次）/ 退回 Claude<br>• Claude 自写：不在 TDD Skip Whitelist → 调 `superpowers:test-driven-development` | 同左，但 SPEC / Claude 自写**都必须先写 failing repro test 复现 bug** → 再 fix。Codex review 时必须确认 repro test 真复现 + fix 真过测 |
+| **5** 写代码 | 先按 Executor Selection 选执行者：<br>• Claude 自写（默认）：不在 TDD Skip Whitelist → 调 `superpowers:test-driven-development`<br>• 大体量纯样板：派便宜档 subagent(haiku/sonnet)，产出回来 Claude 验收<br>• 可选 Codex 重路径（≥2h+清晰验收才走）：写 SPEC → `codex exec` → JSON 报告 → Claude review → 通过/返工(≤3)/退回 | 同左，但**都必须先写 failing repro test 复现 bug** → 再 fix；外派时 review 须确认 repro test 真复现 + fix 真过测 |
 | **5.5** UI Audit | `git diff` 含 `.tsx/.vue/.svelte/.css/.scss/.html` 等 → 派 subagent 调 `director-design`（mode=audit）。`needs-redesign` → 回 Stage 5；`pass-with-fixes` → must-fix 进 Stage 6 清单 | UI bug（视觉错位 / 交互失效 / 响应式）修完后同上派 audit，确认修复有效 |
 | **6** Verification | 调 `superpowers:verification-before-completion`。**Codex 派工后此 Stage 由 Claude 亲跑**，不信 Codex 自报 | 同左，且**必须真跑 repro test 验证 fix**，不能"我觉得修好了" |
 | **7** delivery-gate | PASS → 推进；must-fix → 回 Stage 2 / Stage 5，**禁止**直接 Stage 8 | 同左 |
@@ -238,51 +238,23 @@ subagent 返回 JSON（`verdict` / `aggregate` / `must_fix` / `artifact_path`）
 
 **跳过条件**：纯后端 / API / 无 UI 改动任务
 
-### Codex Delegation Hook
+### Executor Selection（Stage 5 执行者选择）
 
-> ROI 判定的通用规范见 `../_shared/codex-delegation-template.md`(2026-06-03 上移自本 skill)。
-> 本 skill 在通用规范之上的特殊扩展(必背 Claude 自写清单 / 默认派 Codex 清单 / 5 步派工 / 错误分类)见下文。
+通用规范见 `../_shared/executor-selection-template.md`。Stage 5 默认**当前 agent(Claude)自写**，按下面分流（不询问）：
 
-**Codex 是对等 agent**(不是工具),具备本机所有工具。派工是 ROI 问题,不是能力问题。**Codex 替代执行,不替代** TDD / verification / delivery-gate / commit。
+**必须自写**（任一命中 → 不外派任何执行者）：
+1. 改动 < 30 行 **或** < 2 文件
+2. 高风险代码：auth / 支付 / 加密 / 输入校验 / 数据访问层
+3. 强依赖会话上下文（未落地的设计、推断的状态）
+4. bugfix 链下，根因尚未在 systematic-debugging 中确认
 
-详细 5 步流程 + 错误分类表 + 退回处理 见 `references/codex-delegation-detailed.md`。
+**派便宜档 subagent（haiku/sonnet）或 fast**（省钱手段，命中下面才外派）：
+- 改动**大体量**（≳数百行 / 多文件）**且**性质是**纯样板**：CRUD / UI scaffolding / 测试夹具 / 配置 / 格式转换 / 批量重命名
+- 收益来自**模型单价**，不需要 SPEC/review 往返：直接把任务给便宜档 subagent，产出回来 Claude 验收
 
-#### 关键判定（必背）
+**可选 Codex 重委派**（默认**不走**）：仅当任务 ≥2h + 有清晰验收 + 可并行/跨工程批量时才考虑。具体 SPEC / 派工 prompt / review / 错误分类（重路径，按需 lazy-load）见 `references/codex-delegation-detailed.md`、`references/codex-delegation-prompt.md`、`references/codex-spec-template.md`。长跑 Codex 任务的元方法是 `flow-codex-goal`。
 
-**必须 Claude 自写**（任一命中 → 不派）：
-1. 用户说"自己写 / 别派 Codex"
-2. 改动 < 30 行 **或** < 2 文件
-3. 高风险代码：auth / 支付 / 加密 / 输入校验 / 数据访问层
-4. 强依赖会话上下文（未落地的设计、推断的状态）
-5. Codex 不可用（`which codex` 失败、登录过期）
-6. bugfix 链下，根因尚未在 systematic-debugging 中确认
-
-**默认派 Codex**（不命中上面 + 任一命中）：
-1. 改动 ≥ 30 行 **或** ≥ 2 文件
-2. 任务可独立 SPEC 化
-3. 任务以样板为主：CRUD / UI scaffolding / 测试用例 / 配置 / 格式转换 / 重命名
-
-#### 关键失败处理（不可错）
-
-- **永久性错误**（额度耗尽 `rate limit/quota/402` / 认证失效 `401/unauthorized` / 挂起 >10 分钟）→ **立即退回 Claude，不消耗返工次数**，告知用户失败原因
-- **瞬时网络错误** → 重试 1 次，失败再退回（不计返工）
-- **可修错误**（`spec_compliance != full` / 无 JSON）→ 返工 prompt，**上限 3 次**，超出退回 Claude
-- 退回时把已有 Codex 报告作为参考输入给 Claude，避免重头再来
-
-#### 派工 5 步速览
-
-0. `which codex && codex --version` 前置探测
-1. Claude 写 SPEC（用 `references/codex-spec-template.md`），不在 TDD Whitelist → SPEC 强制 RED→GREEN
-2. `codex exec` 派工（用 `references/codex-delegation-prompt.md` 拼 prompt）
-3. Codex 输出 JSON 报告
-4. Claude review：跑所有 hard gate 命令 + 对照 JSON + `git diff --stat` 看是否只动 SPEC 范围
-5. 按错误分类表判定 → Stage 6 / 返工 / 退回
-
-#### 派工后仍守的原则
-
-- Stage 6 verification 由 Claude **亲跑**，不信 Codex 自报
-- Stage 8 commit 由 Claude，**必须传 Codex rounds + spec_compliance 给 clean-commit**
-- commit message 示例：`feat(X): implement Y (Codex: 1 round, full SPEC compliance)`
+**无论谁执行**，Stage 6 verification / delivery-gate / Stage 8 commit **仍由 Claude 亲跑**，不信执行者自报；走 Codex 重路径时 commit 须带 `(Codex: N round, <spec_compliance>)`。
 
 ## Output Contract
 

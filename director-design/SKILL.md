@@ -344,20 +344,11 @@ subagent 落盘到 `artifact_path`,**不要在 stdout 复述全文**;
 - variants 必须 ≥ 2 维度真差异化(不能只换主色)
 - Output Contract 委派情况禁止全写 "not invoked"(自跑也要写"自做")
 
-## Codex Delegation Hook
+## Executor Selection
 
-判断 + 调度 + 仲裁 类工作，**全部 🔴 不建议派 Codex**：
+执行者选择遵循 `../_shared/executor-selection-template.md`:默认当前 agent 自写;大体量纯样板派便宜档 subagent(haiku/sonnet)/ fast;高风险代码 / 决策仲裁 / 评分 / 强会话上下文不下放。
 
-| 步骤 | ROI |
-|---|---|
-| Step 1 收集证据 | 🔴（需要 Claude 判断证据充分性） |
-| Step 2 Mode 判定 | 🔴（决策类）|
-| Step 3 探测项目设计系统 | 🔴（需要 Claude 理解 token 体系）|
-| Step 4 audit 9 维度评分 | 🔴（视觉判断，Codex 看截图能力 ≈ Claude）|
-| Step 4 variants/mockup 调 huashu-design | 🔴（已经是子 skill 调用，不需要再嵌套 Codex）|
-| Step 5 Output Contract 整理 | 🔴（依赖会话上下文）|
-
-派工细则全部以 `flow-dev-task` 的 Codex Delegation Hook 为唯一规范，本 skill 不重复。
+本 skill 特例:设计判断 / 视觉评分 / 走查都是主观 judgment,Codex/便宜档都没增值,全程自写。
 
 ## Relationship to Other Skills
 

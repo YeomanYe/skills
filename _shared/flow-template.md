@@ -46,7 +46,7 @@
 | 10 | `## Parallelization Plan`(如派 subagent)| 条件 | 引用 `_shared/parallelization-template.md`;描述 slot / 派工 prompt / 输出聚合 |
 | 11 | `## Dispatcher Plan`(如调下游 skill)| 条件 | 引用 `_shared/dispatcher-template.md`;描述决策表 / 调用契约 / 失败兜底 |
 | 12 | `## Evidence Discovery`(如出报告 / 决策证据)| 推荐 | 引用 `_shared/evidence-discovery.md`;明示证据采集步骤 |
-| 13 | `## Codex Delegation Hook` | ✅ | 引用 `_shared/codex-delegation-template.md` 通用 ROI 规范(2026-06 上移,各 flow-* 不再自定义 ROI 表)|
+| 13 | `## Executor Selection` | ✅ | 引用 `_shared/executor-selection-template.md`(2026-06 改版:默认自写 / 大体量样板派便宜档 subagent / Codex 重委派降级为可选;各 flow-* 不再自定义 ROI 表)|
 | 14 | `## Red Flags + Rationalizations` | ✅ | 段名严格一致 ;详细清单下沉 `references/failure-modes.md` |
 | 15 | `## Relationship to Other Skills` | ✅ | Upstream / Downstream / 并列 skill / 跟 meta 类 skill (hat / exp-sum / unblock-recipes / meta-skill) 优先级 |
 | 16 | `## Reuse` | ✅ | references/ + tests/ + agents/(如有) 列表 |
@@ -76,7 +76,7 @@
 - description 长度:中英文混合,< 800 字符(skill-doctor 软警告)
 - 受 `constitution.md` 约束 — frontmatter 后第一段必声明
 - Output Contract 必引 `_shared/output-contract-schema.md` — 不允许私有 schema
-- Codex Delegation Hook 必引 `_shared/codex-delegation-template.md` — 不允许自定义 ROI 表(若特殊场景不适用,在引用句后注明"豁免理由")
+- Executor Selection 必引 `_shared/executor-selection-template.md` — 不允许自定义 ROI 表(若特殊场景不适用,在引用句后注明"豁免理由")
 
 ## 7. 新建 / 改造 checklist
 
@@ -86,7 +86,7 @@
 - [ ] Q gate 引 `_shared/question-gate.md`
 - [ ] OC 引 `_shared/output-contract-schema.md`
 - [ ] Handoff Payload 引 `_shared/handoff-payload-template.md`
-- [ ] Codex Delegation Hook 引 `_shared/codex-delegation-template.md`
+- [ ] Executor Selection 引 `_shared/executor-selection-template.md`
 - [ ] failure-modes 下沉 `references/failure-modes.md`
 - [ ] tests/cases.md 至少 5 case(触发 / 反例 / 主体 / handoff / 失败)
 - [ ] 跑 skill-doctor 0 err
@@ -99,7 +99,7 @@
 ## 8. 反例 / Anti-patterns
 
 - ❌ **flow-* 内联私有 Q gate 约定**(各 flow 一套不同的 "Q budget" 数字)
-- ❌ **flow-* 内联私有 Codex Delegation Hook ROI 表**(应引 _shared/codex-delegation-template.md)
+- ❌ **flow-* 内联私有 Executor Selection / Codex ROI 表**(应引 _shared/executor-selection-template.md)
 - ❌ **flow-* Output Contract 段缺失**(7/4 已违反)
 - ❌ **failure-modes.md 命名不一致**(`failure-modes` / `禁止行为` / `Completion Rules` / `常见错误` 都用过 — 应统一)
 - ❌ **flow-* 主体 SKILL.md > 600 行**(应大段下沉 references)

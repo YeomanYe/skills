@@ -12,7 +12,7 @@ description: >
 ---
 
 > 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
-> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。Codex Delegation Hook 引 `../_shared/codex-delegation-template.md`。Output Contract 引 `references/output-contract-schema.md`(sync from `_shared/`)
+> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。Executor Selection 引 `../_shared/executor-selection-template.md`。Output Contract 引 `references/output-contract-schema.md`(sync from `_shared/`)
 
 # 扩展发布编排
 
@@ -79,31 +79,9 @@ Chrome 最宽松放最后,前面踩的坑这边已经修了。**不要按"用户
 - 只是想跑一次 preflight 看看状态（直接用 `ext-preflight` 即可）
 - 只是发布官网、部署隐私政策页面、构建静态网站（这不属于商店提交）
 
-## Codex Delegation Hook
+## Executor Selection
 
-派工 ROI 判定遵循 `../_shared/codex-delegation-template.md` 通用规范。
-
-本 skill 的特殊考量(Codex 也能跑 Playwriter / agent-browser):
-
-### 🟡 中 ROI 视情况派
-- **Step 4 各平台上架**：Codex 能跑 Playwriter / agent-browser 操作浏览器，但每平台之间需用户确认（"这张图可以吗？"、"是否要发 Edge？"），Codex 不能等用户回话——只能跑完一段就退出。**协调成本通常 > 节省**。仅在用户明确"全自动化提交，不要中途确认"时值得派工
-- **Step 1 preflight**：能派，但 ext-preflight 自己就一条命令，Claude 自跑更快
-
-### 🔴 低 / 负 ROI 不建议派
-- **Step 2A 营销位图（web-image）**：web-image 是专用 HTML/CSS 出图工具，Codex 调它和 Claude 调它没差别，省不了 token
-- **Step 2B user-must-provide**：等用户提供素材，本质是 user gate，无执行单元
-- **Step 2C 文本 checklist**：抽取/整理需要 Claude 判断信息真实性（哪些来自 README 哪些瞎编）
-- **Step 3 用户确认**：interactive，Codex 拿不到对话上下文
-- **Step 5 报告**：依赖会话上下文（preflight 结果、用户确认对话、各平台审核 ID）
-
-### 工具路由约束（不可绕过，与派工正交）
-即使派 Codex，**Step 4 工具路由仍是硬约束**：
-- Firefox AMO / Edge → 必须 `Playwriter`（接管用户已登录浏览器）
-- Chrome Web Store → 必须 `agent-browser --profile Default`（复用真实 Chrome profile）
-
-**派工时必须把这些工具约束写进 SPEC**，否则 Codex 可能改用其他工具导致登录态丢失。
-
-派工 SPEC 模板 / prompt 模板 / review checklist / 错误分类细则,跟 `flow-dev-task` 一致 — 不在本 skill 重复。
+执行者选择遵循 `../_shared/executor-selection-template.md`:默认当前 agent 自写;大体量纯样板派便宜档 subagent(haiku/sonnet)/ fast;高风险代码 / 决策仲裁 / 评分 / 强会话上下文不下放。
 
 ## Execution Default
 

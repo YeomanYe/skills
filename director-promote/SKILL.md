@@ -452,21 +452,11 @@ orchestrator 派多路 subagent 后**进入 idle**,collect-all 收齐后把各�
 | "截图比例不对,拉伸一下正好填满尺寸" | 非等比拉伸 = 失真,UI 一眼走形;改用等比缩放 + 留白衬底,或重新出图 |
 | "图太大塞不下,边上裁掉点就行" | 不能裁掉产品关键画面/功能区/文字;只能裁非关键边缘,裁到关键内容就重新出图 |
 
-## Codex Delegation Hook
+## Executor Selection
 
-判断 + 调度 + 仲裁 + 平台自动化类工作,**全部 🔴 不建议派 Codex**:
+执行者选择遵循 `../_shared/executor-selection-template.md`:默认当前 agent 自写;大体量纯样板派便宜档 subagent(haiku/sonnet)/ fast;高风险代码 / 决策仲裁 / 评分 / 强会话上下文不下放。
 
-| 步骤 | ROI |
-|---|---|
-| Step 1 收集材料 | 🔴(需要 Claude 判断材料充分性) |
-| Step 2 Mode 判定 | 🔴(决策类) |
-| Step 3 探测项目/平台 | 🔴(grep + bash,Claude 直接跑更快) |
-| Step 4 audit 9 维评分 | 🔴(视觉判断 + 文本判断,Codex 无优势) |
-| Step 4 dispatch 平台操作 | 🔴(playwriter MCP 调用必须在主 session 进行,带用户登录态 Chrome) |
-| Step 4 variants 并行(派 subagent 出多调性) | 🟢 **可派 subagent**(参考 parallelization-template.md),但每个 subagent 仍是 Claude,**不是** Codex |
-| Step 5 Output Contract 整理 | 🔴(上下文依赖) |
-
-派工细则全部以 `flow-dev-task` 的 Codex Delegation Hook 为唯一规范,本 skill 不重复。
+本 skill 特例:推广文案 / 卖点提炼 / 渠道策略属创意+判断类,自写,不外派。
 
 ## Relationship to Other Skills
 

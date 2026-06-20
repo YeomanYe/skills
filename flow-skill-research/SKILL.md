@@ -4,7 +4,7 @@ description: Use when researching existing agent skills for a domain, technology
 ---
 
 > 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
-> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。Codex Delegation Hook 引 `../_shared/codex-delegation-template.md`。Output Contract 引 `references/output-contract-schema.md`(sync from `_shared/`)
+> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。Executor Selection 引 `../_shared/executor-selection-template.md`。Output Contract 引 `references/output-contract-schema.md`(sync from `_shared/`)
 
 # Skill 调研编排
 
@@ -242,25 +242,6 @@ handoff 字段遵循 `_shared/handoff-payload-template.md`，最小结构化 pay
 - 忽略低安装量、未知来源或旧框架版本风险
 - 用户问“里面写了什么”时，只复述搜索结果而不读取真实文件
 
-## Codex Delegation Hook
+## Executor Selection
 
-派工 ROI 判定遵循 `../_shared/codex-delegation-template.md` 通用规范。
-
-本 skill 的特殊考量(Codex 也能跑 `npx skills find` / 读 SKILL.md / 格式化结果):
-
-### 🟡 中 ROI 视情况派
-- **Step 3-5 批量搜索 + 读取**（候选 ≥ 20 时）：Claude 列搜索词 + 读取要点清单，Codex 跑 npx + 读 N 份 SKILL.md + 提炼成结构化候选表，Claude 评估推荐
-- 派工前提：候选数量大到 Claude 自己读完 ≥ 30 分钟（候选 < 10 时 Claude 自跑更快）
-
-### 🔴 低 / 负 ROI 不建议派
-- **Step 1 定义目标**：推断 + 关键词扩展，需要语义判断
-- **Step 2 本地检查**：通常本地 skill < 100，Claude 自查更快
-- **Step 6 评估推荐**：评估候选满足度需要 Claude 的 skill 工作机制理解，是核心 judgment 步骤，Codex 容易把"标题相关"当"功能相关"
-
-### 派 Codex 批量读取时必须传入 SPEC
-- 候选清单（带源路径）
-- 每份要提炼的字段（触发条件 / 流程 / references / risks）
-- 输出 schema（JSON 或表格）
-- 不要让 Codex 做最终推荐——只做信息收集
-
-派工 SPEC 模板 / prompt 模板 / review checklist / 错误分类细则,跟 `flow-dev-task` 一致 — 不在本 skill 重复。
+执行者选择遵循 `../_shared/executor-selection-template.md`:默认当前 agent 自写;大体量纯样板派便宜档 subagent(haiku/sonnet)/ fast;高风险代码 / 决策仲裁 / 评分 / 强会话上下文不下放。

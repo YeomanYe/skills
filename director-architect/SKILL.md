@@ -453,29 +453,11 @@ review"才派,本 skill 特定字段:
 - 超时: 5 分钟
 - **不**直接改文件(落地由本 skill 在 Land Phase 统一做,subagent 仅返回 findings/suggestions)
 
-## Codex Delegation Hook
+## Executor Selection
 
-Codex 是对等 agent，能做本 skill 的所有执行工作。是否派工取决于 **ROI**。
+执行者选择遵循 `../_shared/executor-selection-template.md`:默认当前 agent 自写;大体量纯样板派便宜档 subagent(haiku/sonnet)/ fast;高风险代码 / 决策仲裁 / 评分 / 强会话上下文不下放。
 
-### 🟡 中 ROI 视情况派
-- **Step 8 落地修改**（≥ 10 文件迁移 / ≥ 30 处引用更新）：Claude 把每个 mv + 每处引用更新
-  写进 SPEC（含 voice 保留约束），Codex 实施，Claude 验收引用是否真解析 + 风格是否漂移
-- 派工前提：迁移规模真大（小规模 < 10 文件时 SPEC 撰写成本 ≈ 直接做）
-
-### 🔴 低 / 负 ROI 不建议派
-- **Step 1-6 research 全部**：识别栈 / 匹配 skill / 读取规范 / 联合评估 / 决策记录 都是
-  judgment-heavy，Codex 起新进程拿不到完整评估框架
-- **Approval Gate**：决策类
-- **Step 8 小规模迁移**（< 10 文件）：SPEC 撰写成本 > 节省
-- **Step 9 最终报告**：依赖整个评估上下文
-
-### 派 Codex 时必须传入 SPEC 的硬约束
-- 每个文件迁移的 from→to（精确路径）
-- 每处引用更新的 from-pattern → to-pattern（含上下文行号或前后文）
-- voice 保留要求："保留原句式 / 原术语 / 原作者风格"
-- 验收命令：`grep -r "<old-path>" .`（应无结果）+ 抽样人工 review
-
-派工细则全部以 `flow-dev-task` 的 Codex Delegation Hook 为唯一规范，本 skill 不重复。
+本 skill 特例:架构评估 / 规则分域 / 技术栈选型都是决策类(judgment-heavy),全程自写,不外派。
 
 ## Relationship to Other Skills
 

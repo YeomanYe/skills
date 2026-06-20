@@ -464,28 +464,11 @@ orchestrator 派 subagent 后**进入 idle**,subagent 返回后把图片路径�
 | "我顺手把 hero 图也画了" | 越界 — 视觉是 director-design 的事;前端 handoff 出去 |
 | "委派情况段写'自做'就行,具体步骤太多懒得列" | 必须真实列(自跑了哪些 mode / 哪些 audit 维度) |
 
-## Codex Delegation Hook
+## Executor Selection
 
-按 ROI 判断(详见 `flow-dev-task` 的 Codex Delegation Hook,本 skill 不重复细则):
+执行者选择遵循 `../_shared/executor-selection-template.md`:默认当前 agent 自写;大体量纯样板(组件 scaffolding / 测试夹具 / 同结构 JSX 批量)派便宜档 subagent(haiku/sonnet)/ fast;高风险代码 / 决策仲裁 / 评分 / 强会话上下文不下放。
 
-| Mode / Step | ROI | 备注 |
-|---|---|---|
-| Step 1 项目规范探测 | 🔴 | 需要 Claude 整体判断 |
-| audit mode 9 维评分 | 🔴 | 视觉 + 文本 + 结构 judgment-heavy |
-| boundaries mode | 🔴 | 焦点判定 + 层级归类需 Claude 理解项目 |
-| **implement mode 写代码** | **🟢 高 ROI** | 代码生成密集场景(≥ 30 行 / ≥ 2 组件),按 flow-dev-task 派工政策路由 |
-| implement 复杂业务组件(含 useReducer / Context / 自定义 hooks 编排) | 🟡 | Claude 自写复杂逻辑,Codex 处理 presentational + props |
-| extract mode 文件迁移 | 🟡 | 简单迁移可派,复杂导入边界 Claude 自做 |
-| audit 复查 | 🔴 | 全局理解,自跑判定后再外派无意义 |
-| handoff mode 写 spec | 🔴 | 上下文依赖 |
-
-**派 Codex 时必须传入的上下文**(对齐原 flow-jsx-ui):
-- 项目规范探测结论(规范强度、状态管理、样式工具、UI 库)
-- audit 前置判定结论(本地模式 vs 外部参考、应回退方向)
-- boundaries 决策(候选组件、层级归类、文件位置)
-- 选定的外部参考源(antd / shadcn / radix)和关键约束
-
-派工细则全部以 `flow-dev-task` 的 Codex Delegation Hook 为唯一规范。
+本 skill 特例:JSX UI 实现里"大批量同结构组件/样式脚手架"可派便宜档 subagent;但 UI 工程编排、设计 token 取舍、a11y 判断属决策类,自写。
 
 ## Relationship to Other Skills
 

@@ -356,25 +356,11 @@ uninstall: 无法确认目标存在 / 目录含用户数据 / 非 macOS 资料�
 - 超时: 短任务 5 分钟,无 heartbeat
 - 并行度: install 多工具时 `max_parallel=3`(同时跑 3 个独立工具),uninstall 始终串行
 
-## Codex Delegation Hook
+## Executor Selection
 
-本 skill 是判断 + 流程执行类工作。**2026-05 调整后**:
+执行者选择遵循 `../_shared/executor-selection-template.md`:默认当前 agent 自写;大体量纯样板(CI/CD 配置 / 部署脚本 / 同结构 manifest 批量)派便宜档 subagent(haiku/sonnet)/ fast;高风险代码 / 决策仲裁 / 强会话上下文不下放。
 
-| 步骤 | ROI | 备注 |
-|---|---|---|
-| Step 0 Question Gate | 🔴 | 需 Claude 与用户交互 |
-| Step 1 环境检查 | 🟡 | 机械命令可派 Codex 拉数据,结果判断 Claude 做 |
-| Step 2 资料收集 | 🔴 | 需 Claude 判断来源可信度 + 适用性 |
-| Step 3 出计划 | 🔴 | 决策类 |
-| Step 4 用户确认 | 🔴 | 必须 Claude 与用户交互 |
-| **Step 5 执行(install 全自动步骤)** | **🟢** | **2026-05 新增**:`brew install` 等无破坏性、无交互的步骤可派 Codex,Claude 盯破坏性步骤 |
-| Step 5 执行(uninstall 任何步骤) | 🔴 | 破坏性,必须 Claude 盯着,失败即停 |
-| Step 5 执行(install 半自动 / 全手动) | 🔴 | 需 Claude 与用户交互 |
-| Step 6 验证 | 🟡 | 命令可派,结论 Claude 判 |
-| Step 6.5 7 维 Quality Audit | 🔴 | 判断类 |
-| Step 7 记录知识库 | 🔴 | 依赖会话上下文 |
-
-派工细则以 `flow-dev-task` 的 Codex Delegation Hook 为唯一规范,本 skill 不重复。
+本 skill 特例:运维里"批量改 N 个项目的同类配置"可派便宜档 subagent;但发布策略、回滚决策、密钥/权限相关一律自写。
 
 ## Relationship to Other Skills
 

@@ -15,7 +15,7 @@ type: workflow
 ---
 
 > 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
-> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。**Codex Delegation Hook 例外**:本 skill 是 Codex 派工的元方法,不适用通用 ROI 判定(`../_shared/codex-delegation-template.md` § "例外:flow-codex-goal" 明示)。
+> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。**Executor Selection 例外**:本 skill 是 Codex 重委派的承载者/元方法,不适用通用执行者选择判断(`../_shared/executor-selection-template.md` § 5 "例外 skill:flow-codex-goal" 明示)。
 
 # flow-codex-goal
 
@@ -933,11 +933,11 @@ Score Trajectory / Review / UI Screenshots(条件) / Delivery / Risks / 结论 9
 
 ---
 
-## Codex Delegation Hook
+## Executor Selection
 
-> **特殊例外**:本 skill 是 Codex 派工的**元方法**(把整个长任务派给 Codex Goal),
-> 不适用 `../_shared/codex-delegation-template.md` 的"什么时候派"通用判断。
-> 该文件 §"例外:flow-codex-goal 自身"也明示这条豁免。
+> **特殊例外**:本 skill 是 Codex 重委派的**元方法**(把整个长任务派给 Codex Goal),
+> 不适用 `../_shared/executor-selection-template.md` 的"默认不派 / 怎么选执行者"通用判断。
+> 该文件 § 5 "例外 skill:flow-codex-goal" 也明示这条豁免。
 
 本 skill 的"什么时候用 codex-goal"路由建议(不是 ROI 判定):
 

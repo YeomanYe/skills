@@ -4,7 +4,7 @@ description: Use when a user wants the **full multi-stage** project kickoff chai
 ---
 
 > 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
-> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。Codex Delegation Hook 引 `../_shared/codex-delegation-template.md`
+> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。Executor Selection 引 `../_shared/executor-selection-template.md`
 
 # Orchestrating Project Bootstrap
 
@@ -150,26 +150,9 @@ Stage 2 不得自动启动。必须显式问用户：
 
 包括：Stage 1 没锁就跑 Stage 2、私有仓库默认部署到 GitHub Pages、token 写进 git、部署后没回填 URL、只给 1 套设计候选、logo 用 emoji 占位等典型反模式 + 自欺台词 + 易翻车清单。
 
-## Codex Delegation Hook
+## Executor Selection
 
-派工 ROI 判定遵循 `../_shared/codex-delegation-template.md` 通用规范。
-
-本 skill 的特殊考量:
-
-### 🟢 高 ROI(本 skill 内适合派)
-- **Stage 2.1 工程脚手架配置文件**(tsconfig / eslint / prettier / commitlint 等,≥ 30 行 / ≥ 2 文件)
-- **Stage 2.4 部署接线 YAML/config**(GitHub Actions workflow / Cloudflare config,≥ 30 行)
-
-### 🟡 中 ROI(视情况)
-- **Stage 2.3 preview 页实现**:handoff 给 frontend-design 后由其判断(通常 ≥ 200 行落地页才划算)
-- **Stage 2.1 规则文档**(CONTRIBUTING / AGENTS.md):仅当模板化结构 + 规则项 ≥ 20 条时;写决定权在 Claude
-
-### 🔴 低 / 负 ROI(不派)
-- **Stage 1 全部**:设计决策类(MVP 切片 / 流程图 / 设计系统候选 / 部署目标),无执行单元,需要 Claude 推断
-- **Stage 2.2 logo 设计**:视觉工作走 `huashu-design`
-- **User gate 之间的决策同步**:依赖会话上下文,Codex 起新进程拿不到
-
-派工 SPEC 模板 / prompt 模板 / review checklist / 错误分类细则,跟 `flow-dev-task` 一致 — 不在本 skill 重复。
+执行者选择遵循 `../_shared/executor-selection-template.md`:默认当前 agent 自写;大体量纯样板派便宜档 subagent(haiku/sonnet)/ fast;高风险代码 / 决策仲裁 / 评分 / 强会话上下文不下放。
 
 ## Reuse
 

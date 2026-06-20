@@ -241,18 +241,11 @@ description: >
 - 失败处理：`failed_continue_main`（单功能评审失败不阻塞其他）
 - **不**直接改产品文档 / 代码（产出由主流程汇总，subagent 只返回判断）
 
-## Codex Delegation Hook
+## Executor Selection
 
-判断 + 收敛 + 仲裁类工作，**全部 🔴 不建议派 Codex**（judgment-heavy，SPEC ≈ 输出）：
+执行者选择遵循 `../_shared/executor-selection-template.md`:默认当前 agent 自写;大体量纯样板派便宜档 subagent(haiku/sonnet)/ fast;高风险代码 / 决策仲裁 / 评分 / 强会话上下文不下放。
 
-| 步骤 | ROI |
-|---|---|
-| 需求澄清 / 用户价值判断 | 🔴（需 Claude 做产品判断）|
-| 优先级仲裁 | 🔴（取舍决策）|
-| 产品评审 audit | 🔴（价值判断）|
-| PRD / AC 撰写 | 🔴（依赖澄清上下文）|
-
-派工细则全部以 `flow-dev-task` 的 Codex Delegation Hook 为唯一规范，本 skill 不重复。
+本 skill 特例:需求澄清 / 优先级仲裁 / PRD·AC 撰写 / 产品评审全是产品判断(judgment-heavy,SPEC≈输出),一律自写,不外派。
 
 ## Relationship to Other Skills
 
