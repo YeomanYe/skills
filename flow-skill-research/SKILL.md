@@ -4,7 +4,7 @@ description: Use when researching existing agent skills for a domain, technology
 ---
 
 > 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
-> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。Executor Selection 引 `../_shared/executor-selection-template.md`。Output Contract 引 `references/output-contract-schema.md`(sync from `_shared/`)
+> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。Executor Selection 引 `references/executor-selection-template.md`。Output Contract 引 `references/output-contract-schema.md`(sync from `_shared/`)
 
 # Skill 调研编排
 
@@ -244,4 +244,4 @@ handoff 字段遵循 `_shared/handoff-payload-template.md`，最小结构化 pay
 
 ## Executor Selection
 
-执行者选择遵循 `../_shared/executor-selection-template.md`:默认当前 agent 自写;大体量纯样板派便宜档 subagent(haiku/sonnet)/ fast;高风险代码 / 决策仲裁 / 评分 / 强会话上下文不下放。
+执行者选择遵循 `references/executor-selection-template.md`:默认当前 agent 自写;大体量纯样板派便宜档 subagent(haiku/sonnet)/ fast;高风险代码 / 决策仲裁 / 评分 / 强会话上下文不下放。

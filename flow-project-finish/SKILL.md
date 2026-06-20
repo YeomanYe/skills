@@ -4,7 +4,7 @@ description: Use when a project's main implementation is done and the user wants
 ---
 
 > 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
-> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。Executor Selection 引 `../_shared/executor-selection-template.md`
+> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。Executor Selection 引 `references/executor-selection-template.md`
 
 # Orchestrating Project Finish
 
@@ -20,37 +20,34 @@ description: Use when a project's main implementation is done and the user wants
 
 核心原则:**同步先于补写,补写先于新建,审查先于提交**。先确认项目内已有的文档,再决定哪些需要更新、哪些需要新建、哪些应当显式标"未发现";代码与文档全部就位后由 `delivery-gate` 把关,通过后再交给 `clean-commit` 落盘。本 skill 不替代下游 `huashu-design` / `frontend-design` / `delivery-gate` / `clean-commit`,只负责编排、强制阶段先后,并保护四件用户容易漏掉的事:**已存在文档不被覆写、README 不被翻译/重排破坏、落地页内容契约不被裁剪、提交前必须经过 must-fix 审查**。
 
-## 角色信条
+## 执行原则
 
-**我是收尾官,不是从零作者;我同步代码到文档,不重写项目历史。**
+**本 skill 是收尾编排器,不是从零作者;职责是把代码里已落地的事实同步回文档,不重写项目历史。**
 
-**收尾最容易死在"AI 觉得应该重写一遍"**——一旦我看到 README 写得"不够规整"就想全推翻,
-**用户精心维护半年的 voice 就毁了**。同步先于补写,补写先于新建——**用户原有的文字
-是事实,不是初稿**。
+**收尾最容易失败于"重写冲动"**——README 看起来"不够规整"不是重写的理由;
+同步先于补写,补写先于新建——**用户原有的文字是事实,不是初稿**。
 
-我执行任务时心里只问一个问题:**"用户半年后再读这份 README / docs / landing page,
-能不能认出'这是我写的'?"** 不能 = 我重写过头,跟它"看起来多规整"、"信息多完整"、
-"风格多统一",**一点关系都没有**。
+**保护用户 voice 的判定标准**:用户半年后再读这份 README / docs / landing page,
+能认出"这是我写的"才算及格。与"看起来多规整"、"信息多完整"、"风格多统一"无关。
 
 **落地页是产品的脸**。"自身不是网站"的项目对外要露出,landing page 是用户的第一眼——
 模糊的渐变 + 通用 SaaS hero + AI 写的副标题 = 用户根本看不到这个项目。
 landing 必须走 huashu-design + frontend-design 真做,**不要"先放个简单的占位"**——
 占位 push 出去就是终稿。
 
-我最容易翻的车——每一条都是"看起来在做收尾,实际在抹掉项目个性":
+以下行为每一条都是"看起来在做收尾,实际在抹掉项目个性",禁止发生:
 
-- **覆写已有文档** — 看 README 写得"散乱"就重写,**用户的 voice / 半年迭代的取舍
-  全没了**。同步先于补写:已有的内容是真相,我只在缺失处补,不在已有处改风格。
-- **翻译式重排 README** — "我把中英文统一一下 / 把章节顺序优化一下" = **破坏用户
-  原结构** = 半年后用户找不到他记得的那段。翻译 / 重排前先问用户,默认不动。
+- **覆写已有文档** — README 写得"散乱"不是重写依据,**用户的 voice / 历次迭代的取舍
+  全没了**。同步先于补写:已有的内容是真相,只在缺失处补,不在已有处改风格。
+- **翻译式重排 README** — "把中英文统一一下 / 把章节顺序优化一下" = **破坏用户
+  原结构**。翻译 / 重排前先问用户,默认不动。
 - **裁剪 landing page 内容契约** — landing page 的内容是按 huashu-design 的 design system
-  设计的,我"觉得太长简化一下" = 破坏视觉节奏。**内容契约是 design 的一部分,不是文案稿**。
-- **跳 delivery-gate 直接 clean-commit** — "看起来挺好就提交吧" = 把没经审查的产物
-  push 出去 = 用户发现问题时 commit 已经在 main 上了。delivery-gate 不是可选步骤,
-  是收尾流水线的强制闸门。
-- **越界做设计判断 / 写代码 / 审 PR** — 我管收尾编排 + 阶段顺序 + 4 件用户易漏的事;
+  设计的,"觉得太长简化一下" = 破坏视觉节奏。**内容契约是 design 的一部分,不是文案稿**。
+- **跳 delivery-gate 直接 clean-commit** — delivery-gate 不是可选步骤,
+  是收尾流水线的强制闸门。跳过即把未经审查的产物 push 出去。
+- **越界做设计判断 / 写代码 / 审 PR** — 本 skill 管收尾编排 + 阶段顺序 + 4 件用户易漏的事;
   **设计审查找 director-design,UI 改造找 frontend-design,代码 review 找 requesting-code-review,
-  commit 安全找 clean-commit**。越界 = 假装自己什么都懂 = 让每个下游环节都做半吊子。
+  commit 安全找 clean-commit**。越界导致每个下游环节都做半吊子。
 
 ## When to Use
 
@@ -175,7 +172,7 @@ Step 0 的完成判定不是"看了一眼",而是已经写下:
 
 ### Step 4 —— Delivery Gate(交付审查)
 
-- **Step 4.0 director-design audit**(v4 新增,UI 改动时必做):派 subagent 调 `director-design (mode: audit)`,audit 的是 **3.3 落地后的生产代码**(不是 3 路 mockup)。verdict=`needs-redesign` 或 `mockup_alignment_score < 4/5` → 回 Step 3.3 重做。非 UI 任务跳过
+- **Step 4.0 director-design audit**(UI 改动时必做):派 subagent 调 `director-design (mode: audit)`,audit 的是 **3.3 落地后的生产代码**(不是 3 路 mockup)。verdict=`needs-redesign` 或 `mockup_alignment_score < 4/5` → 回 Step 3.3 重做。非 UI 任务跳过
 - **Step 4.1 delivery-gate**:Step 1~3 产物就位后调 `delivery-gate`,一次性递交全部证据(文档 patch + README + 落地页 + 3.4 截图 + 3.3.5 部署切换证据 + 4.0 audit 报告 + Step 0 快照)。**递交前 self-check**:对每条 `Deployment switched: <file>` 跑 `git diff -- <file>` 确认文件真变了
 
 回流路由:
@@ -243,7 +240,7 @@ Step 0 的完成判定不是"看了一眼",而是已经写下:
 
 - **覆写已有文档 / 翻译式重排 README** — 同步先于补写,默认不动 voice
 - **裁剪 landing page 内容契约** — Outline/Roadmap/Links 三段不可压
-- **未派 3 路 mockup / auto-pick 替用户选 / 覆盖旧 mockup 目录** — 3 路 + 不超时 + -v2 命名是 v5 硬规则
+- **未派 3 路 mockup / auto-pick 替用户选 / 覆盖旧 mockup 目录** — 3 路 + 不超时 + -v2 命名是硬规则
 - **跳过 3.3.5 部署切换 / 自动改 secondary 配置 / 声明切了但 git diff 为空** — 部署切换证据必须可验证
 - **跳过 delivery-gate / must-fix 未消化就 commit / clean-commit 夹带无关改动** — 审查 → 提交是硬闸门
 - **把 preview 当 landing / 删除 preview 目录** — preview 是平行资产
@@ -252,7 +249,7 @@ Step 0 的完成判定不是"看了一眼",而是已经写下:
 
 ## Executor Selection
 
-执行者选择遵循 `../_shared/executor-selection-template.md`:默认当前 agent 自写;大体量纯样板派便宜档 subagent(haiku/sonnet)/ fast;高风险代码 / 决策仲裁 / 评分 / 强会话上下文不下放。
+执行者选择遵循 `references/executor-selection-template.md`:默认当前 agent 自写;大体量纯样板派便宜档 subagent(haiku/sonnet)/ fast;高风险代码 / 决策仲裁 / 评分 / 强会话上下文不下放。
 
 ## Reuse
 

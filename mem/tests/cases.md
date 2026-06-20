@@ -180,8 +180,8 @@
 
 - **mode**: context
 - **input**: 仓库内任意 skill 提"参见 unblock-recipes"或 description 含 "unblock-recipes"
-- **expected behavior**: 这些引用应在本次改动期间一并更新成"参见 mem"或 "mem(unblock 分类)";若过渡期保留旧引用,unblock-recipes/SKILL.md 顶部 banner 应能让 agent 顺势找到 mem
-- **assertion**: grep 全仓 `unblock-recipes` 引用,要么改成 mem,要么有 banner 兜底
+- **expected behavior**: `unblock-recipes` 已删除并入 mem,所有旧引用必须改成"参见 mem"或 "mem(unblock 分类)";不再有 banner 兜底(目录已不存在)
+- **assertion**: grep 全仓 `unblock-recipes` 路径引用应为 0(仅允许 README/mem 文档里"原 unblock-recipes 已并入 mem"这类历史说明)
 
 ---
 

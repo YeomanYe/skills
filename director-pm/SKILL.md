@@ -243,7 +243,7 @@ description: >
 
 ## Executor Selection
 
-执行者选择遵循 `../_shared/executor-selection-template.md`:默认当前 agent 自写;大体量纯样板派便宜档 subagent(haiku/sonnet)/ fast;高风险代码 / 决策仲裁 / 评分 / 强会话上下文不下放。
+执行者选择遵循 `references/executor-selection-template.md`:默认当前 agent 自写;大体量纯样板派便宜档 subagent(haiku/sonnet)/ fast;高风险代码 / 决策仲裁 / 评分 / 强会话上下文不下放。
 
 本 skill 特例:需求澄清 / 优先级仲裁 / PRD·AC 撰写 / 产品评审全是产品判断(judgment-heavy,SPEC≈输出),一律自写,不外派。
 

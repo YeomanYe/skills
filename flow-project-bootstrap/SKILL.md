@@ -4,7 +4,7 @@ description: Use when a user wants the **full multi-stage** project kickoff chai
 ---
 
 > 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
-> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。Executor Selection 引 `../_shared/executor-selection-template.md`
+> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。Executor Selection 引 `references/executor-selection-template.md`
 
 # Orchestrating Project Bootstrap
 
@@ -24,20 +24,20 @@ description: Use when a user wants the **full multi-stage** project kickoff chai
 
 本 skill 不替代下游 skill，它负责编排顺序、强制阶段门、保护用户容易漏提的属性（显式交互设计、preview decision、≥2 套候选设计、部署方案、logo、预览实现）。
 
-## 角色信条
+## 执行原则
 
-**我是 kickoff 编排器,不是产品经理替身;我把 Stage 1 锁死再让 Stage 2 跑,不允许穿越。**
+本编排器定位是 kickoff 流程控制器，不是产品经理替身；Stage 1 必须锁定后 Stage 2 才能启动，不允许穿越。
 
-**Kickoff 最容易死在"边讨论边动手"**——一旦我看到用户大概同意 MVP 切片就开始写代码,
+Kickoff 最容易死在"边讨论边动手"——一旦用户大概同意 MVP 切片就开始写代码，
 **preview 设计 / 候选设计系统 / 部署方案这些"用户没主动提但应该问"的事就被跳过了**。
-用户半年后回头看「为什么当初选了这个技术栈」、「为什么没做 logo」,**答不上来 = 我失职**。
+用户半年后回头看「为什么当初选了这个技术栈」、「为什么没做 logo」，答不上来即视为编排失职。
 
-我执行任务时心里只问一个问题:**"Stage 1 锁的 4 件事(MVP 切片 / preview mockup /
-部署目标 / 后续规划),如果用户三个月后重读,能不能一眼看到他在哪天用什么理由做的决定?"**
-不能 = 我编排错了。
+执行时须始终验证：**"Stage 1 锁的 4 件事(MVP 切片 / preview mockup /
+部署目标 / 后续规划),如果用户三个月后重读,能不能一眼看到他用什么理由做的决定?"**
+不能则视为编排错误。
 
-**Stage 1 是 written choices,不是口头共识**。用户在群里说"那就这样吧"不是签字——
-必须落到 docs/design.md 里,有具体取舍理由。**没写下来的决策等于没决策**。
+**Stage 1 是 written choices，不是口头共识**。用户在群里说"那就这样吧"不是签字——
+必须落到 docs/design.md 里，有具体取舍理由。**没写下来的决策等于没决策**。
 
 最容易翻车的反模式（跳过 preview decision / 只给 1 套设计候选 / Stage 1 没锁就跑 Stage 2 /
 越界做 PM 工作 / 写实际代码 / 出生产设计）→ 详见 `references/failure-modes.md`。
@@ -92,7 +92,6 @@ Stage 2 不得自动启动。必须显式问用户：
 > 3. 部署目标确认？
 > 4. 后续规划方向 OK 吗？
 
-**v5 简化**：从 5 问降为 4 问（合并原"preview 策略"和"设计系统"为单一"挑 mockup"）。
 得到至少 1 / 2 / 3 三项明确回答前不进入 Stage 2。4 可以推断默认。
 
 如果用户回 "都不行 重做" / "方向 N 改 X"：回 1.3 重派（用 `-v2` 后缀，不覆盖原 mockup）。
@@ -152,7 +151,7 @@ Stage 2 不得自动启动。必须显式问用户：
 
 ## Executor Selection
 
-执行者选择遵循 `../_shared/executor-selection-template.md`:默认当前 agent 自写;大体量纯样板派便宜档 subagent(haiku/sonnet)/ fast;高风险代码 / 决策仲裁 / 评分 / 强会话上下文不下放。
+执行者选择遵循 `references/executor-selection-template.md`:默认当前 agent 自写;大体量纯样板派便宜档 subagent(haiku/sonnet)/ fast;高风险代码 / 决策仲裁 / 评分 / 强会话上下文不下放。
 
 ## Reuse
 

@@ -278,8 +278,6 @@ agent 被 cron 唤醒后,**只做这 4 步**,不超出范围:
 
 **完整实现**(schedule.py / burn.sh / reschedule.sh / 工作目录结构 / cron prompt 模板 / 实战参数 / reboot 容灾)见 [`references/preset-burn-tail.md`](references/preset-burn-tail.md)。
 
-**实战**:`~/Documents/projects/skills/.experiment-state/darwin-huashu/`(本 skill 来源,2026-06-03 编排)。
-
 ### #2 — `window-burn`(指定时间窗整段 burn)
 
 **最适合**:长跑任务(几天到几周)+ 任务可切 ~50 min batch + user 划定一段"随便烧"的时段(典型:夜间),窗内要**尽量用光额度**。与 #1 相反:#1 只 burn 尾巴、不碰白天额度;#2 在指定窗内**整段连烧到 cap**。
@@ -303,8 +301,6 @@ agent 被 cron 唤醒后,**只做这 4 步**,不超出范围:
 
 **完整实现**(budget-gate.py 线性预留 / schedule.py 自排程 / burn.sh wake-then-query / burn-prompt / 工作目录)见 [`references/preset-window-burn.md`](references/preset-window-burn.md)。robustness 规则与 #1 共用(见 preset-burn-tail.md 第 1–7 条)。
 
-**实战**:`~/Documents/projects/.experiment-state/ty-vibe-kanban-build/`(本预设来源,2026-06-17 编排)。
-
 ### #3 — `window-starter`(5h 窗口提前撞开,极低成本)
 
 **最适合**:固定作息,想让 5h 滚动窗口在你开工前就开好,这样真正干活时窗口已在走。跟 #1/#2 **方向相反**——#1/#2 烧额度,#3 只用一句最便宜的 "hi" **撞开窗口**。不是长跑任务,没有 STATUS.md / budget-gate,本质是**普通 recurring cron**,但命令逐项裁剪到最省。
@@ -324,8 +320,6 @@ agent 被 cron 唤醒后,**只做这 4 步**,不超出范围:
 - 要它真做事(总结/巡检)→ 普通 `cc-connect cron add --prompt`,不是 window-starter
 
 **完整命令 + flag 裁剪逐项说明 + 官方文档出处**见 [`references/preset-window-starter.md`](references/preset-window-starter.md)。
-
-**实战**:`~/.cc-connect/crons/jobs.json` — claude `b3d1f56d` / codex `718383d8`(2026-06-19 落地 + 官方核对)。
 
 ## Boundaries(本 skill 不做的事)
 
@@ -358,14 +352,6 @@ agent 被 cron 唤醒后,**只做这 4 步**,不超出范围:
 ❌ "每天早上发 GitHub trending"(直接 `cc-connect cron add`,不需要 STATUS / budget gate)
 ❌ "5 分钟内做完这个 commit"(短任务,不需要 cron)
 ❌ "我在多设备上跑分布式 worker"(超出范围)
-
-## 设计灵感
-
-本 skill 抽自 darwin-skill 长跑实验(2026-06-03)实战:
-- skill 中心库 16+ skill 演化,跨 6+ 小时 + 多个 5h budget 窗口
-- cron `be758bdc` 每 :55 唤醒,2 次 5h budget 撞顶后 skip,1 次 smoke test 验证唤醒链路
-- STATUS.md 是续作业的唯一 ground truth,跨 cron 唤醒不丢
-- 任务完成后自删 cron 协议(避免僵尸唤醒)
 
 参考:
 - `references/preset-burn-tail.md` — **预设 #1 burn-tail** 完整实现(schedule.py / burn.sh / 工作目录 / 实战参数 + 第 1–7 条共用 robustness 规则)

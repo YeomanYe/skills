@@ -51,7 +51,7 @@
 1. Frontmatter (name + description)
 2. 关于命名 (引本元规范)
 3. Overview (角色定位 + 它不是 / 它是 / 核心信念)
-4. 角色信条 (2026-05 新增 — 第一人称立场 + 心理测试题 + 失败模式)
+4. 角色信条 (第一人称立场 + 心理测试题 + 失败模式;director-* 是角色,保留人格框)
 5. When to Use / When NOT to Use
 6. Mode Selection 表 (mode / 用户意图 / 主要产出 / 默认调度工具)
 7. Required Workflow
@@ -81,7 +81,7 @@
 4. **失败模式清单(5-6 条)**:每条带"为什么这是和稀泥/AI slop/制造噪音"的二阶解释
 5. **统一收尾**:`越界 = 假装什么都懂 = 让每个领域都做半吊子`
 
-**调性参考**:director-design / director-frontend / flow-codex-goal 的角色信条段。
+**调性参考**:director-design / director-frontend 的角色信条段。
 
 **禁止**:
 - 写成抽象口号("追求卓越")—— 必须具体到这个角色独有的失败模式

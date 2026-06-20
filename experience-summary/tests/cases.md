@@ -403,11 +403,11 @@ Case 24-27 是 v2 新增专项验证(覆盖代表性叙事场景)。
 
 **断言**:
 - exp-sum 按 `references/l9a-recipe-template.md` 输出**完整骨架**(含 frontmatter slug / tags / symptoms / cause / fix)
-- 输出 5 段 + L9a 骨架后,提示 user/agent 落盘到 `~/Documents/projects/skills/unblock-recipes/recipes/<slug>.md`
-- **必须同时更新** `unblock-recipes/INDEX.md` 两处(按 tag 分类 + 按 symptom 关键词反查)
+- 输出 5 段 + L9a 骨架后,提示 user/agent 落盘到 `~/Documents/projects/skills/mem/data/unblock/<slug>.md`
+- **必须同时更新** `mem/INDEX.md` 两处(按 tag 分类 + 按 symptom 关键词反查)
 - commit 时 pre-commit hook 跑 skill-doctor 检查 frontmatter 完整性
 
 **反例**(违规):
 - ❌ exp-sum 让 user 自己手写 recipe(应当给 ready-to-paste 骨架)
-- ❌ user 跳过 exp-sum 直接 echo > unblock-recipes/recipes/x.md(被 unblock-recipes 拒)
+- ❌ user 跳过 exp-sum 直接 echo > mem/data/unblock/x.md(被 mem 拒)
 - ❌ 落盘后忘更新 INDEX.md(pre-commit hook 应拦)

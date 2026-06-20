@@ -121,7 +121,7 @@ description: >
 - 知识库记录模板（装 / 卸两套）：`references/record-template.md`
 - 测试用例：`tests/cases.md`
 
-## Required Workflow（8 步主干,2026-05 加 Step 0）
+## Required Workflow（8 步主干）
 
 按顺序执行，**不允许跳步**。带 🔻 的子步骤仅 `uninstall` mode 执行。
 
@@ -358,7 +358,7 @@ uninstall: 无法确认目标存在 / 目录含用户数据 / 非 macOS 资料�
 
 ## Executor Selection
 
-执行者选择遵循 `../_shared/executor-selection-template.md`:默认当前 agent 自写;大体量纯样板(CI/CD 配置 / 部署脚本 / 同结构 manifest 批量)派便宜档 subagent(haiku/sonnet)/ fast;高风险代码 / 决策仲裁 / 强会话上下文不下放。
+执行者选择遵循 `references/executor-selection-template.md`:默认当前 agent 自写;大体量纯样板(CI/CD 配置 / 部署脚本 / 同结构 manifest 批量)派便宜档 subagent(haiku/sonnet)/ fast;高风险代码 / 决策仲裁 / 强会话上下文不下放。
 
 本 skill 特例:运维里"批量改 N 个项目的同类配置"可派便宜档 subagent;但发布策略、回滚决策、密钥/权限相关一律自写。
 

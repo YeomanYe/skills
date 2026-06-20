@@ -346,7 +346,7 @@ subagent 落盘到 `artifact_path`,**不要在 stdout 复述全文**;
 
 ## Executor Selection
 
-执行者选择遵循 `../_shared/executor-selection-template.md`:默认当前 agent 自写;大体量纯样板派便宜档 subagent(haiku/sonnet)/ fast;高风险代码 / 决策仲裁 / 评分 / 强会话上下文不下放。
+执行者选择遵循 `references/executor-selection-template.md`:默认当前 agent 自写;大体量纯样板派便宜档 subagent(haiku/sonnet)/ fast;高风险代码 / 决策仲裁 / 评分 / 强会话上下文不下放。
 
 本 skill 特例:设计判断 / 视觉评分 / 走查都是主观 judgment,Codex/便宜档都没增值,全程自写。
 

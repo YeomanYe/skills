@@ -466,7 +466,7 @@ orchestrator 派 subagent 后**进入 idle**,subagent 返回后把图片路径�
 
 ## Executor Selection
 
-执行者选择遵循 `../_shared/executor-selection-template.md`:默认当前 agent 自写;大体量纯样板(组件 scaffolding / 测试夹具 / 同结构 JSX 批量)派便宜档 subagent(haiku/sonnet)/ fast;高风险代码 / 决策仲裁 / 评分 / 强会话上下文不下放。
+执行者选择遵循 `references/executor-selection-template.md`:默认当前 agent 自写;大体量纯样板(组件 scaffolding / 测试夹具 / 同结构 JSX 批量)派便宜档 subagent(haiku/sonnet)/ fast;高风险代码 / 决策仲裁 / 评分 / 强会话上下文不下放。
 
 本 skill 特例:JSX UI 实现里"大批量同结构组件/样式脚手架"可派便宜档 subagent;但 UI 工程编排、设计 token 取舍、a11y 判断属决策类,自写。
 

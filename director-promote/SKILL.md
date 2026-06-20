@@ -454,7 +454,7 @@ orchestrator 派多路 subagent 后**进入 idle**,collect-all 收齐后把各�
 
 ## Executor Selection
 
-执行者选择遵循 `../_shared/executor-selection-template.md`:默认当前 agent 自写;大体量纯样板派便宜档 subagent(haiku/sonnet)/ fast;高风险代码 / 决策仲裁 / 评分 / 强会话上下文不下放。
+执行者选择遵循 `references/executor-selection-template.md`:默认当前 agent 自写;大体量纯样板派便宜档 subagent(haiku/sonnet)/ fast;高风险代码 / 决策仲裁 / 评分 / 强会话上下文不下放。
 
 本 skill 特例:推广文案 / 卖点提炼 / 渠道策略属创意+判断类,自写,不外派。
 

@@ -1,7 +1,7 @@
 # Judgment Tree —— Q0-Q10 完整决策流(12 个出口)
 
 > 顺序问 Q0 → Q10,**第一个 yes 即出口**,后续 Q 不再问。
-> 第 9 层已拆分为 **Q9a(unblock-recipes)优先于 Q9b(auto memory)**,详见下方 Q9a/Q9b。
+> 第 9 层已拆分为 **Q9a(mem unblock 分类)优先于 Q9b(auto memory)**,详见下方 Q9a/Q9b。
 
 ---
 
@@ -203,14 +203,14 @@ wc -l <project>/CLAUDE.md
 - 属于"踩过的坑 + 怎么绕过去"的可复用知识
 
 **示例**:
-- ✅ "MobX 装饰器在 X 配置下不生效,改用 makeObservable+annotations 解决" → 跨 agent 通用解法,unblock-recipes
-- ✅ "pnpm 在 monorepo 下 install 卡死,需加 --filter,任何 agent 都受用" → unblock-recipes
+- ✅ "MobX 装饰器在 X 配置下不生效,改用 makeObservable+annotations 解决" → 跨 agent 通用解法,mem(unblock 分类)
+- ✅ "pnpm 在 monorepo 下 install 卡死,需加 --filter,任何 agent 都受用" → mem(unblock 分类)
 - ❌ "用户偏好简洁回复" → per-user 偏好,不跨 agent,Q9b
 - ❌ "agent 不能泄漏 token" → 价值观,Q1
 
 **Q9a vs Q9b 优先级**: 通用知识 > 个人偏好。任何"卡壳-解法"先尝试 9a;只有"换 agent / 换用户不适用"才落 9b。
 
-**yes → L9a(`unblock-recipes/recipes/<slug>.md`,按 `l9a-recipe-template.md` 输出 symptom+solution 双段 + 改 INDEX.md 两处 + commit)**
+**yes → L9a(`mem/data/unblock/<slug>.md`,按 `l9a-recipe-template.md` 输出 symptom+solution 双段 + 改 INDEX.md 两处 + commit)**
 
 ---
 
@@ -277,7 +277,7 @@ wc -l <project>/CLAUDE.md
        ↓ 否
   Q8 项目级常驻? → 是 → L8 CLAUDE.md/AGENTS.md
        ↓ 否
-  Q9a 跨 agent 卡壳-解法? → 是 → L9a unblock-recipes（优先于 9b）
+  Q9a 跨 agent 卡壳-解法? → 是 → L9a mem(unblock 分类)（优先于 9b）
        ↓ 否
   Q9b per-user 个人偏好? → 是 → L9b auto memory
        ↓ 否
@@ -292,6 +292,6 @@ wc -l <project>/CLAUDE.md
 2. 强制(hook)> 决策(skill)> 常驻(CLAUDE.md)
 3. 单角色(director-*)> 跨角色(flow-*)
 4. 模块级(nested CLAUDE.md)> 项目级(CLAUDE.md)> 用户级(~/.claude/CLAUDE.md)
-5. 跨 agent 通用解法(L9a unblock-recipes)> per-user 个人偏好(L9b auto memory)
+5. 跨 agent 通用解法(L9a mem unblock 分类)> per-user 个人偏好(L9b auto memory)
 
 按 Q0 → Q10 顺序问就自然满足这个优先级。

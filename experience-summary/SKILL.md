@@ -38,7 +38,7 @@ description: Use after finishing a real task to triage the lesson/pattern/gotcha
 **机器可检测的硬闸,不是建议**。在 judgment-tree 给出分诊结论之前,逐条勾选:
 
 - **SC1 证据**: 来源有 file:line / 对话片段 / 命令输出 / commit sha / 报错堆栈?**不接受**"我记得 / 上次好像 / agent 反复犯过"。No → STOP 回 Step 1 补证据
-- **SC2 去重**: `CLAUDE.md` / 已有 skill / `git log` / `MEMORY.md` / `unblock-recipes/INDEX.md` grep 后**没**对等条目?有 → STOP,只追加引用 / 修订
+- **SC2 去重**: `CLAUDE.md` / 已有 skill / `git log` / `MEMORY.md` / `mem/INDEX.md` grep 后**没**对等条目?有 → STOP,只追加引用 / 修订
 - **SC3 脱敏**: PII / 机密 / token / 内部 URL / 邮箱 / API key 已 redact(`<USER>` `<TOKEN>` `<INTERNAL_URL>`)?No → STOP 先脱敏。**严禁**"先存着以后再 redact"
 - **SC4 命中位**: 写得出"Q<N> 命中,因为<信号词>"?No → STOP 回 Step 2 重跑
 - **SC5 类型**: user / feedback / project / reference 选对?**拿不准默认 reference,不默认 user**;user 类型仅承载用户原话含"我习惯/我喜欢/以后都这样"
@@ -54,7 +54,7 @@ description: Use after finishing a real task to triage the lesson/pattern/gotcha
 3. **修改 user 手写的 memory**(以"补充"为名改了语义 / 重写句式 / 合并)— 越权高发区
 4. **把 in-progress 任务沉淀** — memory 是 long-term 不是 short-term buffer,用 task tracker
 5. **发出 stage_switch 信号**给 meta-skill / orchestrator(会把 user 弹出当前 flow)
-6. **触发 L9a `unblock-recipes/recipes/<slug>.md` 生成**(跨 agent 共享 + 改 INDEX.md 两处 + commit + hook)
+6. **触发 L9a `mem/data/unblock/<slug>.md` 生成**(跨 agent 共享 + 改 INDEX.md 两处 + commit + hook)
 7. **把 PII / 机密原文**写入 memory body(即便 user 说"存着吧"仍要先脱敏 — **无 user override**)
 8. **把推断(非用户原话)**写入 user-type memory(应降级 reference)
 9. **改 `_shared/constitution.md` / `_shared/<topic>.md`** — 跨 12 个 target skill 分发,影响面 = 全局
@@ -92,7 +92,7 @@ user 回 yes / 确认 / 行 / 嗯 = pass;沉默 / "应该可以" / "你看着办
 - **Q7**: 是不是"**多步流程、跨多个角色**、需要 orchestrator 编排"? → 出口: **L7 改对应 flow-***
 - **Q8**: 是不是"每个会话都应该知道的**项目级高频默认行为**"? → 出口: **L8 `CLAUDE.md` / `AGENTS.md`**
   - **硬约束**: CLAUDE.md 控制在 **200 行以内**(Anthropic 官方);超了说明专题流程混进来了,该下沉到 skill
-- **Q9a**(优先于 Q9b): 是不是"**跨 agent 通用的卡壳-解法**案例"? → 出口: **L9a `mem/data/unblock/<slug>.md`**(原 unblock-recipes 已并入 mem)
+- **Q9a**(优先于 Q9b): 是不是"**跨 agent 通用的卡壳-解法**案例"? → 出口: **L9a `mem/data/unblock/<slug>.md`**
 - **Q9b**(Q9a 未中再判): 是不是"**per-user 个人偏好 / 反复被纠正**的经验"? → 出口: **L9b auto memory**
 - **Q10**(兜底): 都不命中? → 出口: **L10 不沉淀**
 
@@ -165,12 +165,12 @@ user 回 yes / 确认 / 行 / 嗯 = pass;沉默 / "应该可以" / "你看着办
 | 6 | 单一专业判断 | `director-*/` | Q6 |
 | 7 | 跨角色编排 | `flow-*/` | Q7 |
 | 8 | 项目级常驻 | `CLAUDE.md` / `AGENTS.md` | Q8 |
-| **9a** | **跨 agent 卡壳-解法** | **`mem/data/unblock/<slug>.md`**(原 unblock-recipes 已并入 mem) | **Q9a(优先于 9b)** |
+| **9a** | **跨 agent 卡壳-解法** | **`mem/data/unblock/<slug>.md`** | **Q9a(优先于 9b)** |
 | 9b | per-user 个人偏好 | auto memory | Q9b |
 | 10 | 兜底丢弃 | 不沉淀 | Q10 |
 
 **关键变化**: 第 9 层拆分为 9a / 9b,**9a 优先**。原"长期个人偏好 → auto memory"现属 9b;
-新增 9a"跨 agent 卡壳-解法 → mem(unblock 分类)"是 2026-05-25 增加的目标层,2026-06-12 起原 `unblock-recipes` 并入 `mem`,出口路径改为 `mem/data/unblock/<slug>.md`。
+新增 9a"跨 agent 卡壳-解法 → mem(unblock 分类)"是 2026-05-25 增加的目标层,出口路径为 `mem/data/unblock/<slug>.md`。
 
 完整层级说明见 `references/layer-map.md`。每层写作草稿见 `references/templates.md`。
 
@@ -238,7 +238,7 @@ STOP 原因:**RF6**("记住偏好"不跨 ≥ 3 skill,是 L9b 本职)+ **RF4**(L1
     4. `skillshare sync --force`(分发到 `~/.claude/skills/` 等 agent 目标)
   - 出口是 skill-doctor 规则 → 切到 `~/Documents/projects/node-scripts/` 项目走 `flow-dev-task`
   - 出口是单个 skill 同步 → `sync-skills`(把单个 skill 目录同步到中心,**不是**用于 _shared 分发)
-  - **出口是 mem unblock 分类(L9a)**:(2026-06-12 起,原 unblock-recipes 并入 mem)
+  - **出口是 mem unblock 分类(L9a)**:
     1. 本 skill 按 `references/l9a-recipe-template.md` 输出完整骨架(schema 跟 mem 的 unblock 分类规则一致,见 `mem/` 目录)
     2. 用户/agent 把模板落盘到 `~/Documents/projects/skills/mem/data/unblock/<slug>.md`
     3. **必须同步更新** `mem/INDEX.md` unblock 段两处(按 tag 分类 + 按 symptom 关键词反查)
@@ -252,15 +252,15 @@ STOP 原因:**RF6**("记住偏好"不跨 ≥ 3 skill,是 L9b 本职)+ **RF4**(L1
 
 ### 跟其他 meta 类 skill 的优先级(避免抢同一回合)
 
-| 主体场景 | hat 的位置 | meta-skill 的位置 | unblock-recipes 的位置 |
+| 主体场景 | hat 的位置 | meta-skill 的位置 | mem(unblock 分类)的位置 |
 |---|---|---|---|
-| **本 skill 显式触发**("经验该写哪") | hat 让位,只在最终对话响应末尾追加告知行;**不**写入 exp-sum 5 段产物 | 不触发(meta-skill 是项目级配置,不是经验沉淀) | Q9a 路径下被本 skill 调度 — 由本 skill 输出 L9a 模板后,user/agent 落盘到 unblock-recipes/recipes/ |
+| **本 skill 显式触发**("经验该写哪") | hat 让位,只在最终对话响应末尾追加告知行;**不**写入 exp-sum 5 段产物 | 不触发(meta-skill 是项目级配置,不是经验沉淀) | Q9a 路径下被本 skill 调度 — 由本 skill 输出 L9a 模板后,user/agent 落盘到 mem/data/unblock/ |
 | meta-skill 主体跑时 | hat 让位(同上) | 主体 | 卡壳分支兜底 |
-| user 直接写经验到 unblock-recipes/recipes/(绕过本 skill)| 被 unblock-recipes 拒绝(它唯一入口是本 skill Q9a) | n/a | 拒绝,告知 user 走 exp-sum |
+| user 直接写经验到 mem/data/unblock/(绕过本 skill)| 被 mem 拒绝(它唯一入口是本 skill Q9a) | n/a | 拒绝,告知 user 走 exp-sum |
 
 **关键 invariant**:
 - 任何主体 skill 跑时,hat 不挡 / 不替 / 不进产物 — 见 `hat/SKILL.md` 同名段
-- 本 skill 的 L9a 产物 = unblock-recipes/recipes/<slug>.md 的**唯一合法生成路径**(unblock-recipes 拒接直接写入)— 见 `references/l9a-recipe-template.md`
+- 本 skill 的 L9a 产物 = mem/data/unblock/<slug>.md 的**唯一合法生成路径**(mem 拒接直接写入)— 见 `references/l9a-recipe-template.md`
 
 ## Reuse
 

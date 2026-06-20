@@ -135,7 +135,7 @@
 > 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
 ```
 
-**单体工具 skill**(clean-commit / delivery-gate / web-image / cdp-browser-control 等)按需引用(高风险操作类必须;纯转换类可选)。
+**单体工具 skill**(clean-commit / delivery-gate / web-image 等)按需引用(高风险操作类必须;纯转换类可选)。
 
 ## 9. Red Flags(违宪行为)
 

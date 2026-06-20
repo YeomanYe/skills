@@ -14,7 +14,7 @@ description: >
 ---
 
 > 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
-> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。Executor Selection 引 `../_shared/executor-selection-template.md`(2026-06 改版:Codex 重委派降级为可选,默认便宜档 subagent)
+> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。Executor Selection 引 `references/executor-selection-template.md`(Codex 重委派降级为可选,默认便宜档 subagent)
 
 # flow-dev-task
 
@@ -28,17 +28,15 @@ description: >
 2. **每轮问题上限 3 个**。超上限就走"推断 + 假设清单"继续。
 3. **路径选择全部硬写推断规则**，不询问用户"用哪种模式"。
 
-## 角色信条
+## 执行原则
 
-**我是单 task 执行官,不是讨论组组长;我把任务推到 commit,不开会聊方案。**
+核心纪律：
 
-核心原则：
+- **默认推进不默认提问**；能从上下文推断的字段绝不问用户，推断错了 commit 前用户有机会纠正
+- **问题预算 ≤ 3 硬约束**；第 4 个问题改为"推断是 X，先按 X 干，跑通后 commit 前再确认"
+- 判断标准：跑到 commit 前，用户被打断的次数是否超过必要次数——超了就是问太多，与"严谨"无关
 
-- **能推断就推断**，推断错了 commit 之前用户会看到，会有机会改
-- **问题预算 ≤ 3 是硬约束**。第 4 个问题想问的时候，**改成"我推断是 X，先按 X 干，跑通了 commit 前再确认"**
-- 心里只问一个问题：**"如果我现在用 3 个问题之内的信息开始干，跑到 commit 那一步前，用户被我打断的次数会不会 > 必要次数？"** 会 = 我问得太多，跟"严谨"无关
-
-最容易翻的 5 个车（详尽自我合理化拆穿 → `references/failure-modes.md`）：
+最容易翻的 5 个车（详尽合理化拆穿 → `references/failure-modes.md`）：
 
 1. **问超过 3 个问题** — 预算破一次，下次破第二次
 2. **问能推断的字段** — 用 React 还是 Preact？看 package.json 啊
@@ -141,7 +139,7 @@ description: >
 | 3 | plan 单步 或 纯局部改动 | **直接自己写**，不调 execute skill |
 | 4 | 用户显式说"开新会话跑 / fresh session" | `superpowers:executing-plans` |
 
-### Auto-Recap Rule(Stage 7.5 pre-hook,2026-05 新增)
+### Auto-Recap Rule(Stage 7.5 pre-hook)
 
 **触发**: Stage 7 delivery-gate PASS 后,Stage 8 clean-commit **之前**,按下面表决定要不要调 `change-recap`:
 
@@ -209,7 +207,7 @@ description: >
 - 项目专属分支规则**优先于本条**:若该项目有固定开发分支约定(如 ty-vibe-kanban 固定提交在 `ty` 分支),按项目约定走,不在 main 上提交。
 - **唯一的"建分支"合法例外 = Worktree Rule(>10 文件)**:此时 Stage 3 `superpowers:using-git-worktrees` 会 `git worktree add -b <新分支>`——这是 git 硬约束(worktree 必须挂独立分支,不能复用当前分支),属设计内隔离,**允许**;随后 Stage 9 `superpowers:finishing-a-development-branch` 负责 merge 回 base + 删分支。本 Branch Policy 约束的是**非 worktree 的默认路径**(≤10 文件 / 没开 worktree):别为了"隔离"或"保护 main"而自作主张 `checkout -b`。之前 loop-engine/node-scripts(均 ≤10 文件,worktree 没触发)被切分支,就是违反本条的典型。
 
-### Director-Design Trigger Rule（**v4 新增**，Stage 5.5）
+### Director-Design Trigger Rule（Stage 5.5）
 
 Stage 5 写代码完成后，按以下规则决定是否触发 Stage 5.5 UI Audit：
 
@@ -240,7 +238,7 @@ subagent 返回 JSON（`verdict` / `aggregate` / `must_fix` / `artifact_path`）
 
 ### Executor Selection（Stage 5 执行者选择）
 
-通用规范见 `../_shared/executor-selection-template.md`。Stage 5 默认**当前 agent(Claude)自写**，按下面分流（不询问）：
+通用规范见 `references/executor-selection-template.md`。Stage 5 默认**当前 agent(Claude)自写**，按下面分流（不询问）：
 
 **必须自写**（任一命中 → 不外派任何执行者）：
 1. 改动 < 30 行 **或** < 2 文件

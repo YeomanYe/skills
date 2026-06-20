@@ -37,7 +37,7 @@
 | 1 | frontmatter `description` | ✅ | 触发短语(中英文)+ 反例(Do NOT use)+ 上游/下游 hint |
 | 2 | constitution 引用(顶部一句话) | ✅ | `> 本 skill 受 _shared/constitution.md 约束` |
 | 3 | `# <Skill 名>` + `## Overview` | ✅ | 核心信念 + 跟其他 skill 边界 |
-| 4 | `## 角色信条`(5 翻车清单) | ✅ | 5 个最容易翻车的场景 + 对应防护(可加心理测试,如 dev-task 风格) |
+| 4 | `## 执行原则`(5 翻车清单) | ✅ | 5 个最容易翻车的场景 + 对应防护(流程纪律陈述,**非人格自述**——flow-* 是流程编排 skill 不是角色) |
 | 5 | `## When to Use` / `## When NOT to Use` | ✅ | 触发 / 不触发场景明确 |
 | 6 | `## Required Workflow`(numbered phases) | ✅ | 编号 stage / phase / step + 每步**有 actionable gate**(怎么判定该步完成) |
 | 7 | `## Question Gate(Step 0)` | 推荐 | 引用 `_shared/question-gate.md` 通用规范(不再各自内联 "Q budget = 3" 等约定)|

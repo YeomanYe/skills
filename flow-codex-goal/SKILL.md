@@ -15,7 +15,7 @@ type: workflow
 ---
 
 > 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
-> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。**Executor Selection 例外**:本 skill 是 Codex 重委派的承载者/元方法,不适用通用执行者选择判断(`../_shared/executor-selection-template.md` § 5 "例外 skill:flow-codex-goal" 明示)。
+> 本 skill 对齐 `../_shared/flow-template.md`(flow-* 元规范)。**Executor Selection 例外**:本 skill 是 Codex 重委派的承载者/元方法,不适用通用执行者选择判断(`references/executor-selection-template.md` § 5 "例外 skill:flow-codex-goal" 明示)。
 
 # flow-codex-goal
 
@@ -42,7 +42,7 @@ type: workflow
 - Reviewer 跟 Goal 同 worktree / 同 session → review 失效，等于裸 `/goal`
 - 3 轮不涨分但 commit 最后一轮 → 必须回 `HIGHEST_TAG`
 
-**3 件 orchestrator 不该做的事**（详见角色信条）：
+**3 件 orchestrator 不该做的事**（详见执行原则）：
 
 - 替 Goal 想问题 / 替 Reviewer 解释 / 觉得自己比 watcher 准
 
@@ -85,16 +85,16 @@ orchestrator agent。Claude 专属机制（cc-connect IM 推送、Agent SUBAGENT
 
 > 长任务不依赖对话上下文记忆，依赖**磁盘状态文件**、**事先签字的契约**、**独立 worktree**、**真实运行环境**、**硬隔离的独立 review**、**每轮快照 + 最高分回退**、**周期性人类校准**。
 
-### 角色信条
+### 执行原则
 
-**我是 orchestrator，不是 executor；我是 Goal Codex 的看门人，不是它的助理。**
+**orchestrator 是流水线的看门人，不是执行者；不得代替 Goal Codex 处理问题，不得代替 Reviewer 评分，不得代替用户决定 verdict。**
 
-**长任务最容易死在"orchestrator 自己也开始动手"**——一旦我替 Goal 想问题 /
-替 Reviewer 评分 / 替用户决定 verdict，**硬隔离机制立刻坍缩**。我多醒 1 次 =
+**长任务最容易死在"orchestrator 自己也开始动手"**——一旦 orchestrator 替 Goal 想问题 /
+替 Reviewer 评分 / 替用户决定 verdict，**硬隔离机制立刻坍缩**。orchestrator 多醒 1 次 =
 长任务多 1 个污染点。
 
-执行时只问一个问题：**"如果我现在 sleep 8 小时回来，pipeline 能不能自己跑完、
-自己停在该停的地方、自己 ping 我？"** 不能 = 我设计错了。**idle 是美德**。
+执行前必须问一个问题：**"如果 orchestrator 现在 sleep 8 小时回来，pipeline 能不能自己跑完、
+自己停在该停的地方、自己 ping 回来？"** 不能 = pipeline 设计有误，应先修复再启动。**idle 是美德**。
 
 非 Claude orchestrator（Codex / Gemini / 任何能调用 Bash 的 agent）调用时，
 IM 推送 / Agent 工具等 Claude 专属机制自动降级为"orchestrator 主动 poll"，
@@ -104,9 +104,9 @@ IM 推送 / Agent 工具等 Claude 专属机制自动降级为"orchestrator 主�
 
 - **替 Goal Codex 想问题** → 上下文偷喂 = baseline 之后评分不可比。让 watcher 处理。
 - **替 Reviewer 解释 Goal 的意图** → 隔离失效。reviewer 评错就重派，不要"帮它理解"。
-- **跳 Phase 0 直接启动** → 没 APPROVAL.md = 3 小时后用户问跑的什么我答不上。
+- **跳 Phase 0 直接启动** → 没 APPROVAL.md = 3 小时后用户问跑的什么答不上。
 - **觉得自己比 watcher 准** → boundary 误报就修 watcher，不要在 orchestrator 加豁免。
-- **越界做高风险代码** → auth / 支付 / 加密 **我自己写，不派 Codex**。
+- **越界做高风险代码** → auth / 支付 / 加密必须由 orchestrator agent 自写，不得派 Codex。
   constitution 级硬约束，与"用户明确指定"无关。
 
 ### Codex `/goal` 的硬限制 + 本 skill 的兜底
@@ -249,7 +249,7 @@ orchestrator agent 在 GOAL.md 落盘之前，向人类**一次性批量**提案
 
    分两步：先按任务信号**路由**出 reviewer 阵容，再生成 **Reviewer Plan 确认表**让用户确认每个 reviewer 查什么。
 
-   **5a. 路由 reviewer 阵容**（2026-05 升级 4 角色路由）
+   **5a. 路由 reviewer 阵容**
 
    orchestrator 根据任务特征**主动建议**额外 reviewer。详细路由规则见
    `references/role-router.md`（任务信号 → 角色映射 + 探测命令 + 反例）。快速路由表：
@@ -808,7 +808,7 @@ review-prompt.md 已写禁读名单。**额外强化**：
 - idle 期间并发跑其他任务（必须能秒响应人类 ping）
 - **review verdict=fail 且 consecutive_fails < 3 时问用户"要不要 retry"**（必须自动 retry；只在达到 3 次上限时才上报）
 
-### Watcher Exit Code → Orchestrator 行为映射（修复 P0 #4 + P1 #8）
+### Watcher Exit Code → Orchestrator 行为映射
 
 watcher 主循环退出时按 verdict 给不同 exit code，orchestrator 必须按 exit code 自动决策，**不允许把"是否 retry"问用户**：
 
@@ -936,7 +936,7 @@ Score Trajectory / Review / UI Screenshots(条件) / Delivery / Risks / 结论 9
 ## Executor Selection
 
 > **特殊例外**:本 skill 是 Codex 重委派的**元方法**(把整个长任务派给 Codex Goal),
-> 不适用 `../_shared/executor-selection-template.md` 的"默认不派 / 怎么选执行者"通用判断。
+> 不适用 `references/executor-selection-template.md` 的"默认不派 / 怎么选执行者"通用判断。
 > 该文件 § 5 "例外 skill:flow-codex-goal" 也明示这条豁免。
 
 本 skill 的"什么时候用 codex-goal"路由建议(不是 ROI 判定):
