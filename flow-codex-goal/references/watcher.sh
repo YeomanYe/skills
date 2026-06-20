@@ -324,7 +324,7 @@ handle_milestone() {
   # 3. score-diff（含 highest-score tracking）
   # 严格匹配 mode 行（4 种合法值之一），避免误匹配 yaml 块中其他字段
   local mode
-  mode=$(grep -E "^mode:\s+(threshold|no-improvement-N|regression-prevention|hybrid)" "$TASK_DIR/GOAL.md" 2>/dev/null | head -1 | awk '{print $2}' || echo "regression-prevention")
+  mode=$(grep -E "^mode:[[:space:]]+(threshold|no-improvement-N|regression-prevention|hybrid)" "$TASK_DIR/GOAL.md" 2>/dev/null | head -1 | awk '{print $2}' || echo "regression-prevention")
   local diff_out
   diff_out=$(python3 "$SCRIPT_DIR/score-diff.py" \
     --baseline "$TASK_DIR/BASELINE.md" \
@@ -385,7 +385,7 @@ Reply: continue / pause / abort / adjust: <text>"
 # === v4: Extra Reviewers 通用注册机制 ===
 
 # 解析 GOAL.md 的 extra_reviewers 段，输出 reviewer name 列表（一行一个）
-# 注意：用 [[:space:]] 而非 \s，兼容 BSD awk/sed（macOS）
+# 注意：用 [[:space:]] 而非 [[:space:]]，兼容 BSD awk/sed（macOS）
 #
 # 修复 P0 #3 (2026-05-20)：旧版用 `flag && /^[[:space:]]*-/` 贪婪匹配任何 - 行，
 # 导致 `checks:` 下的嵌套数组项（如 `      - UX`、`      - 信息层级`）也被当成
@@ -542,7 +542,7 @@ arbitrate_reviews() {
     verdicts+=("$v")
 
     local a
-    a=$(grep -oE "Aggregate:\s*[0-9.]+" "$r" 2>/dev/null | head -1 | awk '{print $2}')
+    a=$(grep -oE "Aggregate:[[:space:]]*[0-9.]+" "$r" 2>/dev/null | head -1 | awk '{print $2}')
     [[ -z "$a" ]] && a=0
     aggs+=("$a")
   done

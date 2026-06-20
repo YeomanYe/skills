@@ -37,10 +37,10 @@ reviewer_thread=""
 case "$TYPE" in
   baseline)
     src="$TASK_DIR/BASELINE.md"
-    [[ -f "$src" ]] && reviewer_pid=$(grep -oE 'reviewer_pid:\s*[0-9]+' "$src" | awk '{print $2}' || echo "")
-    [[ -f "$src" ]] && reviewer_thread=$(grep -oE 'reviewer_thread_id:\s*\S+' "$src" | awk '{print $2}' || echo "")
+    [[ -f "$src" ]] && reviewer_pid=$(grep -oE 'reviewer_pid:[[:space:]]*[0-9]+' "$src" | awk '{print $2}' || echo "")
+    [[ -f "$src" ]] && reviewer_thread=$(grep -oE 'reviewer_thread_id:[[:space:]]*[^[:space:]]+' "$src" | awk '{print $2}' || echo "")
     verdict="baseline-recorded"
-    aggregate=$(grep -oE 'Aggregate:\s*[0-9.]+' "$src" | head -1 | awk '{print $2}' || echo "")
+    aggregate=$(grep -oE 'Aggregate:[[:space:]]*[0-9.]+' "$src" | head -1 | awk '{print $2}' || echo "")
     ;;
   mini-review)
     src="$TASK_DIR/scores/${ROUND}.json"
@@ -62,7 +62,7 @@ case "$TYPE" in
     reviewer_worktree_sha=$(awk '/^## Reviewer Metadata/{flag=1;next} /^## /{flag=0} flag && /^- Worktree SHA:/{print $4; exit}' "$src")
     # verdict: case-insensitive
     verdict=$(awk '/^## Verdict/{flag=1;next} /^## /{flag=0} flag && NF>0 {print tolower($1); exit}' "$src")
-    aggregate=$(grep -oE 'Aggregate:\s*[0-9.]+' "$src" | head -1 | awk '{print $2}')
+    aggregate=$(grep -oE 'Aggregate:[[:space:]]*[0-9.]+' "$src" | head -1 | awk '{print $2}')
     ;;
   *)
     echo "ERR: unknown type $TYPE" >&2
@@ -132,7 +132,7 @@ if [[ "$TYPE" == "final-review" ]]; then
       extra_reviewer_name=$(basename "$extra_md" .md)
       extra_verdict=$(awk '/^## Verdict/{flag=1;next} /^## /{flag=0} flag && NF>0 {print tolower($1); exit}' "$extra_md" 2>/dev/null)
       [[ -z "$extra_verdict" ]] && extra_verdict="n/a"
-      # 用 [[:space:]] 替代 \s（BSD 兼容），抓 "Aggregate: X.X" 内联格式
+      # 用 [[:space:]] 替代 [[:space:]]（BSD 兼容），抓 "Aggregate: X.X" 内联格式
       extra_agg=$(grep -oE "Aggregate:[[:space:]]*[0-9.]+" "$extra_md" 2>/dev/null | head -1 | awk '{print $2}' || echo "")
 
       jq -n \

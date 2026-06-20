@@ -368,34 +368,9 @@ director 根据用户输入信号自动选内部路径，**不需要用户先挑
 
 ## N 维 Audit Checklist
 
-按 `references/audit-rubric.md` §2 跑 7 维基线评分。本 skill 1/3/5 锚点重定义(基线之外的领域特化):
+按 `references/audit-rubric.md` §2 跑 7 维基线评分。本 skill 领域特化锚点（1/3/5 重定义）、自定义维度 8-11、红线触发、Aggregate→Verdict 映射详见 [`references/audit-dimensions-architect.md`](references/audit-dimensions-architect.md)。
 
-- 维度 1(基线: scope/探测充分性)→ 本 skill: 1=只看主入口 1 文件 / 3=核心 3-5 文件 / 5=全规则体系扫齐 + 引用 ≥ 10 处 [file:line]
-- 维度 3(基线: 决策证据强度)→ 本 skill: 1=无 [file:line] 引用 / 3=部分有 / 5=每个决策都含具体引用 + 反例
-- 维度 4(基线: 方案可执行性)→ 本 skill: 1=只方向描述 / 3=列文件 / 5=每个 add/modify/delete 含理由 + diff 预览
-- 其余维度沿用基线
-
-### 本 skill 自定义增维度(基线 7 维 + 以下):
-
-- 维度 8 — **联合评估广度**: 1=未调任何 best-practice skill / 3=调 1-2 个 / 5=覆盖目标栈所有相关 skill,有冲突仲裁
-- 维度 9 — **参考项目对齐度**: 1=未对照 mirroring-checklist / 3=部分对照 / 5=完整对照 + 偏离项有明示理由
-- 维度 10 — **与现有规则一致性**: 1=与现规则冲突未识别 / 3=识别但未解决 / 5=识别 + 给出迁移/合并方案
-- 维度 11 — **工程化约束/自动化覆盖度**: 1=只看规则文档,完全没评估门禁机制(hook/lint-staged/发布门禁/聚合 check)与便捷自动化 / 3=点到约束层但没区分"有牙齿 vs 形同虚设"、未对照 stack-checklist 工程化节 / 5=约束(pre-commit/commit-msg/prepublishOnly/聚合 check/依赖分层)与便捷(auto-install)逐条对照目标项目,缺口按四类问题归类 + 判断每条机制对该项目是否真有收益(不照搬 exemplar)
-
-### 本 skill 红线触发(§3 通用之外):
-
-- 维度 3(决策证据)= 1 且关键决策无 [file:line] 引用 → `blocked`
-- 维度 8(联合评估)= 1(完全未调任一 best-practice skill 且未显式标"未覆盖") → `blocked`
-- 维度 10(与现规则一致)= 1 且与现规则有未解决冲突 → `blocked`
-
-### Aggregate → Verdict 映射(本 skill 自命名标签)
-
-| Aggregate | Verdict | 行动 |
-|---|---|---|
-| ≥ 4.5 | `ready-to-land` | 可直接进 Approval Gate → land |
-| 4.0-4.4 | `ready-with-refinement` | should-fix 列清单,用户决定补研究还是直接 land |
-| 3.0-3.9 | `needs-refinement` | must-fix 列清单,Approval Gate 会拦,必须补研究 |
-| < 3.0 | `blocked` | 方案整体不可行,回 Research Phase 从头跑 |
+**红线摘要（任一命中立即 `blocked`）**：维度 3（决策证据）= 1 无引用 / 维度 8（联合评估）= 1 未跑 / 维度 10（与现规则一致）= 1 有冲突未解决。
 
 ## Red Flags / Rationalizations / Common Mistakes / Delivery Check
 
@@ -412,46 +387,11 @@ director 根据用户输入信号自动选内部路径，**不需要用户先挑
 
 ## Parallelization Plan
 
-详见 [`references/parallelization-template.md`](references/parallelization-template.md)（共享）。
-
-本 skill 的并行集合：
-
-| Slot | 任务 | 形态 | 串/并 |
-|---|---|---|---|
-| `stack-detect` | Step 2 读元信息（package.json / Cargo.toml / go.mod 等） | Bash 并行 | 并 |
-| `skill-scan` | Step 3 扫 4-5 个本地 skill 目录 | Bash 并行 | 并 |
-| `rules-read` | Step 1 读本项目规范 + 可选参考项目规范 | Bash 并行（cat / find 同时跑） | 并 |
-| Step 4 联合评估 | 串行（依赖前 3 路全部完成） | — | 串 |
-| Step 6 结构设计 | 串行（依赖 Step 4 + 5 输出） | — | 串 |
-| Step 7-9 落地 | 串行（顺序写文件） | — | 串 |
-
-**Reduce 策略**：方式 3（内存 JSON 汇总）—— 3 路 Bash 输出由本 skill 解析合并成单一
-`evaluation-input.json`，交给 Step 4。
-
-**orchestrator 在 3 路 Bash 派发后短暂 idle**（等待最长一路完成，通常是 clone 参考项目）。
-纯 Bash 并行不需要派 subagent。
-
-**收益**：原 ~10min 串行（含 clone 参考项目）→ ~5min。
-
-参考项目 clone 慢（网络）会拖累，可设 30s 超时；超时则降级为"只评估本项目"分支。
+通用规范见 [`references/parallelization-template.md`](references/parallelization-template.md)（共享）。本 skill 的具体 slot 表（stack-detect / skill-scan / rules-read 三路并行）、Reduce 策略、收益与超时见 [`references/parallelization-architect.md`](references/parallelization-architect.md)。
 
 ## Subagent 派工
 
-派 subagent 时按 `references/dispatcher-template.md` 完整模板填字段。
-
-本 skill 主要**自己跑**联合评估(读匹配到的 best-practice skill 的 description + SKILL.md
-后自己代入判断),通常**不派 subagent**。仅当用户明示"让某个 best-practice skill 真跑一遍
-review"才派,本 skill 特定字段:
-
-- 必须调用的下游 skill: `<best-practice-skill>`(自身默认 mode)
-- 必填扩展字段(在基线 JSON 之上):
-  - `findings`: list[string] — 该 skill 在当前项目上发现的问题
-  - `suggestions`: list[string] — 该 skill 给出的修复建议
-- read_only scope: 项目根 + 现有规则文件清单 + 识别到的技术栈
-- write_to: `.agent/jobs/architect-review-<skill-name>/`
-- 失败处理: `failed_continue_main`(单个 skill 失败不影响其他评估)
-- 超时: 5 分钟
-- **不**直接改文件(落地由本 skill 在 Land Phase 统一做,subagent 仅返回 findings/suggestions)
+本 skill 主要**自己跑**联合评估，通常**不派 subagent**；仅当用户明示"让某个 best-practice skill 真跑一遍 review"才派。派工 prompt **必须显式声明每路 subagent "必须调用 `<best-practice>` skill"**（subagent 默认不会主动 invoke skill）。完整派工模板按 `references/dispatcher-template.md` + 本 skill 特定字段见 [`references/subagent-dispatch-architect.md`](references/subagent-dispatch-architect.md)。
 
 ## Executor Selection
 
@@ -503,32 +443,10 @@ review"才派,本 skill 特定字段:
 
 ### Upstream Handoff Payload（**本 skill 从上游接收的字段**）
 
-按 [`references/handoff-payload-template.md`](references/handoff-payload-template.md)，
-上游 orchestrator 调本 skill 时**必须传**：
+完整字段表（含 `reference_project`、`approval_inherited_from_orchestrator` 等专属字段）见 [`references/handoff-payload-architect.md`](references/handoff-payload-architect.md)。
 
-| 字段 | 必填 | 说明 |
-|---|---|---|
-| `task_id` | ✅ | 任务唯一标识 |
-| `objective` | ✅ | 一句话目标（"梳理规则" / "审规则" / "按 X 项目对齐"） |
-| `risk_class` | ✅ | low / medium / high（high = 涉及主入口 CONTRIBUTING / 跨多个 domain 重构） |
-| `tech_stack` | 推荐 | 项目已识别的技术栈（避免本 skill 重复探测）；**greenfield 且上游未传 → 本 skill 在 Step 2 自做粗粒度主栈选型** |
-| `project_root` | 推荐 | 项目根路径 |
-| `reference_project` | 可选 | 用户指定的参考项目路径或 URL |
-| `prior_context` | 可选 | 上游 Context Harvest 的 git/branch/diff 状态 |
-| `approval_inherited_from_orchestrator` | 可选（bootstrap 专用） | `true` 表示上游编排器（如 `flow-project-bootstrap` Stage 1）已让用户批过总设计，本 skill 在 Approval Gate 处可**自动 yes** 直接进入 Land Phase。**缺失或为 false** → 仍走完整 Approval Gate。**唯一允许跳过 Approval Gate 的开关**。 |
-
-**如果上游已传**：本 skill 不重复探测，直接用。
-**如果上游未传**：本 skill 自己探测（Step 1 + 2）。
+**关键约束**：上游已传的字段本 skill 不重复探测，直接用；未传则 Step 1+2 自探。`approval_inherited_from_orchestrator=true` 是**唯一允许跳过 Approval Gate 的开关**。
 
 ## Reuse
 
-测试用例在 [`tests/cases.md`](tests/cases.md)。
-栈 → 规则域对照清单在 [`references/stack-checklist.md`](references/stack-checklist.md)（含「工程化约束与自动化层」跨栈通用节）。
-工程化约束/自动化层的具象样本在 [`references/exemplars/linwhale-ui.md`](references/exemplars/linwhale-ui.md)。
-skill 匹配规则在 [`references/skill-matching-rules.md`](references/skill-matching-rules.md)。
-Approval Gate 格式在 [`references/approval-format.md`](references/approval-format.md)。
-参考项目镜像检查清单在 [`references/mirroring-checklist.md`](references/mirroring-checklist.md)。
-并行编排规范在 [`references/parallelization-template.md`](references/parallelization-template.md)（共享）。
-handoff payload schema 在 [`references/handoff-payload-template.md`](references/handoff-payload-template.md)（共享）。
-Question Gate 规范在 [`references/question-gate.md`](references/question-gate.md)（共享）。
-director-* 元规范在 [`references/director-template.md`](references/director-template.md)（共享）。
+所有 reference 文件均在 `references/` 目录；正文各步骤已内联指针，此处不重复列举。测试用例见 [`tests/cases.md`](tests/cases.md)。
