@@ -219,4 +219,4 @@ description: >
 - **clean-commit**:单次干净 commit;todo-flow `add` / `adjust` / `revise` / `done` 自带 commit 逻辑,不再调 clean-commit。
 - **flow-dev-task**:单任务 end-to-end(plan → code → test → verify → commit);todo-flow 是多 TODO 流水线编排,粒度更大、状态机更严。
 - **director-architect / director-frontend / director-design**:`exec` 模式 stage3 verified 前按 spec frontmatter 增派做 AND-pass audit;本 skill 不自己做 spec/code/UI review。
-- **experience-summary**:踩坑沉淀路由;本 skill 自己的 Common Failure Modes 写在各 各 mode 的 reference 文件(`mode-init.md` / `mode-add.md` / `mode-adjust.md` / `mode-revise.md` / `mode-exec.md` / `mode-done.md`,均在 `references/` 下),不重复写入错题本。
+- **exp-sum**:踩坑沉淀路由;本 skill 自己的 Common Failure Modes 写在各 各 mode 的 reference 文件(`mode-init.md` / `mode-add.md` / `mode-adjust.md` / `mode-revise.md` / `mode-exec.md` / `mode-done.md`,均在 `references/` 下),不重复写入错题本。

@@ -1,4 +1,4 @@
-# experience-summary 测试用例
+# exp-sum 测试用例
 
 > 用于 skill-behavior-test / skill-integration-test 的回归基线。
 
@@ -23,7 +23,7 @@ Case 24-27 是 v2 新增专项验证(覆盖代表性叙事场景)。
 **Prompt**:
 > 我刚发现我们项目里所有 API 都必须先过 auth 中间件,这次又有同事忘了。这条经验该写到哪?
 
-**预期触发**: experience-summary skill 激活
+**预期触发**: exp-sum skill 激活
 
 **预期流程**:
 - Step 1 锁定经验: "所有 API 必须先过 auth 中间件"(已清晰,无需追问)
@@ -52,7 +52,7 @@ Case 24-27 是 v2 新增专项验证(覆盖代表性叙事场景)。
 **Prompt**:
 > 我踩了个坑想沉淀:CLAUDE.md 在 codex 里不读,要写 AGENTS.md。这次终于搞清楚了。
 
-**预期触发**: experience-summary 激活
+**预期触发**: exp-sum 激活
 
 **预期流程**:
 - Step 1: 经验 = "codex 用 AGENTS.md 不读 CLAUDE.md"
@@ -80,10 +80,10 @@ Case 24-27 是 v2 新增专项验证(覆盖代表性叙事场景)。
 **Prompt**:
 > 帮我修一下 src/utils/parser.ts 里这个 bug
 
-**预期**: experience-summary **不触发**,应该走 `flow-dev-task`(bugfix 链)
+**预期**: exp-sum **不触发**,应该走 `flow-dev-task`(bugfix 链)
 
 **断言**:
-- ❌ experience-summary 不激活
+- ❌ exp-sum 不激活
 - ✅ 路由到 flow-dev-task
 
 ---
@@ -93,10 +93,10 @@ Case 24-27 是 v2 新增专项验证(覆盖代表性叙事场景)。
 **Prompt**:
 > 帮我写一个新 skill,叫 release-checklist
 
-**预期**: experience-summary **不触发**,应该走 `flow-skill-dev`
+**预期**: exp-sum **不触发**,应该走 `flow-skill-dev`
 
 **断言**:
-- ❌ experience-summary 不激活
+- ❌ exp-sum 不激活
 - ✅ 路由到 flow-skill-dev
 
 ---
@@ -338,36 +338,36 @@ Case 24-27 是 v2 新增专项验证(覆盖代表性叙事场景)。
 
 ## 集成测试场景(链路)
 
-### Chain 1: experience-summary → flow-skill-dev
+### Chain 1: exp-sum → flow-skill-dev
 
 **场景**: 经验分诊出口是新 skill。
 
 **断言**:
-- experience-summary 输出的"写作模板"作为 spec 输入给 flow-skill-dev
+- exp-sum 输出的"写作模板"作为 spec 输入给 flow-skill-dev
 - flow-skill-dev 不重复追问已知字段(skill 名 / description / 触发条件)
 - 整条链最终落到 SKILL.md + tests/ + sync
 
-### Chain 2: experience-summary → update-config
+### Chain 2: exp-sum → update-config
 
 **场景**: 经验分诊出口是 hook。
 
 **断言**:
-- experience-summary 输出的"JSON 配置片段"作为 input 给 update-config
+- exp-sum 输出的"JSON 配置片段"作为 input 给 update-config
 - update-config 不破坏 settings.json 其他段
 - hook 真生效(下次触发对应事件时执行)
 
-### Chain 3: experience-summary → sync-skills
+### Chain 3: exp-sum → sync-skills
 
 **场景**: 出口是 constitution / _shared/。
 
 **断言**:
-- experience-summary 提示"跑 sync-shared.sh"
+- exp-sum 提示"跑 sync-shared.sh"
 - sync-skills 走完整链(git push → skillshare pull → sync --force)
 - 12 个目标 skill 的 references/ 都同步更新
 
-### Chain 4: experience-summary 自跑(自指)
+### Chain 4: exp-sum 自跑(自指)
 
-**场景**: 用 experience-summary 分诊 "experience-summary 本身该放哪"。
+**场景**: 用 exp-sum 分诊 "exp-sum 本身该放哪"。
 
 **预期**:
 - 出口 L7(flow-*?) 或 L? — 这是个治理工具,既不是单角色判断也不是多角色编排
@@ -375,7 +375,7 @@ Case 24-27 是 v2 新增专项验证(覆盖代表性叙事场景)。
 
 **断言**:
 - ✅ 不出现死循环
-- ✅ 路由结果是"独立 skill"(已经在 ~/Documents/projects/skills/experience-summary/)
+- ✅ 路由结果是"独立 skill"(已经在 ~/Documents/projects/skills/exp-sum/)
 
 ---
 

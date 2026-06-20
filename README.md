@@ -181,7 +181,7 @@ director-* 现状与扩展：
 | 编排器（flow-*）| flow-codex-goal / flow-cron / flow-dev-task / flow-ext-publish / flow-project-bootstrap / flow-project-finish / flow-skill-dev / flow-skill-research |
 | **角色型 agent（director-*）** | **director-design / director-frontend / director-promote / director-ops / director-architect / director-pm** |
 | 共享工具 | clean-commit / delivery-gate / sync-skills |
-| **经验治理** | **experience-summary**（任务结束后分诊经验到 11 层架构正确出口） |
+| **经验治理** | **exp-sum**（任务结束后分诊经验到 11 层架构正确出口） |
 | **个性切换** | **hat**（任务开始时戴帽:收/散/严/快/挑/教/问 7 种 persona，事后告知） |
 | 设计/视觉 | web-image（出图） / director-design（视觉判断 / mockup） |
 | 前端工程 | director-frontend（合并自原 flow-jsx-ui + jsx-ui-audit + ui-extract） |
@@ -256,7 +256,7 @@ director-* 现状与扩展：
 |---|---|---|---|
 | 反复试错没进展 | `mem`(unblock 分类,原 unblock-recipes) | brainstorming(发散探索)| 错题本 vs 头脑风暴 |
 | 探索性问题 / 需求模糊 | `brainstorming` | huashu-design(设计方向顾问 fallback)| 需求 vs 设计方向 |
-| 任务跑完想沉淀经验 | `experience-summary` | — | 11 层架构分诊 |
+| 任务跑完想沉淀经验 | `exp-sum` | — | 11 层架构分诊 |
 | 切个心态干活 | `hat` | — | 任务开头默认激活 |
 
 ### 决策小抄(实在拿不准)

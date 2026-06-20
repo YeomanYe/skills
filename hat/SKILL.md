@@ -41,7 +41,7 @@ description: >
 - 在任务**进行中**,agent 已经在某个个性下工作(除非用户打断)
 - 用户只想要"快答一个问题",不需要切个性(默认走 `快`)
 - 用户已经显式指定个性,本 skill 不重复推荐
-- **主体 skill 已经被显式调用**(`experience-summary` / `unblock-recipes` / `change-recap` / `meta-skill` 等):hat 不挡主流程,只在最终响应末尾追加告知行(详见下方 Relationship to Other Skills "跟其他 meta 类 skill 的优先级"段)
+- **主体 skill 已经被显式调用**(`exp-sum` / `unblock-recipes` / `change-recap` / `meta-skill` 等):hat 不挡主流程,只在最终响应末尾追加告知行(详见下方 Relationship to Other Skills "跟其他 meta 类 skill 的优先级"段)
 
 ## When NOT to auto-route(避免过度激活)
 
@@ -276,7 +276,7 @@ text block + tool call + tool result)。**告知行只能出现在该 turn 的�
 | "本 skill 没被显式 invoke,这次先不用" | **错**。任何任务开头都该激活;description 已强制 |
 | "响应已经写完才发现漏了,下次补吧" | **不行**。Step 5 Self-Check Q2 当场补;已发出 → 下轮开头 `[戴帽补:...]`,绝不延后 |
 | "戴 `钻` 但找不到 source,先写上等会再补" | **不行**。无 source 的事实断言要么标"无可靠 source 暂存疑",要么删掉 |
-| "experience-summary 在跑,我也要把 hat 告知行夹到分诊报告里" | **不行**。告知行只进**对话响应**,不进 exp-sum / unblock-recipes / change-recap / meta-skill 的结构化产物 |
+| "exp-sum 在跑,我也要把 hat 告知行夹到分诊报告里" | **不行**。告知行只进**对话响应**,不进 exp-sum / unblock-recipes / change-recap / meta-skill 的结构化产物 |
 | "收 ↔ 问 严格度都是 3,我主动提议切一下" | **不行**。横向同级不主动 propose,只在用户显式换帽时切(避免对话频繁出现"要不要换?") |
 | "这条响应特别短(只回一句"好的"),告知行太重了省了吧" | **不行**。"短"不在豁免清单内;豁免只看"用户消息 < 5 字 / 纯执行命令 / 用户显式禁用 / 连续 ≥ 3 条无切换",自己不能扩列 |
 | "用户问的是项目无关问题(闲聊),hat 不适用" | **错**。任何用户对话都过 Step 1;闲聊默认 `快`,照常输出告知行 |
@@ -301,7 +301,7 @@ hat 默认 always-active,但当 user prompt **同时显式触发** 下列"主体
 
 | 主体 skill | 触发信号 | hat 的位置 |
 |---|---|---|
-| `experience-summary` | "这次踩了 X 该写哪 / lesson learned / 经验分诊" 等 | hat 让位,主体由 exp-sum 跑;hat 只在**最终响应末尾**追加告知行 |
+| `exp-sum` | "这次踩了 X 该写哪 / lesson learned / 经验分诊" 等 | hat 让位,主体由 exp-sum 跑;hat 只在**最终响应末尾**追加告知行 |
 | `unblock-recipes` | agent 自检 loop / 卡壳 / "试了 N 次都不行"; 或 user 显式查错题本 | 同上 — hat 让 unblock-recipes 主流程跑,只追加告知行 |
 | `change-recap` | flow-dev-task Stage 8 / "讲一下刚改了啥" | 同上 |
 | `meta-skill`(项目自适应) | 进入新项目目录 / 阶段切换信号 | hat 让位;meta-skill 输出的 manifest 不带 hat 告知行(meta 输出是配置文件,不是对话响应) |

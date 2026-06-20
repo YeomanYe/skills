@@ -17,7 +17,7 @@
 ### 1.2 自动 hook 触发
 
 - 检测到 cwd 切换就跑本 skill
-- experience-summary 上游发"项目阶段切换"信号你接了
+- exp-sum 上游发"项目阶段切换"信号你接了
 - cron / launchd / shell hook 自动触发
 
 → **halt + 报错**。本 skill 仅响应用户手动触发。砍 stage 之后,不存在"项目阶段切换"这个信号。

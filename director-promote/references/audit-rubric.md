@@ -1,12 +1,12 @@
-# Audit Rubric — director-* / experience-summary 通用质量评分规范
+# Audit Rubric — director-* / exp-sum 通用质量评分规范
 
 > 借鉴 ACBDQC Blueprint 强制佐证 + `director-template.md` 第 9 段 verdict 映射规范。
-> 本文件定义 **director-*** 与 **experience-summary** 共用的 N 维 audit 基线:维度、锚点、聚合公式、verdict 映射、报告格式。
+> 本文件定义 **director-*** 与 **exp-sum** 共用的 N 维 audit 基线:维度、锚点、聚合公式、verdict 映射、报告格式。
 > 角色特定锚点 / 角色自定义增维度归各 skill 自己的 SKILL.md。
 
 ## 1. 用途
 
-每个 director-* / experience-summary 在出 verdict 前都要做"N 维质量自审"。原本各 skill 各定义一遍 7-9 维 + 1/3/5 锚点 + 聚合公式 + verdict 映射,**重复 200+ 行**且 verdict 等级语义会漂移。
+每个 director-* / exp-sum 在出 verdict 前都要做"N 维质量自审"。原本各 skill 各定义一遍 7-9 维 + 1/3/5 锚点 + 聚合公式 + verdict 映射,**重复 200+ 行**且 verdict 等级语义会漂移。
 
 本文件统一三件事:
 1. **基线维度集**(7 维,跨角色都有意义)
@@ -91,14 +91,14 @@ verdict 标签的**具体词**由各 skill 自命名。**等级数(4 档)与语�
 
 **佐证字段必须能被人工 review 到原文**——禁止"<证据>""<结论>"等空泛占位符(详见 `references/evidence-discovery.md` §6 AI slop 反检测清单)。
 
-## 6. 与 experience-summary 的关系
+## 6. 与 exp-sum 的关系
 
-experience-summary 主线走 judgment-tree 决策树(Q0 → Q10 第一个 yes 即出口),与本 rubric **不冲突也不替代**。可在以下两种场合复用本 rubric:
+exp-sum 主线走 judgment-tree 决策树(Q0 → Q10 第一个 yes 即出口),与本 rubric **不冲突也不替代**。可在以下两种场合复用本 rubric:
 
 - **判定经验沉淀质量**:把待沉淀经验过一遍 §2 的 7 维,< 3 档直接打回让用户补证据,不污染长期记忆层
 - **元审计**:对已有 director-* 的 audit 结果做"二阶 audit",验证每维评分本身是否符合本 rubric 报告格式
 
-experience-summary 不强制每次都跑 rubric——judgment-tree 是主路径,rubric 是可选复用框架。
+exp-sum 不强制每次都跑 rubric——judgment-tree 是主路径,rubric 是可选复用框架。
 
 ## 7. 各 skill 如何引用本规范
 

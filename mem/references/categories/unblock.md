@@ -91,7 +91,7 @@ tags: [<tag1>]                          # 大类标签(从 INDEX 维护的词典
 
 agent **不能**自助写 unblock。必须经以下入口之一:
 
-1. **experience-summary 分诊**:首次踩坑解决后,走 experience-summary,它判定"跨 agent 跨会话工程经验"路由到 mem unblock,落盘
+1. **exp-sum 分诊**:首次踩坑解决后,走 exp-sum,它判定"跨 agent 跨会话工程经验"路由到 mem unblock,落盘
 2. **用户/orchestrator 显式指定**:用户说"把这条记 mem unblock",orchestrator(flow-dev-task)在 retro 阶段记录
 
 不知道是不是 unblock → 默认写 staging,等升格审。

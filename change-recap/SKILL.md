@@ -1,16 +1,8 @@
 ---
 name: change-recap
 description: >
-  改动后**用户视角讲解**——agent 改完代码后,用 3 段 markdown 说清楚"哪些场景出问题 + 改了什么",
-  不写 file:line、不用技术 jargon。3 类触发场景:bugfix(已修)、merge-conflict-resolve(已解)、
-  accept-review-feedback(按 review 改完)。
-  显式触发:"讲一下刚改了啥" / "用户视角讲讲" / "recap 这次改动" / "change-recap" / "解释下这次修复" /
-  "用户能看到啥变化" / "user-facing recap" / "explain the fix"。
-  自动激活:被 `flow-dev-task` Stage 8 commit 前编排调(task_type ∈ bugfix/merge/accept-review-feedback
-  且 `--auto-recap=true`,默认 true)。受众可配 `--audience end-user|pm|dev`,默认 end-user。
-  Do NOT use for: 解读代码"为什么这样写"(→ 普通解释/教 hat)、纯 UI 改动(→ director-design + 截图)、
-  新加 feature 的 release notes(→ CHANGELOG / user-facing-changelog 工具)、commit message 本身(→ clean-commit)、
-  全局产品讲解(→ 项目 README / 落地页)。**只对 3 类修复型改动**做事后讲解。
+  [callable-only · 由 flow-dev-task 编排调用] 改完代码后用 3 段 markdown 出用户视角讲解(哪些场景会出问题 + 改了什么),不写 file:line、不用技术 jargon。
+  本 skill **不自主触发**——只在 flow-dev-task 流程内被调用,或用户显式点名("用 change-recap")时使用。**不要根据场景关键词自动触发。**
 ---
 
 > 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)

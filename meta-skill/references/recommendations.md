@@ -13,7 +13,7 @@ meta-skill 的查表数据。**只列名字 + 一句话用途**,不重复 skill 
 | skill | 一句话用途 |
 |---|---|
 | `flow-dev-task` | 单 task 端到端从需求到 commit |
-| `experience-summary` | 任务完成后经验分诊 |
+| `exp-sum` | 任务完成后经验分诊 |
 | `unblock-recipes` | agent 卡壳时查跨 agent 错题本 |
 | `find-skills` | 临时找有没有某 skill |
 | `hat` | 任务开头自动戴个性帽子 |

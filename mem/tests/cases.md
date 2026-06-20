@@ -108,14 +108,14 @@
   - vars-registry.md frontmatter hit_count == 1
   - INDEX.md env 段含该变量
 
-### TC-10: lookup 不命中 → 提示走 experience-summary
+### TC-10: lookup 不命中 → 提示走 exp-sum
 
 - **mode**: mock
 - **input**: "Stripe webhook signature mismatch 怎么办"(假设 mem 暂无该 entry)
 - **expected behavior**:
   1. 读 INDEX.md unblock 段
   2. 关键词 "Stripe" / "signature mismatch" 无 ≤3 候选
-  3. 返回 "未命中,建议:(a)检查是否在 staging 错过 (b)首次坑解决后走 experience-summary 分诊"
+  3. 返回 "未命中,建议:(a)检查是否在 staging 错过 (b)首次坑解决后走 exp-sum 分诊"
   4. append access-log op=read, hit=false
 
 ---
@@ -160,11 +160,11 @@
 
 ## 集成测试(skill-integration-test)
 
-### TC-15: experience-summary → mem 分诊 handoff
+### TC-15: exp-sum → mem 分诊 handoff
 
 - **mode**: context
-- **chain**: experience-summary 分诊判定"卡壳→解法" → 调 mem 写入 unblock
-- **handoff payload 验证**: experience-summary 出 `{ category: "unblock", slug, symptoms[], fix, source_context }` → mem 按 categories/unblock.md schema 写盘
+- **chain**: exp-sum 分诊判定"卡壳→解法" → 调 mem 写入 unblock
+- **handoff payload 验证**: exp-sum 出 `{ category: "unblock", slug, symptoms[], fix, source_context }` → mem 按 categories/unblock.md schema 写盘
 - **assertion**: mem 不重复问"这是 unblock 吗"(handoff 已给字段)
 
 ### TC-16: orchestrator(flow-dev-task)死路签名 → mem lookup

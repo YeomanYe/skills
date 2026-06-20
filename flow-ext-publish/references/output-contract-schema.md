@@ -1,6 +1,6 @@
 # Output Contract Schema — 跨 skill 统一 JSON 字段规范
 
-> 本文件定义所有产出报告类 skill(director-* / flow-* / experience-summary /
+> 本文件定义所有产出报告类 skill(director-* / flow-* / exp-sum /
 > change-recap / hat 等)的 **Output Contract 基线 JSON 字段** + **markdown 报告落盘约定**。
 > 当前 16 个 skill 在 SKILL.md 主体内联 30-50 行 markdown 模板的做法已下沉到
 > 各 skill 自己的 `references/output-contract-template.md`,主体只保留对本规范的引用 +
@@ -70,7 +70,7 @@ subagent 派工回报必须把完整 markdown 复述到 stdout。两个真实问
 | `director-promote`(draft/dispatch) | `platforms` / `variants_count` / `dispatch_receipts` |
 | `flow-dev-task` | `executor` / `codex_rounds` / `spec_compliance` / `commit_sha` |
 | `flow-codex-goal` | `score_trajectory` / `highest_tag` / `reviewer_pids` |
-| `experience-summary` | `routing_target` / `layer_assigned` / `one_liner_summary` |
+| `exp-sum` | `routing_target` / `layer_assigned` / `one_liner_summary` |
 | `change-recap` | `audience` / `task_type` / `recap_markdown` / `im_pushed` |
 
 各 skill 的 SKILL.md `## Output Contract` 段**新格式**(≤ 15 行):
@@ -99,7 +99,7 @@ subagent 派工回报必须把完整 markdown 复述到 stdout。两个真实问
   - `director-ops` install nodejs → `.agent/jobs/director-ops-install-nodejs/output.md`
   - `director-design` audit popup → `.agent/jobs/director-design-audit-popup-20260528/output.md`
   - `flow-dev-task` batch3 → `.agent/jobs/flow-dev-task-batch3/output.md`
-  - `experience-summary` triage → `.agent/jobs/exp-sum-<topic-slug>/output.md`
+  - `exp-sum` triage → `.agent/jobs/exp-sum-<topic-slug>/output.md`
   - `flow-codex-goal` long-run → `.agent/jobs/flow-codex-goal-<task-id>/output.md`
 - `.agent/jobs/` 应已加入 `.gitignore`(若调用方项目无此条目,subagent 应在 notes 提醒)
 - 同 task-slug 重跑会**覆盖** output.md(若需历史,自行加日期/序号到 slug)
@@ -177,7 +177,7 @@ subagent 派工回报必须把完整 markdown 复述到 stdout。两个真实问
 
 - 5 个 director-*: director-design / director-frontend / director-promote / director-ops / director-architect
 - 7 个 flow-*: flow-dev-task / flow-codex-goal / flow-project-finish / flow-project-bootstrap / flow-ext-publish / flow-skill-dev / flow-skill-research
-- experience-summary
+- exp-sum
 - change-recap
 - hat
 - todo-flow

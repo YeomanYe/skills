@@ -302,6 +302,6 @@ watchdog 配一次永远在,因为它是 recurring。main + reschedule 由 sched
 
 darwin-huashu 任务(2026-06-03 设计 + 实战):
 - workspace: `~/Documents/projects/skills/.experiment-state/darwin-huashu/`
-- 任务结构表 16 skill(hat / meta-skill / experience-summary / 7 flow-* / 5 director-* + flow-cron)
+- 任务结构表 16 skill(hat / meta-skill / exp-sum / 7 flow-* / 5 director-* + flow-cron)
 - 每 5h 窗口尾巴 burn 1 round
 - 完成预期跨 ~30-60 个工作日,期间不影响用户日常 Claude 使用

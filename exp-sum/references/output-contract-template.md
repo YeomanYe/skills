@@ -1,11 +1,11 @@
-# Output Contract Template —— experience-summary 完整 5 段输出格式
+# Output Contract Template —— exp-sum 完整 5 段输出格式
 
-> 本文件给出 experience-summary Step 5 的完整 5 段固定格式 + 禁用词清单 +
+> 本文件给出 exp-sum Step 5 的完整 5 段固定格式 + 禁用词清单 +
 > handoff 边界说明。主体 SKILL.md 只保留【一句话沉淀】格式硬约束 + 引用本文件。
 
 ## 为什么需要
 
-experience-summary 的核心契约是"分诊结论可直接执行 + 一句话沉淀人类可读"。
+exp-sum 的核心契约是"分诊结论可直接执行 + 一句话沉淀人类可读"。
 原 SKILL.md 内联完整 5 段格式 + 禁用词大表占 ~50 行,主体膨胀。
 本文件保留全部细节,主体只留入口逻辑。
 

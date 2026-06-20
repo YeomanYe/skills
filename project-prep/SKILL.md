@@ -1,14 +1,8 @@
 ---
 name: project-prep
 description: >
-  **Single-stage** project prep before implementation: define the MVP, main interaction
-  design, primary tech stack, and decide whether to add a preview requirement (mock web
-  preview, demo surface, preview route). Trigger on focused asks like "开工前准备",
-  "项目开发前准备", "定 MVP 和技术栈", "要不要加 preview requirement", "need a preview
-  plan before building", or when browser extensions / native apps / embedded surfaces /
-  integration-heavy tools need UI walkthroughs before real-environment testing.
-  For the full kickoff chain (prep + engineering rules + design options), use
-  `flow-project-bootstrap` instead.
+  [callable-only · 由 flow-project-bootstrap 编排调用] 单阶段开工前准备:定 MVP + 主交互设计 + 主技术栈 + 是否加 preview requirement。
+  本 skill **不自主触发**——只在 flow-project-bootstrap 流程内被调用,或用户显式点名("用 project-prep")时使用。**不要根据场景关键词自动触发。**
 ---
 
 # Project Prep

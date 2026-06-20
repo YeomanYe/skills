@@ -1,6 +1,8 @@
 ---
 name: web-image
-description: Use when generating or revising fixed-size web graphics with HTML/CSS, including posters, banners, social cards, OG images, store graphics, screenshot-based promo images, marketing bitmaps, 网页出图, 海报图, 横幅图, 宣传图, 商店素材图. Route special cases like extension store assets or platform-specific dimensions before generic handling.
+description: >
+  [callable-only · 由 director-design / director-promote / director-frontend / frontend-design 编排调用] 用 HTML/CSS 出固定尺寸网页图(海报/banner/social card/OG 图/商店素材/截图类宣传图)。
+  本 skill **不自主触发**——只在 director-* / 设计流程内被调用,或用户显式点名("用 web-image")时使用。**不要根据场景关键词自动触发。**
 ---
 
 # Web Image

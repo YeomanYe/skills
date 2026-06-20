@@ -1,12 +1,8 @@
 ---
 name: ext-preflight
 description: >
-  Use when running a single-shot **pre-flight checklist** before browser extension
-  submission — verify icons, screenshots, manifest, permissions justification, version
-  bump are ready. Triggered by phrases like "上架前检查", "preflight check", "扩展上架检查",
-  "上架自检", "submission readiness check". Do NOT use for the end-to-end publish flow
-  with store upload steps — use `flow-ext-publish` instead. Do NOT trigger for general
-  extension development, code changes, or reviewing extension status.
+  [callable-only · 由 flow-ext-publish 编排调用] 浏览器扩展上架前的一次性 preflight 检查清单:核对图标/截图/manifest/权限说明/版本号等。
+  本 skill **不自主触发**——只在 flow-ext-publish 流程内被调用,或用户显式点名("用 ext-preflight")时使用。**不要根据场景关键词自动触发。**
 ---
 
 ## 这个 Skill 做什么

@@ -1,6 +1,8 @@
 ---
 name: sync-skills
-description: Use when a finished skill should be synced into the central skills directory at `~/Documents/projects/skills/`, supporting either an explicit source path or the current working directory, overwriting existing destinations by default; 当一个 skill 编写完成，需要把它同步到中心 skills 目录 `~/Documents/projects/skills/`；支持显式路径或默认当前工作目录，且默认覆盖已有同名目标。
+description: >
+  [callable-only · 由 flow-skill-dev 编排调用] 把写好的 skill 同步到中心库 `~/Documents/projects/skills/`(支持显式路径或当前目录,默认覆盖同名)。
+  本 skill **不自主触发**——只在 flow-skill-dev 收尾阶段被调用,或用户显式点名("用 sync-skills")时使用。**不要根据场景关键词自动触发。**
 ---
 
 # 将 Skill 同步到中心目录

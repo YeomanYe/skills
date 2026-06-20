@@ -9,10 +9,10 @@ description: >
   记一下 / 暂存 / log this somewhere。
   症状触发(强制): 死路签名(302 / redirect / utm_source / accounts.*/login /
   401 / 403 / Connection reset / ECONNREFUSED) → 选工具前先 lookup mem。
-  上游: experience-summary 分诊 / flow-dev-task / flow-codex-goal 检测 loop 时主动 lookup。
+  上游: exp-sum 分诊 / flow-dev-task / flow-codex-goal 检测 loop 时主动 lookup。
   Do NOT for: 个人偏好(→ auto memory)、跨 skill 价值观(→ constitution)、
   项目规则(→ CLAUDE.md)、可 lint 硬规则(→ skill-doctor)、一次性现象、装/卸软件(→ director-ops)。
-  写入优先经 experience-summary;agent 自助写入只允许 staging。
+  写入优先经 exp-sum;agent 自助写入只允许 staging。
 ---
 
 > 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
@@ -66,9 +66,9 @@ agent 卡壳 / 需查时按序:
 
 ### 写入场景(写入侧)
 
-写入路径**优先入口是 experience-summary 分诊**(分诊后判定走 mem 的具体分类)。
+写入路径**优先入口是 exp-sum 分诊**(分诊后判定走 mem 的具体分类)。
 
-agent **自助写入**只允许写入 `staging/`(不知道归哪类时);写 env / unblock 必须先经 experience-summary 或显式由用户/orchestrator 指定分类。
+agent **自助写入**只允许写入 `staging/`(不知道归哪类时);写 env / unblock 必须先经 exp-sum 或显式由用户/orchestrator 指定分类。
 
 详见下方 [Writing 段](#writing写入流程)。
 
@@ -130,21 +130,21 @@ agent / orchestrator 检测到召回信号后:
    - 真命中 → 按"正确做法"执行 + `last_hit=today` + `hit_count+1`
      - ⚠️ 这笔 bump 必须改在中心源仓库 `~/Documents/projects/skills/mem/`(`sync-skills` 推 GitHub 的单一事实源)并 commit。**禁止**改下游副本(`~/.config/skillshare/skills/...` / `~/.claude/skills/...`),改了会被下次 sync 覆盖丢失。
    - 看似命中实际不是 → 不更新计数,继续 lookup 下一候选
-   - 全 3 条都不命中 → 退出 lookup,回默认调试流程;若解决后是新坑/新事实 → 走 experience-summary 路由考虑入册
+   - 全 3 条都不命中 → 退出 lookup,回默认调试流程;若解决后是新坑/新事实 → 走 exp-sum 路由考虑入册
 7. **append access-log**(无论命中与否,**仅在中心仓库**):
    - `data/access-log.jsonl` 追加一行 JSON,格式见 `references/access-log.md`
 
 ### Writing(写入流程)
 
-**优先入口:experience-summary 分诊**。
+**优先入口:exp-sum 分诊**。
 
-experience-summary 判定"跨会话长期经验 + 跨 agent 通用"后,按记忆类型路由:
+exp-sum 判定"跨会话长期经验 + 跨 agent 通用"后,按记忆类型路由:
 - 工程级环境事实(本机装啥 / 变量在哪) → 调 mem 写入 env 分类
 - 工程级卡壳→解法 → 调 mem 写入 unblock 分类
 - 类别不明确 → 调 mem 写入 staging 分类
 - 个人偏好 → auto memory(不进 mem)
 
-**agent 自助写入**(没经 experience-summary):
+**agent 自助写入**(没经 exp-sum):
 
 只允许写 `staging/`。流程:
 1. 读 `references/routes.md` 自检——确认不该走 env / unblock / auto memory / constitution / 项目 CLAUDE.md
@@ -152,7 +152,7 @@ experience-summary 判定"跨会话长期经验 + 跨 agent 通用"后,按记忆
 3. 更新 INDEX.md(staging 段)
 4. append access-log(`op: "write"`)
 
-**直接写 env / unblock**(skip experience-summary):
+**直接写 env / unblock**(skip exp-sum):
 - 仅允许在以下情况:用户明确指定分类 / orchestrator 持有上下文证据 / mem 自身的迁移操作
 - 写入时必须按 `references/categories/<cat>.md` 的模板和字段约束
 - 更新 INDEX.md(对应分类段)
@@ -195,7 +195,7 @@ mem 不是 orchestrator,**每次 lookup / write 返回的是命中的 entry 内�
 1. **召回时 `ls data/<cat>/` 后全量 `cat`** — 直接炸 token,违反"先读 INDEX"硬规则
 2. **看到死路签名继续原路** — 302 redirect / 401 / 403 / ECONNREFUSED 后自我合理化"登录就行"继续走,跳过 lookup
 3. **改下游副本** — 在 `~/.claude/skills/mem/` 或 `~/.config/skillshare/skills/_*/mem/` 直接编辑(改了等于白改,下次 sync 覆盖)
-4. **agent 自助写 env / unblock** — 没经 experience-summary 也没用户明确指定分类
+4. **agent 自助写 env / unblock** — 没经 exp-sum 也没用户明确指定分类
 5. **跳过 access-log** — 写入或命中不 append,升格阈值统计失效
 6. **把个人偏好写进 mem** — "我喜欢用 pnpm" 这种应该去 auto memory,不进 mem
 7. **把项目级规则写进 mem** — "本项目用 mobx" 这种应该去项目 CLAUDE.md,不进 mem
@@ -205,7 +205,7 @@ mem 不是 orchestrator,**每次 lookup / write 返回的是命中的 entry 内�
 ## Relationship to Other Skills
 
 ### 上游(调用 mem)
-- `experience-summary` — 写入主入口(分诊后调 mem 写对应分类)
+- `exp-sum` — 写入主入口(分诊后调 mem 写对应分类)
 - `flow-dev-task` / `flow-codex-goal` — orchestrator 检测 loop / 死路签名时 lookup
 - `director-architect` 等 — 主动预防性 lookup(进陌生 SaaS 前)
 - 用户直接触发

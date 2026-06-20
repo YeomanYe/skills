@@ -620,12 +620,12 @@
 
 ## Case B 系列:跟主体 skill 优先级(2026-06-03 加)
 
-### Case B1: experience-summary 显式触发时 hat 让位
+### Case B1: exp-sum 显式触发时 hat 让位
 
 - 输入: 用户说"这次踩了个 PgVector 不会自动 fallback 的坑,想沉淀下"
 - 预期:
   - hat 检测到 exp-sum 触发关键词("踩坑"/"沉淀")
-  - **主体由 experience-summary 跑**(L0~L9b 路由),hat 不挡
+  - **主体由 exp-sum 跑**(L0~L9b 路由),hat 不挡
   - exp-sum 输出的分诊报告(markdown / JSON)里**不**夹 hat 告知行
   - hat 告知行只追加在 **agent 给 user 的对话响应**最末尾
   - 告知行: `[戴帽:「严」(strict) — 经验分诊任务,跟 exp-sum 协同]`(或 `教` 视任务调性)

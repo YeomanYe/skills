@@ -1,11 +1,8 @@
 ---
 name: clean-commit
 description: >
-  Use when a task's code changes are ready to be recorded as one clean git commit and
-  you need help selecting relevant files, composing the commit message, and committing
-  safely. 用于一次任务的改动已经收敛、需要整理成一次干净的 git commit 时（挑选相关文件、
-  生成 commit message、安全提交）。触发短语：「提交吧」、「帮我 commit」、「整理提交」、
-  「commit this」、「clean commit」、「把改动提交了」、「git commit 这些」。
+  [callable-only · 由 flow-dev-task / flow-* 编排调用] 把一组改动整理成一个干净的 git commit(选相关文件 + 写 commit message + 提交)。
+  本 skill **不自主触发**——只在 flow 流程的 commit 阶段被调用,或用户显式点名("用 clean-commit")时使用。**不要根据场景关键词自动触发。**
 ---
 
 # Committing Clean Changes

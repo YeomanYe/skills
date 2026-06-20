@@ -162,7 +162,7 @@
 | `director-promote` audit | `挑` |
 | `delivery-gate` | `严` |
 | `flow-skill-dev` Step 1 classify | `问`(让用户讲清楚) |
-| `experience-summary` | `快`(决策本身要快) |
+| `exp-sum` | `快`(决策本身要快) |
 | `flow-dev-task` 主体阶段(plan → code → test → verify) | `严`(2026-05 新增 — 长链路 + 多 verify gate) |
 | `flow-codex-goal` 长跑主体 | `严`(同上) |
 | `clean-commit` / `delivery-gate` 通过后 | `快`(收尾简洁交付) |

@@ -23,8 +23,8 @@
 | `flow-project-bootstrap` | 项目启动多 stage 链(MVP + 规范 + 设计候选) | bootstrap | 上游:user;下游:flow-dev-task / director-architect / director-design |
 | `flow-project-finish` | 项目收尾(doc sync / README / landing / delivery-gate / commit) | finish | 上游:user;下游:director-* / delivery-gate / clean-commit |
 | `flow-ext-publish` | 浏览器扩展上架 e2e | finish | 上游:user / ext-preflight;下游:director-promote(素材)/ store-upload |
-| `flow-skill-dev` | 新建 / 改 skill 完整链 | meta | 上游:user / experience-summary L6/L7;下游:writing-skills / skill-behavior-test / skill-integration-test / sync-skills |
-| `flow-skill-research` | 调研现有 skill 域(搜索 → 筛选 → 推荐 → 装) | meta | 上游:user / experience-summary L?;下游:find-skills / 浏览器 / 安装 |
+| `flow-skill-dev` | 新建 / 改 skill 完整链 | meta | 上游:user / exp-sum L6/L7;下游:writing-skills / skill-behavior-test / skill-integration-test / sync-skills |
+| `flow-skill-research` | 调研现有 skill 域(搜索 → 筛选 → 推荐 → 装) | meta | 上游:user / exp-sum L?;下游:find-skills / 浏览器 / 安装 |
 
 未来候选:`flow-incident-response` / `flow-onboarding` / `flow-migration`。
 

@@ -45,7 +45,7 @@ recommended(stack × type) − globally_active(skillshare 当前 active 集) = d
 - 把单个 skill 同步到中心 → `sync-skills`
 - 用户只问"全局有什么 skill?"(read-only 用 `skillshare list` 即可,不必走本流程)
 - 用户说"我自己手动配" → 直接 halt,不要推断
-- **不允许任何自动 hook 触发**(cwd 切换、experience-summary 上游、cron 都不行)
+- **不允许任何自动 hook 触发**(cwd 切换、exp-sum 上游、cron 都不行)
 
 ## Architectural Principles
 
@@ -362,7 +362,7 @@ refresh 也走 6.4(prepare.sh):模板没变 → skip;模板版本升级了 → �
 任一命中必须立刻停下不能合理化继续:
 
 1. 用户没说 apply,你已经动了文件
-2. 自动 hook(experience-summary / cron / cwd 切换)触发了本 skill
+2. 自动 hook(exp-sum / cron / cwd 切换)触发了本 skill
 3. 改了 `~/.config/skillshare/config.yaml` 或 `~/.claude/skills/` 母目录任何文件
 4. 输出了 stage 字段(`bootstrap/dev/debug/finish`)— **本版本无 stage 概念**
 5. 输出了 disable / keep 字段 — **本版本只 enable 增量,不 disable**
@@ -391,7 +391,7 @@ CLAUDE.md / AGENTS.md 共享同一 sentinel 格式(便于解析、便于 diff):
 
 ### 全局已可用
 - `flow-dev-task` — 单 task 端到端从需求到 commit
-- `experience-summary` — 任务完成后经验分诊
+- `exp-sum` — 任务完成后经验分诊
 - ...
 
 ### 项目级补充(symlink 到 .claude/skills/ 等)
@@ -418,7 +418,7 @@ total: 12 = global 7 + project 5
 ### Upstream(触发本 skill 的)
 
 - **只有用户手动触发**(显式说 `meta-skill` 或触发短语)
-- **没有任何自动 hook**(不订阅 experience-summary / 不订阅 cwd 切换 / 不订阅 cron)
+- **没有任何自动 hook**(不订阅 exp-sum / 不订阅 cwd 切换 / 不订阅 cron)
 
 ### Downstream(本 skill 调用的)
 
@@ -435,7 +435,7 @@ total: 12 = global 7 + project 5
 
 - ❌ `flow-skill-dev`(新建 / 改 skill)
 - ❌ `sync-skills`(把改完的 skill 推中心)
-- ❌ `experience-summary`(分诊新经验)
+- ❌ `exp-sum`(分诊新经验)
 
 ## Reuse
 

@@ -1,6 +1,6 @@
 # Failure Modes —— Red Flags & Rationalizations
 
-> experience-summary 调用过程中容易踩的坑 + 容易给自己找的台阶。
+> exp-sum 调用过程中容易踩的坑 + 容易给自己找的台阶。
 > 主体 SKILL.md 不再展开,只在 Red Flags / Rationalizations 段引用本文件。
 
 ## Red Flags — 命中任一**停止并修正**
@@ -29,14 +29,14 @@
 | "constitution 改起来麻烦,塞 CLAUDE.md 算了" | 跨 skill 通用约束放 CLAUDE.md = 其他 skill 看不到 |
 | "用户说'记住这个',就直接写 auto memory" | 检查 Q1-Q8,是不是其实是 constitution/CLAUDE.md 级;Q9 内先判 9a(mem unblock 分类),不是个人偏好不要 default memory |
 | "卡壳-解法也是个人经验,丢 memory 就行" | memory 是 per-user 不跨 agent,通用解法该进 mem(unblock 分类)让任何 agent 受益 |
-| "mem 不就是错题本嘛,直接 add 一条" | 写入入口唯一是 experience-summary Q9a 分诊,不允许绕过(防止 catalog 垃圾化) |
+| "mem 不就是错题本嘛,直接 add 一条" | 写入入口唯一是 exp-sum Q9a 分诊,不允许绕过(防止 catalog 垃圾化) |
 | "叙事行带点技术词更精准" | 叙事行是给人类一眼可读,带技术词 = 失去这层价值;技术细节进【分诊结论/推荐位置】段 |
 | "只触发一次的 director-* 改动也要走 flow-skill-dev?" | substantial-update 才走;只改文案/错别字直接 Edit。判定见 flow-skill-dev When NOT to Use |
 
 ## 上移信号(命中任一 → 触发 Step 4 上移检查清单)
 
 1. **用户口头明示**: "又是这条"、"这已经第 N 次了"、"老问题"
-2. **本对话计数**: 在**当前对话**里,experience-summary 已经第 ≥ 2 次推荐**同一个出口位置**
+2. **本对话计数**: 在**当前对话**里,exp-sum 已经第 ≥ 2 次推荐**同一个出口位置**
    (例如:连续两次都路由到同一个 director-* skill 的同一份 reference 文件)
 3. **跨 director 信号**: 当前出口是 director-* L6,但描述里还提到"在另一个领域也遇到过类似"
    → 触发 Q1 重判
@@ -51,7 +51,7 @@
 
 ## 上移检查清单(命中信号时,本 skill 必须输出)
 
-- ☐ 当前对话 experience-summary 调用次数: <N>
+- ☐ 当前对话 exp-sum 调用次数: <N>
 - ☐ 出口分布: <list>
 - ☐ 建议上移目标层: <L?>
 - ☐ 上移路径草稿: <新位置的写法>

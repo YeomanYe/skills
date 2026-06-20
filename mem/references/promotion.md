@@ -104,7 +104,7 @@ mem 不跑定时任务。升格建议在以下时机出现:
 
 1. **每次 lookup 报告**:若本次 lookup 涉及的 entry 命中升格条件,在返回的 `promotion_suggestions` 字段列出
 2. **用户显式触发**:"扫一下 mem staging 看有没有要升格的" / "promote mem entries"
-3. **orchestrator(experience-summary)分诊后**:写入完成时顺便扫一下当前分类是否有升格信号
+3. **orchestrator(exp-sum)分诊后**:写入完成时顺便扫一下当前分类是否有升格信号
 
 定期全量扫描(cron)不是 mem 的责任——用户可挂 `cc-connect cron` 跑周扫描,扫到的建议汇报给用户。
 

@@ -1,6 +1,8 @@
 ---
 name: delivery-gate
-description: Use when a task is about to be claimed complete and you need a project-agnostic pre-delivery review gate that (1) reviews code quality beyond lint/build, (2) judges whether Playwright screenshots or recordings are required, (3) routes back to writing-plans on must-fix findings or onward to verification-before-completion, and (4) optionally pushes the captured visual evidence back to the IM channel that originated the session (Feishu/Telegram/Discord/WeChat/QQ), falling back to gif when the IM channel does not accept video. 用于任务完成前的通用交付审查闸门：做超出 lint/build/test 的项目专属审查、按规则判定 Playwright 截图与录屏要求、按结果回流 writing-plans 或继续 verification-before-completion，并在来源为 IM 通道（飞书/Telegram/Discord/WeChat/QQ）时回传截图和视频，视频不支持时降级为 gif。
+description: >
+  [callable-only · 由 flow-dev-task / flow-project-finish 编排调用] 任务完成前的通用交付审查闸门:做超出 lint/build/test 的项目专属审查、判定截图/录屏要求、按结果回流 writing-plans 或继续 verification,可回传视觉证据到来源 IM 通道。
+  本 skill **不自主触发**——只在 flow 流程的交付前阶段被调用,或用户显式点名("用 delivery-gate")时使用。**不要根据场景关键词自动触发。**
 ---
 
 # 通用交付闸门

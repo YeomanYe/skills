@@ -32,10 +32,10 @@
 
 ### RF-4: agent 自助写 env / unblock
 
-**症状**: agent 没经 experience-summary 分诊,直接在 `data/env/` 或 `data/unblock/` 创建文件。
+**症状**: agent 没经 exp-sum 分诊,直接在 `data/env/` 或 `data/unblock/` 创建文件。
 
 **正解**: agent 自助写入**只允许写 staging**。写 env / unblock 必须:
-- 经 experience-summary 分诊判定路由
+- 经 exp-sum 分诊判定路由
 - 或用户/orchestrator 显式指定分类
 
 否则一律落 staging,等升格审。

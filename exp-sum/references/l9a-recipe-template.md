@@ -1,12 +1,12 @@
 # L9a Recipe Template —— mem unblock 分类写作骨架(原 unblock-recipes)
 
-> experience-summary 判断树命中 Q9a(跨 agent 卡壳-解法) 时,按本模板输出可直接 copy-paste 到
+> exp-sum 判断树命中 Q9a(跨 agent 卡壳-解法) 时,按本模板输出可直接 copy-paste 到
 > `~/Documents/projects/skills/mem/data/unblock/<slug>.md` 的骨架。
 > 主体 SKILL.md 不再内嵌完整骨架,避免主文件膨胀。
 
 ## 何时使用
 
-experience-summary 路由到 L9a 时:
+exp-sum 路由到 L9a 时:
 - 用户/agent 把本骨架填值后落盘到 `mem/data/unblock/<slug>.md`(2026-06-12 起,原 `unblock-recipes/recipes/` 路径已迁入 mem)
 - **必须同步更新** `mem/INDEX.md (unblock 段)` 两处(见末段"INDEX 同步硬约束")
 
@@ -61,7 +61,7 @@ tags: [<tag1>]                            # 至少 1 个,选自 mem/INDEX.md (un
 3. **正确做法**: ≤80 字 / ≤5 行,必须带具体命令 / 代码 / 配置(空话 = 召回时无法直接执行)
 4. **出处**: 首次发现日期 + 场景(项目名 / skill 名),用于后续 hit_count 累计
 
-## INDEX 同步硬约束(experience-summary 输出时必须同步提示用户)
+## INDEX 同步硬约束(exp-sum 输出时必须同步提示用户)
 
 落盘 recipe 文件**还不算入册**,必须同步更新 `mem/INDEX.md (unblock 段)` 两处:
 
