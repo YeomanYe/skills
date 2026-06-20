@@ -414,50 +414,7 @@ fi
 
 #### Step 1.1：启动 Goal Codex（按 RUN_MODE 分支）
 
-##### CLI-YOLO 模式
-```bash
-cd "$WORKTREE"
-codex --dangerously-bypass-approvals-and-sandbox --cd "$WORKTREE" &
-echo $! > .agent/tasks/$TASK_ID/codex.pid
-
-# orchestrator 通过 expect/script 输入：
-# /goal Read .agent/tasks/<TASK_ID>/GOAL.md, follow PLAN.md, update STATUS.md
-#       after every milestone (write 'MILESTONE: <name>' line), verify per
-#       EVAL.md, stop when GOAL_DONE or stop conditions hit.
-```
-
-##### TMUX-YOLO 模式（Claude→Codex 派任务场景首选）
-
-启动前必须先按 `references/tmux-yolo-runtime.md` §3.2 跑 stale scan，然后：
-
-```bash
-SESSION="codex-job-$TASK_ID"
-tmux new-session -d -s "$SESSION" \
-  "cd '$WORKTREE' && codex --dangerously-bypass-approvals-and-sandbox --cd '$WORKTREE'"
-tmux pipe-pane -o -t "$SESSION" "cat >> .agent/tasks/$TASK_ID/codex-full.log"   # §2.3
-echo "$SESSION" > .agent/tasks/$TASK_ID/tmux.session
-
-# 投喂 /goal（marker 协议 §1.1）：phase 结束必须独立行 emit
-#   '# PHASE-<N>-DONE @ <ISO-UTC>' 或 '# PHASE-<N>-ABORTED @ <ts> reason: <stop-id>'
-tmux send-keys -t "$SESSION" "/goal Read .agent/tasks/$TASK_ID/GOAL.md, follow PLAN.md, update STATUS.md after every milestone. Emit '# PHASE-<N>-DONE @ <ISO-UTC>' on its own line at the end of each phase (NOT inside code blocks); emit '# PHASE-<N>-ABORTED @ <ts> reason: <stop-id>' instead if a stop condition fires. Verify per EVAL.md, stop when GOAL_DONE or stop conditions hit." Enter
-
-# watcher 通过 capture-pane | strip_tmux_artifacts | grep marker 判断进度（§1.2 / §2.2）
-```
-
-3 项协议（marker / ANSI strip / cleanup）+ tmux 持久性细节见 **`references/tmux-yolo-runtime.md`**。
-
-##### CLI-EXEC 模式（每个 Phase 单次启动）
-```bash
-codex exec --skip-git-repo-check --cd "$WORKTREE" < references/goal-prompt.md
-# 默认共用 goal-prompt.md;若需按 Phase 拆分,自行创建 phase-specific prompt 文件
-# 跑完即退；watcher 检测 STATUS.md MILESTONE 后再派下一 Phase
-```
-
-##### SUBAGENT 模式（orchestrator 派子代理）
-```python
-# orchestrator 用 Agent(subagent_type=codex-rescue, prompt=...) 派一次一 Phase
-# 不需要 codex.pid（orchestrator 持引用）
-```
+按 Step 0.0 探测的 `RUN_MODE` 启动 Goal Codex。**4 模式（CLI-YOLO / TMUX-YOLO / CLI-EXEC / SUBAGENT）的完整启动命令** + 投喂方式见 `references/run-mode.md`；TMUX-YOLO 的 stale scan / `# PHASE-N-DONE` marker 协议 / ANSI strip / pipe-pane 日志 / cleanup 见 `references/tmux-yolo-runtime.md`。
 
 **关键约束**：
 - **必须** `--dangerously-bypass-approvals-and-sandbox`（用户明确要求 codex 跑真实 host 环境，否则 pnpm install / keychain / dev server 都不可用）
@@ -517,20 +474,7 @@ score-diff + snapshot / UI 截图即时 cc-connect 推送 / B 方案 wake cron �
 
 #### Step 1.4：orchestrator idle 模型
 
-orchestrator 启动 watcher 后**进入 idle**。只有以下事件唤醒：
-
-| 唤醒源 | 触发条件 | orchestrator 动作 |
-|---|---|---|
-| **人类 ping** | "现在咋样" / "我加个规则" / "暂停下" | 读 STATUS.md / scores/aggregate-trend.json / latest REVIEW.md，总结回复 |
-| **final review 完成** | watcher touch `.agent/tasks/<id>/.review-pending` | 读 REVIEW.md，做仲裁判断（详见 Step 2.4），决定 commit / 退回 Goal / 终止 |
-| **stop signal** | watcher touch `.agent/tasks/<id>/.stop-signal` | 读 STOPPED 原因，决定 abort 或 rescope |
-| **human approve/reject IM** | 关键词触发 | 落 APPROVAL.md / 终止 |
-
-**禁止**：
-- orchestrator 周期 poll IM（这是 watcher 的活）
-- orchestrator 自跑 mini-review（这是 watcher 的活）
-- orchestrator 周期检查 git diff（这是 boundary-watch 的活）
-- orchestrator idle 期间不允许并发跑其他任务（idle 不等于离线，得能秒响应人类）
+orchestrator 启动 watcher 后**进入 idle**，只在被唤醒时动手。完整唤醒源 / 标准动作 / 禁止清单 / exit-code 映射见下方 **`## Orchestrator Idle Model`** 段。
 
 ---
 
@@ -756,25 +700,7 @@ review-prompt.md 已写禁读名单。**额外强化**：
 - mini-review prompt 反复强调 "score on 1-5 scale, do NOT rescale to 1-10"
 
 ### 审计留证
-每次 review 启动 + 完成都写 `review-audit/round-N.jsonl`：
-```json
-{
-  "round": N, "ts": "...",
-  "reviewer_pid": 12345, "reviewer_thread_id": "...",
-  "reviewer_launch_cmd": "codex exec --cd /path/review-readonly-rN",
-  "reviewer_worktree_sha": "<commit>",
-  "goal_md_sha": "<file content sha>",
-  "verdict": "fail|pass",
-  "scores": {...},
-  "must_fix": [...], "should_fix": [...],
-  "new_rules_proposed": [...],
-  "orchestrator_arbitration": {
-    "must_fix_accepted": [0, 2],
-    "must_fix_overridden": [1],
-    "override_reasons": ["sanitize.ts in GOAL.md Non-goals"]
-  }
-}
-```
+每次 review（baseline / mini-review / final）启动 + 完成都写一行 JSONL 到 `review-audit/round-N.jsonl`，含独立性证据（`reviewer_pid` / `reviewer_thread_id` / `reviewer_worktree_sha` ≠ goal/orchestrator）+ verdict + scores + `orchestrator_arbitration`。**完整字段 schema 见 `references/review-audit-schema.md`**。
 
 ---
 
