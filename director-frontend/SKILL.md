@@ -210,56 +210,7 @@ mode 判定 + Step 1 探测完成后,进入执行前必经 Q gate。详见 `refe
 
 ### handoff mode
 
-`handoff` mode 的产物 = 工程可用 UI spec:
-
-```md
-# Frontend Handoff: <task-id>
-
-## 组件目标
-<组件名 + 一句话用途>
-
-## 组件层级
-<primitive / shared / business / page-local>
-
-## 文件位置
-<absolute path>
-
-## props API
-- <name>: <type> — <说明>
-
-## 状态边界
-- 受控/非受控:
-- 内部状态: <list>
-
-## 样式约定
-- 用 <Tailwind/CSS Modules/cva>
-- variant 设计: <description>
-
-## 依赖
-- 项目内: <list>
-- 外部: <list,需明示理由>
-
-## 交互状态
-- normal / hover / focus / disabled / loading / empty / error 各自处理
-
-## 验收点
-- 必须保留的交互:
-- 必须保留的视觉:
-- 必须不破坏的导入路径:
-
-## 不要做什么
-- ...
-```
-
-写盘路径:`.agent/frontend-handoff/<task-id>/spec.md`,同时把路径回传给 orchestrator。
-
-**Deep 段(thinking guide)**:**模拟后端 / plugin 工程师只读这份 spec 不看代码,问"能否照着
-独立实现且与本仓库现有 UI 风格无缝衔接"**。spec 缺一字段就会被反复来回追问。
-
-**handoff 出口**(不调用,只交付):
-- `frontend-design` plugin — 实际写代码(若本 skill 选择不自写,handoff 给它)
-- `delivery-gate` — 交付前总审查
-- `director-design` — 视觉复审
+`handoff` mode 的产物 = 工程可用 UI spec(组件目标 / 层级 / 文件位置 / props API / 状态边界 / 样式约定 / 依赖 / 交互状态 / 验收点 / 不要做什么)。**完整字段模板 + thinking guide + handoff 出口见 `references/handoff-spec-template.md`**。写盘 `.agent/frontend-handoff/<task-id>/spec.md` 并回传路径给 orchestrator。
 
 ## 9 维 Frontend Audit Checklist
 
@@ -287,22 +238,9 @@ mode 判定 + Step 1 探测完成后,进入执行前必经 Q gate。详见 `refe
 
 除 9 维外,有 6 条对组件代码本身的硬性约束(null 组件 / Fragment-only / 命名前缀 / 业务组件位置 / props 爆炸 / 绕过样式工具)。详见 `references/failure-modes.md`「组件写法红线」段。implement / audit mode 都必须检查。
 
-## Boundary Discovery 简述(详见 references/boundary-discovery.md)
+## Boundary Discovery 简述
 
-从最内侧可交互/视觉焦点向外扩张,直到找到最近的完整 UI 边界。
-
-焦点来源:
-- 交互元素:`input` / `button` / `select` / `tab` / `dialog trigger`
-- 状态元素:错误信息 / loading / active / selected / expanded / disabled
-- 视觉焦点:图标 / 数字 / 标题 / 价格 / 图片 / 徽章
-
-每次向外检查:**视觉边界 / 交互边界 / 状态边界 / 语义边界 / 布局边界**。
-
-**停止扩张条件**:再向外会引入另一个独立焦点区 / 只剩布局容器 / 混入页面叙事或营销文案 /
-让 props 变成万能配置器 / 把多个变化原因绑同一组件 / 组件名变模糊
-(`FlexibleSection` / `MarketingBlock` / `CustomCard`)。
-
-完整规则见 `references/boundary-discovery.md`。
+从最内侧可交互/视觉焦点向外扩张,每次检查**视觉 / 交互 / 状态 / 语义 / 布局**五类边界,直到找到最近的完整 UI 边界;再向外会引入另一独立焦点区 / 只剩布局容器 / 混入营销文案 / props 变万能配置器 / 组件名变模糊时停止。**焦点来源清单 + 停止条件全集 + 组件层级归类信号见 `references/boundary-discovery.md`**(extract / boundaries mode 必读)。
 
 ## 组件层级 4 层(extract / boundaries mode 必用)
 
@@ -320,21 +258,7 @@ mode 判定 + Step 1 探测完成后,进入执行前必经 Q gate。详见 `refe
 
 ## External Reference 选择(implement mode 用,仅本地规范不足时)
 
-选择规则(原 jsx-ui-audit Step 4):
-
-- **API 设计** 优先参考 antd
-  - 参考点:命名一致性、受控/非受控边界、状态命名、组合关系、事件回调命名
-- **样式组织** 优先参考 shadcn/ui
-  - 参考点:Tailwind 下的组件拆分、variant 设计、slot/primitive 包装、样式与语义分层
-- **交互与可访问性** 优先参考 radix
-  - 参考点:交互状态建模、触发器/内容区关系、键盘行为、ARIA 边界
-
-**不要照抄目录结构、props 名称或实现细节**。参考的是模式,不是复制。
-
-详细 fallback 内容见:
-- `references/api-design-fallbacks.md`
-- `references/style-fallbacks.md`
-- `references/project-convention-checklist.md`
+本地规范不足时,**参考模式不照抄**:API 设计→antd、样式组织→shadcn/ui、交互与 a11y→radix。各自参考点 + 详细 fallback 见 `references/api-design-fallbacks.md`、`references/style-fallbacks.md`、`references/project-convention-checklist.md`。
 
 ## Parallelization Plan
 
