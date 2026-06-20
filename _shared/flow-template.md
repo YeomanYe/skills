@@ -14,6 +14,10 @@
 | **角色型** | `director-<role>` | 一个虚拟专家:**专业判断 + 自己干活 + 调度同领域工具** | director-design / director-frontend / director-promote / director-ops / director-architect |
 | **工具型** | `<tool>` | 单一能力,被 director-* 或 flow-* 调用 | clean-commit / web-image / delivery-gate |
 
+### Trigger 分层(自动触发 vs 显式点名)
+
+**只有 3 个常用 flow-* 自动触发**:`flow-dev-task` / `flow-skill-dev` / `flow-skill-research`。其余 flow-* 是**非常用顶层工作流**,降级为 **explicit-only**——description 带 `[explicit-only · 显式点名才触发]` + "不要根据场景关键词自动触发",只在用户显式点名("用 flow-X")时进入,不靠场景关键词抢触发。工具型叶子 skill 同理降级为 `[callable-only · 由 X 编排调用]`。由 skill-doctor `no-auto-trigger` 规则强制(缺该句报 warn)。新建 flow-* 默认 explicit-only,除非它是高频用户入口。
+
 ## 2. 当前 7 个 flow-* 现状(2026-06 快照)
 
 | Skill | 主任务 | 主体 stage | 典型上下游 |

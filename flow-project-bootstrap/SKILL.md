@@ -1,6 +1,8 @@
 ---
 name: flow-project-bootstrap
-description: Use when a user wants the **full multi-stage** project kickoff chain combining project prep, engineering rules, and design options together. Trigger on requests like "bootstrap this project", "项目初始化", "帮我定 MVP 和规范和设计", "从需求到 kickoff", "完整启动新项目", or any ask that combines MVP scoping, main interaction design, preview requirement decisions, engineering setup, and design direction. For only single-stage prep (MVP + tech stack alone), use `project-prep`. For only engineering rules, use `director-architect`. For only design, use `frontend-design` / `huashu-design`.
+description: >
+  [explicit-only · 显式点名才触发,无自动路由] 项目启动多 stage 链:MVP 定义 + 主交互设计 + preview 决策 + 工程规范 + 设计方向候选。
+  本 skill 是完整工作流入口,但**不自动触发**——只在用户显式点名("用 flow-project-bootstrap"/"完整启动新项目")时进入。**不要根据场景关键词自动触发。**
 ---
 
 > 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)

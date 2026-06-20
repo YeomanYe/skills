@@ -1,14 +1,8 @@
 ---
 name: flow-ext-publish
 description: >
-  Use for the **end-to-end** browser extension submission flow (preflight check + asset
-  preparation + store upload) to Chrome Web Store / Firefox AMO / Edge Add-ons.
-  Trigger on phrases like "上架扩展", "发布扩展", "提交到商店", "准备上架", "帮我上架",
-  "submit extension", "publish extension", "上架到 Chrome Store", "Chrome Web Store
-  隐私政策链接被拒", "CWS 重提审". Especially when assets (icons, screenshots, promo
-  tiles, descriptions, permissions justifications, version bumps) need to be discovered,
-  composed, confirmed, and submitted per each platform's rules.
-  For a single-shot readiness check without uploading, use `ext-preflight` instead.
+  [explicit-only · 显式点名才触发,无自动路由] 浏览器扩展上架 e2e:preflight 检查 + 素材准备 + 各商店(Chrome/Edge/Firefox)提交。
+  本 skill 是完整工作流入口,但**不自动触发**——只在用户显式点名("用 flow-ext-publish"/"扩展上架")时进入。**不要根据场景关键词自动触发。**
 ---
 
 > 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)

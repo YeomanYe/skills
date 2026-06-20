@@ -1,15 +1,8 @@
 ---
 name: flow-cron
 description: >
-  Use when a task is too long to fit in a single agent context window and must
-  be sliced across multiple wake-ups gated by budget / deadline. 编排"创建带 STATUS 文件
-  的长跑任务 + 配 cron 定时唤醒 + 每次唤醒按 budget+deadline gate 判停 + 任务全完后
-  自删 cron + 通知 user"全套。
-  显式触发:"长跑任务" / "跨数小时分批跑" / "额度不够分时执行" / "cron 唤醒续作" /
-  "5h budget gate" / "deadline 自停" / "halt + resume" / "把任务挂着自己跑" /
-  "schedule wake up" / "long-running task with budget gating" / "incremental work via cron"。
-  Do NOT use for:一次性 cron 提醒(直接 cc-connect cron add)/ 不需要续作业的纯定时
-  任务 / 跨设备分布式编排 / 实时回调 / 短任务(< 1 个 context window 能完)。
+  [explicit-only · 显式点名才触发,无自动路由] 长跑任务定时续作业编排:落 STATUS 文件 + 配 cron 定时唤醒 + 每次唤醒按 budget/deadline gate 判停 + 任务全完自删 cron + 通知 user。
+  本 skill 是完整工作流入口,但**不自动触发**——只在用户显式点名("用 flow-cron"/"挂 cron 跑")时进入。**不要根据场景关键词自动触发。**
 ---
 
 > 本 skill 受 `../_shared/constitution.md` 约束(always-follow,身份 / 安全 / 高风险动作 gate)

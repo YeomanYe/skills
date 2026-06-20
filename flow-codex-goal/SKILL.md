@@ -1,16 +1,8 @@
 ---
 name: flow-codex-goal
 description: >
-  Use when an orchestrator agent (Claude / Codex / any other) needs to drive a
-  long-horizon Codex task end-to-end with acceptance criteria, hard-isolated
-  Reviewer Codex, per-round snapshot + max-score rollback, mandatory UI evidence
-  pushed to IM, and an idle orchestrator so the human can interrupt anytime.
-  Trigger phrases: "用 codex goal 跑这个长任务", "让 codex 后台跑", "无人值守长跑",
-  "use codex goal mode", "long-horizon agent task", "background codex execution",
-  "ralph loop", "codex 循环改造", "let codex run for hours". 用户明示 "用
-  codex-goal" 时尊重判断,短任务也进入(仅一次性告知代价)。Do NOT use(自动路由时)
-  for short tasks (→ flow-dev-task), exploratory work without acceptance criteria
-  (→ brainstorming), or executor-style tasks (→ flow-dev-task).
+  [explicit-only · 显式点名才触发,无自动路由] 无人值守长跑 Codex:契约门(人类签字)+ 硬隔离 Reviewer Codex + 每轮 snapshot + 最高分回退 + UI 证据推 IM + idle orchestrator(人类随时打断)。
+  本 skill 是完整工作流入口,但**不自动触发**——只在用户显式点名("用 codex-goal"/"用 flow-codex-goal"/"无人值守长跑")时进入。**不要根据场景关键词自动触发。**
 type: workflow
 ---
 
