@@ -52,7 +52,7 @@
 | 12 | `## Evidence Discovery`(如出报告 / 决策证据)| 推荐 | 引用 `_shared/evidence-discovery.md`;明示证据采集步骤 |
 | 13 | `## Executor Selection` | ✅ | 引用 `_shared/executor-selection-template.md`(2026-06 改版:默认自写 / 大体量样板派便宜档 subagent / Codex 重委派降级为可选;各 flow-* 不再自定义 ROI 表)|
 | 14 | `## Red Flags + Rationalizations` | ✅ | 段名严格一致 ;详细清单下沉 `references/failure-modes.md` |
-| 15 | `## Relationship to Other Skills` | ✅ | Upstream / Downstream / 并列 skill / 跟 meta 类 skill (hat / exp-sum / unblock-recipes / meta-skill) 优先级 |
+| 15 | `## Relationship to Other Skills` | ✅ | Upstream / Downstream / 并列 skill / 跟 meta 类 skill (hat / exp-sum / mem / meta-skill) 优先级 |
 | 16 | `## Reuse` | ✅ | references/ + tests/ + agents/(如有) 列表 |
 
 可选段(大 skill 加,小 skill 不强求):

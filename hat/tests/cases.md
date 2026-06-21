@@ -630,13 +630,13 @@
   - hat 告知行只追加在 **agent 给 user 的对话响应**最末尾
   - 告知行: `[戴帽:「严」(strict) — 经验分诊任务,跟 exp-sum 协同]`(或 `教` 视任务调性)
 
-### Case B2: unblock-recipes 自召时 hat 让位
+### Case B2: mem(unblock 分类)自召时 hat 让位
 
-- 输入: agent 自检 "同样错误已 3 次" loop 信号触发 unblock-recipes lookup
+- 输入: agent 自检 "同样错误已 3 次" loop 信号触发 mem unblock 分类 lookup
 - 预期:
-  - hat 检测到 unblock-recipes 主体接管
-  - 主体由 unblock-recipes 跑(查错题本)
-  - unblock-recipes 返回 recipe 时 hat 不写入 recipe 文件
+  - hat 检测到 mem 主体接管
+  - 主体由 mem 跑(查错题本)
+  - mem 返回 recipe 时 hat 不写入 recipe 文件
   - hat 告知行只追加在 agent 最终回 user 的对话响应
 
 ### Case B3: 横向同级不主动 propose 换帽

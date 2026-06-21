@@ -11,7 +11,7 @@
 **输入**:
 - cwd = `~/Documents/projects/tab-shelf`(React 18 + wxt 扩展项目)
 - 用户:"配下这个项目要哪些 skill"
-- 假设 globally_active = `{flow-dev-task, exp-sum, hat, unblock-recipes, find-skills, agent-browser}`
+- 假设 globally_active = `{flow-dev-task, exp-sum, hat, mem, find-skills, agent-browser}`
 
 **期望**:
 - meta-skill 触发

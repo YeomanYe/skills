@@ -87,7 +87,7 @@ question_gate_target_skills=(
   director-pm
 )
 
-# constitution.md 给所有 director-* + flow-* + experience-summary + hat + unblock-recipes + mem (16 skill 顶层契约)
+# constitution.md 给所有 director-* + flow-* + exp-sum + hat + mem (16 skill 顶层契约)
 constitution_target_skills=(
   director-design
   director-frontend
@@ -102,14 +102,13 @@ constitution_target_skills=(
   flow-project-finish
   flow-skill-dev
   flow-skill-research
-  experience-summary
+  exp-sum
   hat
-  unblock-recipes
-  change-recap
   mem
+  change-recap
 )
 
-# audit-rubric.md 给 6 director-* + experience-summary (7 维质量评分共用)
+# audit-rubric.md 给 6 director-* + exp-sum (7 维质量评分共用)
 audit_rubric_target_skills=(
   director-design
   director-frontend
@@ -117,7 +116,7 @@ audit_rubric_target_skills=(
   director-ops
   director-architect
   director-pm
-  experience-summary
+  exp-sum
 )
 
 # output-contract-schema.md 给所有输出报告类 skill (16 个,含 director-* / flow-* / 单体 skill)
@@ -135,7 +134,7 @@ output_contract_schema_target_skills=(
   flow-ext-publish
   flow-skill-dev
   flow-skill-research
-  experience-summary
+  exp-sum
   change-recap
   hat
   todo-flow
@@ -157,7 +156,7 @@ dispatcher_template_target_skills=(
   director-ops
   director-architect
   director-pm
-  experience-summary
+  exp-sum
   change-recap
 )
 
