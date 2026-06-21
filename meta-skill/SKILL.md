@@ -1,14 +1,12 @@
 ---
 name: meta-skill
 description: >
-  Use when user wants project-level skill overlay — picks recommended skills for the detected
-  stack/type, computes delta against what's already global, symlinks the delta into the
-  project's agent-native dirs (.claude/skills, .codex/skills, .agents/skills) and updates a
-  sentinel block in CLAUDE.md / AGENTS.md. Apply requires explicit user confirmation; refresh
-  is manual.
-  自动激活信号:用户说"配下这个项目的 skill" / "项目要哪些 skill" / "看下这个项目需要装什么 skill"。
-  显式触发:"meta-skill" / "meta-skill refresh" / "重新评估这个项目要哪些 skill" /
-  "configure skills for this project" / "刷一下项目 skill"。
+  [explicit-only · 用户显式点名才触发] 给项目配置项目级 skill overlay —— 检测技术栈/类型后挑选推荐
+  skill、算出相对全局已有 skill 的 delta、symlink 进项目 agent-native 目录(.claude/skills /
+  .codex/skills / .agents/skills)并更新 CLAUDE.md / AGENTS.md 的 sentinel block。apply 需用户
+  显式确认;refresh 人手触发。本 skill **不自主触发**——只在用户显式点名("meta-skill" /
+  "meta-skill refresh" / "配下这个项目的 skill" / "configure skills for this project")时使用。
+  **不要根据场景关键词自动触发。**
   Do NOT use for: 改全局 skill 配置(~/.config/skillshare/)/ 改其他项目的配置 /
   新建 skill(那是 flow-skill-dev)/ 同步到中心库(sync-skills)/ 自动 hook 触发(必须人手)。
 ---

@@ -1,14 +1,13 @@
 ---
 name: todo-flow
 description: >
-  TODO Flow 流水线(TODO → spec → dev → done)人手触发端点(human-facing endpoints)。
+  [explicit-only · 用户显式点名才触发] TODO Flow 流水线(TODO → spec → dev → done)人手触发端点。
   6 模式:`init`(项目接入 / onboard) / `add`(加带 slug 的 TODO) / `adjust`(调整未起 spec 的 TODO 顺序与 hints) /
   `revise`(给已 verify 的 spec 写返工指令 + status → needs-rework) /
   `exec`(前台 orchestrator 自闭环跑 stage1→2→3 直到 verified/blocked) /
   `done`(审 ready spec + squash merge + semver bump + CHANGELOG;旧名 review-merge)。
-  触发短语:「todo-flow <mode>」/「初始化 todo-flow」/「加 TODO」/「调整 todo 顺序」/「修订 spec」/
-  「批量执行 todo」/「自动循环 stage 直到 verified」/「done 这个 todo」/
-  「setup todo-flow / add todo / reorder / revise spec / auto-loop until verified」;
+  本 skill **不自主触发**——只在用户显式点名("todo-flow <mode>" / "用 todo-flow")时使用。
+  **不要根据场景关键词自动触发。**
   兼容旧名:「todo-driver <mode>」/「review-merge」。
   Do NOT use for: 改/删 slug、不带 slug 的备忘、通用 PR review(→ requesting-code-review)、
   stage 1/2/3 cron prompt 本身、长跑无验收标准的 codex 后台任务(→ flow-codex-goal)。
