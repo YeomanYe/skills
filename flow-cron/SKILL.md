@@ -305,6 +305,7 @@ agent 被 cron 唤醒后,**只做这 4 步**,不超出范围:
 
 **默认参数**(均可改):
 - schedule:`50 5 * * 1-5`(工作日)+ `sleep $(( (RANDOM%40+1)*60 ))` → 05:51–06:30 随机错峰
+- **`--timeout-mins 50` 必带**:cc-connect cron 默认超时 30min,而 sleep 上限 40min,随机睡过 30min 会被超时杀掉、`hi` 没跑到、窗口没撞开(静默间歇必现)。规则:`--timeout-mins` ≥ sleep 上限 + 冷启动余量
 - 1 agent 1 cron(Claude / Codex 各一条,各自独立窗口,别合并)
 - 绝对路径调 CLI(cron 的 PATH 不含 `~/.local/bin`,裸 `claude` 会 127)
 

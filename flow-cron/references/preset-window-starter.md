@@ -86,19 +86,40 @@ sleep $(( (RANDOM % 40 + 1) * 60 )); \
 ## cron 配置(cc-connect 场景)
 
 ```bash
-cc-connect cron add --cron "50 5 * * 1-5" \
+cc-connect cron add --cron "50 5 * * 1-5" --timeout-mins 50 \
   --desc "claude-5h-window-starter (random 5:51-6:30)" \
   --exec '<上面 Claude 命令单行>'
 
-cc-connect cron add --cron "50 5 * * 1-5" \
+cc-connect cron add --cron "50 5 * * 1-5" --timeout-mins 50 \
   --desc "codex-5h-window-starter (random 5:51-6:30)" \
   --exec '<上面 Codex 命令单行>'
 ```
 
+- **`--timeout-mins 50` 必带,别吃默认**:cc-connect cron 不带 `--timeout-mins` 时默认
+  **30 分钟**超时,而 exec 里 `sleep` 上限是 **40 分钟**(`RANDOM%40+1`)。随机值落在
+  31–40 分钟时,job 会在 sleep 还没睡完就被 30 分钟超时**杀掉**,`claude/codex "hi"`
+  **根本没执行到** → 窗口没撞开,只在 `last_error` 留一句 `job timed out after 30m0s`
+  (**静默失败、间歇必现**,约 1/4 概率)。`--timeout-mins 50` = sleep 上限 40min +
+  冷启动余量 → 彻底盖住。详见下方「Robustness」。
 - schedule `50 5 * * 1-5`:工作日 05:50 触发,叠加 `sleep $(( (RANDOM%40+1)*60 ))`
   → 实际 05:51–06:30 随机落点(错峰、避免每天同一秒撞 API)。
 - 两个 agent 各一条 cron,**1 任务 1 cron**(别合并,各自独立窗口)。
-- `cc-connect cron` 无 `edit`,改命令 = `cron del <id>` + `cron add` 重建。
+- 改已存在的 job 用 `cc-connect cron edit <id> <field> <value>`(如
+  `cc-connect cron edit <id> timeout_mins 50`);`cron info <id> [field]` 可单独查
+  `last_run` / `last_error` / `timeout_mins`,诊断是否撞了超时。
+
+## Robustness — sleep 上限必须 < job 超时(硬不变式)
+
+**不变式**:`exec` 里 `sleep` 的**上限**必须 **< 该 cron job 的超时**(`--timeout-mins`,
+不设则默认 **30min**)。睡过超时的那部分,job 必被杀,后面的命令执行不到。
+
+- 本预设 sleep 上限 = `RANDOM%40+1` = **40min** → `--timeout-mins` 必须 **≥ 40 + 冷启动余量**,取 **50**。
+- 反向也可:不抬超时,就把 sleep 上限收敛到远小于超时(如 `RANDOM%20+1` = 20min 配默认 30min)。
+  但那会压缩错峰窗口(→ 05:51–06:10),错峰变弱 —— 故本预设选"抬超时"而非"压 sleep"。
+- 症状签名:`cc-connect cron info <id>` 看到 `last_error: "job timed out after 30m0s"`
+  且 `last_run` ≈ 启动时刻 + 超时分钟数 → 就是踩了这个坑,**不是命令本身错**。
+- 通用教训:**任何 exec 带长 sleep / 长阻塞的 cron,建命令时就把 `--timeout-mins` 设到
+  覆盖最坏阻塞 + 余量**,别依赖默认 30min。
 
 ## 设计要点回顾(为什么这么裁)
 
@@ -120,4 +141,5 @@ cc-connect cron add --cron "50 5 * * 1-5" \
 
 ## 实战
 
-`~/.cc-connect/crons/jobs.json` — claude `b3d1f56d` / codex `718383d8`(2026-06-19 落地 + 官方文档核对)。
+`~/.cc-connect/crons/jobs.json` — claude `b3d1f56d` / codex `718383d8`(2026-06-19 落地 + 官方文档核对;
+2026-06-23 修复:两个实例 `timeout_mins` 从默认 30 → 50,堵住 `sleep>30min` 必超时漏洞,起因是某早 starter 静默未撞开窗口)。
