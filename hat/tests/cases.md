@@ -650,11 +650,11 @@
 
 ### Case B4: 主体 skill 产物里不夹告知行
 
-- 输入: 跑 change-recap 输出 3 段 markdown 给 user
+- 输入: 跑 microscope 输出 3 段 markdown 给 user
 - 预期:
-  - change-recap 的 3 段 markdown **里**不含 `[戴帽:...]`
+  - microscope 的 3 段 markdown **里**不含 `[戴帽:...]`
   - 告知行**只**在 agent 给 user 的最终响应外层(若适用)
-  - 反例: change-recap 第 3 段末尾被自动加 `[戴帽:「快」(lean)]` → 违反
+  - 反例: microscope 第 3 段末尾被自动加 `[戴帽:「快」(lean)]` → 违反
 
 ---
 

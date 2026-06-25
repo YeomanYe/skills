@@ -105,7 +105,7 @@ constitution_target_skills=(
   exp-sum
   hat
   mem
-  change-recap
+  microscope
 )
 
 # audit-rubric.md 给 6 director-* + exp-sum (7 维质量评分共用)
@@ -135,7 +135,7 @@ output_contract_schema_target_skills=(
   flow-skill-dev
   flow-skill-research
   exp-sum
-  change-recap
+  microscope
   hat
   todo-flow
 )
@@ -157,7 +157,7 @@ dispatcher_template_target_skills=(
   director-architect
   director-pm
   exp-sum
-  change-recap
+  microscope
 )
 
 drift_count=0

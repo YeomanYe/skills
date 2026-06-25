@@ -33,9 +33,9 @@
 ### 交付
 - verification-before-completion: pass | fail + reason
 - delivery-gate: pass | fail + must-fix list
-- change-recap: done | skipped (reason: feature 链默认跳 / --auto-recap=false / generation failed) | n/a
-- change-recap audience: end-user | pm | dev | n/a
-- change-recap im_pushed: pushed | skipped (no CC_SESSION_KEY) | failed | n/a
+- microscope: done | skipped (reason: feature 链默认跳 / --auto-recap=false / generation failed) | n/a
+- microscope audience: end-user | pm | dev | n/a
+- microscope im_pushed: pushed | skipped (no CC_SESSION_KEY) | failed | n/a
 - Commit SHA:
 - Push status: pushed | skipped | failed | n/a
 - Branch handling: merged | PR | cleanup | no-op

@@ -1,7 +1,7 @@
 # Output Contract Schema — 跨 skill 统一 JSON 字段规范
 
 > 本文件定义所有产出报告类 skill(director-* / flow-* / exp-sum /
-> change-recap / hat 等)的 **Output Contract 基线 JSON 字段** + **markdown 报告落盘约定**。
+> microscope / hat 等)的 **Output Contract 基线 JSON 字段** + **markdown 报告落盘约定**。
 > 当前 16 个 skill 在 SKILL.md 主体内联 30-50 行 markdown 模板的做法已下沉到
 > 各 skill 自己的 `references/output-contract-template.md`,主体只保留对本规范的引用 +
 > 自定义字段声明。
@@ -71,7 +71,7 @@ subagent 派工回报必须把完整 markdown 复述到 stdout。两个真实问
 | `flow-dev-task` | `executor` / `codex_rounds` / `spec_compliance` / `commit_sha` |
 | `flow-codex-goal` | `score_trajectory` / `highest_tag` / `reviewer_pids` |
 | `exp-sum` | `routing_target` / `layer_assigned` / `one_liner_summary` |
-| `change-recap` | `audience` / `task_type` / `recap_markdown` / `im_pushed` |
+| `microscope`(recap 模式) | `mode` / `audience` / `task_type` / `recap_markdown` / `im_pushed` |
 
 各 skill 的 SKILL.md `## Output Contract` 段**新格式**(≤ 15 行):
 
@@ -178,7 +178,7 @@ subagent 派工回报必须把完整 markdown 复述到 stdout。两个真实问
 - 5 个 director-*: director-design / director-frontend / director-promote / director-ops / director-architect
 - 7 个 flow-*: flow-dev-task / flow-codex-goal / flow-project-finish / flow-project-bootstrap / flow-ext-publish / flow-skill-dev / flow-skill-research
 - exp-sum
-- change-recap
+- microscope
 - hat
 - todo-flow
 

@@ -62,7 +62,7 @@ description: >
 
 根据用户初始 prompt 判定分支：
 
-| 关键词 | 分支 | task_type(给 change-recap 用) |
+| 关键词 | 分支 | task_type(给 microscope 用) |
 |---|---|---|
 | bug / 报错 / 错了 / 不对 / fix / 修 / 故障 / 挂了 / 异常 / broken | **修复链** | `bugfix` |
 | 实现 / 做一个 / 加一个 / 新功能 / 需求 / feature / build / ship | **功能链** | `feature` |
@@ -70,7 +70,7 @@ description: >
 | 按 reviewer / 处理 review 意见 / must-fix / 改 review / address feedback / 改 review 反馈 | **修复链** | **`accept-review-feedback`** |
 | 同时命中 / 完全模糊 | 停下追问**一句**："这是修现有 bug 还是做新功能？" | — |
 
-判定结果固定分支,后续流程不再切换。**`task_type` 在 Stage 7.5 Auto-Recap Rule 使用,决定是否调 change-recap**。
+判定结果固定分支,后续流程不再切换。**`task_type` 在 Stage 7.5 Auto-Recap Rule 使用,决定是否调 microscope**。
 
 ## Context Harvest（减问的关键，**并行 Bash 执行**）
 
@@ -123,7 +123,7 @@ description: >
 | **5.5** UI Audit | `git diff` 含 `.tsx/.vue/.svelte/.css/.scss/.html` 等 → 派 subagent 调 `director-design`（mode=audit）。`needs-redesign` → 回 Stage 5；`pass-with-fixes` → must-fix 进 Stage 6 清单 | UI bug（视觉错位 / 交互失效 / 响应式）修完后同上派 audit，确认修复有效 |
 | **6** Verification | 调 `superpowers:verification-before-completion`。**Codex 派工后此 Stage 由 Claude 亲跑**，不信 Codex 自报 | 同左，且**必须真跑 repro test 验证 fix**，不能"我觉得修好了" |
 | **7** delivery-gate | PASS → 推进；must-fix → 回 Stage 2 / Stage 5，**禁止**直接 Stage 8 | 同左 |
-| **7.5** change-recap pre-hook | 默认**跳过**（task_type=feature，新功能走 CHANGELOG 更合适），`--auto-recap=true` 强开 | **默认调**（bugfix / merge-resolve / accept-review-feedback），除非 `--auto-recap=false`。3 段讲解 + 推 IM（IM 会话）+ 拼 commit body |
+| **7.5** microscope pre-hook | 默认**跳过**（task_type=feature，新功能走 CHANGELOG 更合适），`--auto-recap=true` 强开 | **默认调**（bugfix / merge-resolve / accept-review-feedback），除非 `--auto-recap=false`。3 段讲解 + 推 IM（IM 会话）+ 拼 commit body |
 | **8** clean-commit | IM 会话下自动 push（无需额外处理） | 同左 |
 | **9** finishing-a-development-branch | 条件跳过（Finishing-a-Development-Branch Rule） | 同左 |
 | **Output** | Flow Dev Task Report（schema → `references/output-contract-template.md`） | 同左 |
@@ -141,11 +141,11 @@ description: >
 
 ### Auto-Recap Rule(Stage 7.5 pre-hook)
 
-**触发**: Stage 7 delivery-gate PASS 后,Stage 8 clean-commit **之前**,按下面表决定要不要调 `change-recap`:
+**触发**: Stage 7 delivery-gate PASS 后,Stage 8 clean-commit **之前**,按下面表决定要不要调 `microscope`:
 
 | task_type | `--auto-recap` 默认 | 行为 |
 |---|---|---|
-| `bugfix`(修复链) | **true** | 调 change-recap,生成 3 段用户视角讲解 + 推 IM(若 IM 会话) |
+| `bugfix`(修复链) | **true** | 调 microscope,生成 3 段用户视角讲解 + 推 IM(若 IM 会话) |
 | `merge-resolve`(刚解完合并冲突) | **true** | 同上 |
 | `accept-review-feedback`(按 delivery-gate / reviewer must-fix 改完) | **true** | 同上 |
 | `feature`(功能链) | **false** | 默认不调(新功能用 CHANGELOG / release notes 更合适);用户可 `--auto-recap=true` 强开 |
@@ -153,12 +153,12 @@ description: >
 
 **CLI 参数**:
 - `--auto-recap=true|false`(覆盖默认)
-- `--audience end-user|pm|dev`(默认 `end-user`,透传给 change-recap)
+- `--audience end-user|pm|dev`(默认 `end-user`,透传给 microscope)
 - `--no-im`(若不想推 IM,只生成本地 markdown 拼 commit body)
 
-**Fallback**:change-recap 生成失败(LLM 错 / token 超 / cc-connect IM 推失败)→ flow-dev-task **不阻断** Stage 8,跳过钩子继续走 commit,但在 Final Report `errors[]` 标记 `change-recap failed: <reason>`。
+**Fallback**:microscope 生成失败(LLM 错 / token 超 / cc-connect IM 推失败)→ flow-dev-task **不阻断** Stage 8,跳过钩子继续走 commit,但在 Final Report `errors[]` 标记 `microscope failed: <reason>`。
 
-**clean-commit 纯净**:本 pre-hook 在 flow-dev-task **内部**实现,**不** require clean-commit 调 change-recap(clean-commit 保持单一职责)。
+**clean-commit 纯净**:本 pre-hook 在 flow-dev-task **内部**实现,**不** require clean-commit 调 microscope(clean-commit 保持单一职责)。
 
 ### TDD Skip Whitelist
 
@@ -285,7 +285,7 @@ subagent 返回 JSON（`verdict` / `aggregate` / `must_fix` / `artifact_path`）
   - `superpowers:using-git-worktrees`
   - `superpowers:dispatching-parallel-agents` / `subagent-driven-development` / `executing-plans`
   - `superpowers:verification-before-completion` / `finishing-a-development-branch`
-  - `delivery-gate` / `change-recap`(Stage 7.5 pre-hook,bugfix/merge/accept-review 默认调) / `clean-commit`
+  - `delivery-gate` / `microscope`(Stage 7.5 pre-hook,bugfix/merge/accept-review 默认调) / `clean-commit`
 - **下游（仅 Claude 自写路径调用）**：
   - `superpowers:test-driven-development`
   - **Codex 派工路径不调此 skill**，TDD 方法改由 SPEC 强制 + git commit 顺序检查

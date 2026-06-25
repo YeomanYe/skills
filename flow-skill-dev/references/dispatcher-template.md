@@ -1,6 +1,6 @@
 # Dispatcher Template — 派 subagent 调下游 skill 的 prompt 通用模板
 
-> 所有 orchestrator / dispatcher 类 skill(flow-* / director-* / todo-flow / exp-sum / change-recap)
+> 所有 orchestrator / dispatcher 类 skill(flow-* / director-* / todo-flow / exp-sum / microscope)
 > 派 subagent 时,prompt **字段集 + 行为约束**统一遵循本模板。各 skill 自身只写"差异部分"。
 
 ## 用途
@@ -235,7 +235,7 @@ Constraints:
 - **todo-flow**(exec 模式重度派工)
 - **director-* 角色**:director-design / director-frontend / director-promote /
   director-ops / director-architect(5 个全员)
-- **辅助 orchestrator**:exp-sum / change-recap
+- **辅助 orchestrator**:exp-sum / microscope
 
 各 SKILL.md 引用路径用 `references/dispatcher-template.md`(同级相对),不要写
 `_shared/dispatcher-template.md`(skillshare 同步后 `_shared/` 不在目标环境)。
