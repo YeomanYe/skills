@@ -73,3 +73,29 @@
 - 前置: `CC_SESSION_KEY=feishu:...`，Step 5 commit 因 pre-commit hook 失败
 - 目标: 验证 push 不会在 commit 未成功时执行
 - 预期: 输出 `push_status=n/a`，原因写明"commit not completed"
+
+## 触发测试（2026-06-27 新增：放开被动/自动唤起）
+
+### Case 14: 纯提交意图 → 应自动触发（正例）
+
+- 输入: "把这些改动提交了" / "提交一下当前改动" / "帮我 commit" / "整理成一个干净的提交" / "commit these changes" / "make a clean commit"
+- 目标: 验证去掉 callable-only 后，未显式点名、不在 flow 编排里也能被动唤起
+- 预期: 命中 clean-commit（不再要求"用 clean-commit"显式点名）
+
+### Case 15: 完整开发任务 → 不应抢触发（反例，护栏）
+
+- 输入: "实现一个登录功能并提交" / "修一下这个 bug 然后提交" / "从 0 做到提交" / "ship this feature"
+- 目标: 验证含"实现/修 bug 从头到尾"的完整开发请求路由到 flow-dev-task，而非被 clean-commit 截胡
+- 预期: 不命中 clean-commit（应走 flow-dev-task；clean-commit 仅在其 commit 阶段被调用）
+
+### Case 16: PR / 分支 / 合并 → 不应触发（反例，护栏）
+
+- 输入: "开个 PR" / "把这个分支 merge 到 main" / "rebase 一下" / "删掉这个分支"
+- 目标: 验证超出"单次干净提交"职责的 git 流程不触发本 skill
+- 预期: 不命中 clean-commit（PR/merge/rebase/删分支/worktree 清理在 Do NOT 边界）
+
+### Case 17: 被 flow 编排调用（兼容回归）
+
+- 前置: flow-dev-task / flow-* 在 commit 阶段调用
+- 目标: 验证放开自动触发后，仍可被编排显式调用，行为不变
+- 预期: 正常进入提交流程，输出契约不变

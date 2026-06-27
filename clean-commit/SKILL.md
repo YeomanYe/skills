@@ -1,8 +1,11 @@
 ---
 name: clean-commit
 description: >
-  [callable-only · 由 flow-dev-task / flow-* 编排调用] 把一组改动整理成一个干净的 git commit(选相关文件 + 写 commit message + 提交)。
-  本 skill **不自主触发**——只在 flow 流程的 commit 阶段被调用,或用户显式点名("用 clean-commit")时使用。**不要根据场景关键词自动触发。**
+  把一组改动整理成一个干净的 git commit(收敛相关文件 + 写 commit message + 一次提交;IM 会话 commit 后自动 push)。
+  当用户想把当前改动提交、且不需要完整开发流程时自动触发——"提交一下 / 把这些改动提交了 / 帮我 commit / 整理成一个干净的提交 / 生成 commit message 并提交 / 提交当前改动 /
+  commit this / commit these changes / make a clean commit / write a commit message and commit / 用 clean-commit"。
+  也可被 flow-dev-task / flow-* 编排在 commit 阶段调用。
+  Do NOT use for: 完整开发任务——句子主语是"实现某功能 / 修某 bug"的(即便带"并提交 / 然后提交")属从头到尾的开发,走 flow-dev-task,由其在 commit 阶段调用本 skill,而非直接触发本 skill;PR / merge / rebase / 删分支 / worktree 清理;改动边界仍在变化未定型时;无明确要求却要拆成多个 commit 时。
 ---
 
 # Committing Clean Changes
