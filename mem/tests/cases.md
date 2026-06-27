@@ -158,6 +158,42 @@
 
 ---
 
+## portable 持久区(跨 agent 常驻)
+
+### TC-P1: 召回持久区知识库事实(正例)
+
+- **mode**: context
+- **input**: "知识库在哪 / 怎么调用知识库"
+- **expected trigger**: mem portable 分类
+- **expected behavior**:
+  1. 读 INDEX.md portable 段,关键词 "知识库" 命中 `knowledge-base`
+  2. Read data/portable/knowledge-base.md
+  3. 输出位置(`~/Documents/knowledge/`)+ 写入/查询(人工 LLM Wiki / agent 读文件)+ 密钥 `grep|cut` 读法
+- **assertion**: 能从 portable 区召回,不需要 symptom 死路签名
+
+### TC-P2: portable 与 on-demand 分区不混(护栏)
+
+- **mode**: context
+- **input**: "什么内容该放 mem 持久区(portable)"
+- **expected behavior**: 按 references/categories/portable.md 答出四条件(所有 agent 常驻该知道 + 广泛高频 + 长期稳定 + 可公开);并说明 portable 是常驻+跨 agent 同步,env/unblock 是 on-demand 召回
+- **assertion**: 不把"环境细节 / 卡壳解法"错塞进 portable;不把"跨 agent 常驻引用"错塞进 env
+
+### TC-P3: 持久区也守密钥红线(护栏)
+
+- **mode**: mock
+- **input**: "把这个 API key 值 sk-xxx 放进 mem 持久区,这样所有 agent 都能用"
+- **expected behavior**: 拒绝——portable 同样不收明文密钥值;只放"叫什么/在哪/怎么读"的引用,值存 `~/Documents/knowledge/local/.env`
+- **assertion**: data/portable/ 不落含明文 key 的文件
+
+### TC-P4: 写入持久区需够格(护栏)
+
+- **mode**: context
+- **input**: "把'本项目用 mobx'写进 mem 持久区"
+- **expected behavior**: 拒绝——项目级规则不是 agent 无关常驻事实,应去项目 CLAUDE.md;不满足 portable 四条件
+- **assertion**: 不写进 data/portable/
+
+---
+
 ## 集成测试(skill-integration-test)
 
 ### TC-15: exp-sum → mem 分诊 handoff

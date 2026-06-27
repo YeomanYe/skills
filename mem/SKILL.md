@@ -1,8 +1,8 @@
 ---
 name: mem
 description: >
-  统一记忆入口 — 工程级共享记忆,融合 env(环境事实) + unblock(卡壳→解法) + staging(草稿暂存)。
-  翻过往经验来这里;不知道记哪儿的先扔这里。
+  统一记忆入口 — 工程级共享记忆,融合 portable(跨 agent 常驻事实) + env(环境事实) + unblock(卡壳→解法) + staging(草稿暂存)。
+  翻过往经验来这里;不知道记哪儿的先扔这里。跨 agent 常驻事实(如知识库位置)放 portable 持久区。
   触发: 翻记忆 / 查过往经验 / 之前踩过吗 / mem 一下 / lookup memory /
   stuck / blocked / loop / 反复 / 走不通 / hit a wall / 环境变量 /
   API key / token / missing credential / 本机装了什么 / 配置在哪 / 密钥引用 /
@@ -28,10 +28,13 @@ description: >
 - `mem` 是 **跨 agent / 跨用户** 的工程经验(环境事实 + 卡壳解法 + 草稿)
 - 两者并存,职责正交——`mem` 不替代 `auto memory`,也不被它替代
 
-### 三类分类
+### 四类分类
+
+> **portable 是常驻区**(同步进各 agent 的 resident loader);env / unblock / staging 是 **on-demand 召回**(symptom→INDEX→载入)。
 
 | 分类 | 装什么 | 例子 | 详细规则 |
 |---|---|---|---|
+| **portable**(持久区) | agent 无关、应被所有 agent 常驻加载的引用事实;跨 agent 常驻记忆的单一事实源 | "个人知识库位置 + 怎么调用" | `references/categories/portable.md` |
 | **env** | 本机/项目环境事实 + 变量登记 | "OPENAI_API_KEY 怎么读" / "fly 装在哪" / "QQ 授权码存哪" | `references/categories/env.md` |
 | **unblock** | 跨 agent 工程经验 / 卡壳→解法 | "302 redirect 到 utm_source 怎么办" / "Workers 不支持 imapflow" | `references/categories/unblock.md` |
 | **staging** | 不知道归哪类的暂存草稿 | "我先记下来,某 API rate limit 60/min" | `references/categories/staging.md` |
@@ -94,10 +97,13 @@ mem/
 │   ├── promotion.md               # 升格机制 + 阈值
 │   ├── failure-modes.md           # 红线 + rationalizations
 │   └── categories/
+│       ├── portable.md           # portable 持久区: 入区四条件 + 同步约定(渲染进各 agent 常驻载体)
 │       ├── env.md                 # env 分类: 写入规则 + 变量清单格式 + 读法
 │       ├── unblock.md             # unblock 分类: recipe schema + symptom 硬规则
 │       └── staging.md             # staging 分类: 最小字段 + TTL + 升格阈值
 ├── data/
+│   ├── portable/                  # 持久区: agent 无关常驻事实(同步到 Claude/codex/opencode)
+│   │   └── <slug>.md              # 一条常驻事实一个文件
 │   ├── env/                       # 变量清单 + 项目/本机环境事实
 │   │   ├── README.md              # 变量值存放规则
 │   │   └── <slug>.md              # 一个 host/project 一个文件
@@ -231,4 +237,4 @@ mem 不是 orchestrator,**每次 lookup / write 返回的是命中的 entry 内�
 - 升格机制:`references/promotion.md`
 - access-log 格式:`references/access-log.md`
 - 失败模式:`references/failure-modes.md`
-- 三个分类的领域规则:`references/categories/{env,unblock,staging}.md`
+- 四个分类的领域规则:`references/categories/{portable,env,unblock,staging}.md`

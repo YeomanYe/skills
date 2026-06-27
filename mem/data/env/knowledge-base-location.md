@@ -9,6 +9,9 @@ hit_count: 0
 
 ## knowledge-base-location — 个人知识库:写入目录 + 查询工具
 
+> **跨 agent 常驻权威源 = portable 区 `data/portable/knowledge-base.md`**(那条会同步到各 agent 常驻载体)。
+> 本 env 条目保留作 on-demand 召回入口(更细的 symptom 反查);改这条事实时**先改 portable 那份**,再据需同步本条,避免两份漂移。
+
 **写入 ≠ 查询**:
 - **写入知识库** → 直接写文件到目录 `~/Documents/knowledge/`(安装/配置记录、研究笔记、TODOS)
 - **查询/检索知识库** → 用 **LLM Wiki 应用**(`~/Applications/LLM Wiki.app`,GUI,nashsu/llm_wiki),不是手动 grep

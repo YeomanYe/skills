@@ -6,6 +6,15 @@
 
 ---
 
+## portable 分类(持久区 / 跨 agent 常驻事实)
+
+> 与下面 env/unblock 不同:portable 是**常驻**(同步进各 agent 的 resident loader),不是 on-demand 召回。
+> 规则见 `references/categories/portable.md`。
+
+- knowledge-base — 个人知识库位置 + 写入/查询(人工 LLM Wiki / agent 读文件)+ 密钥读法(`~/Documents/knowledge/`)
+
+---
+
 ## env 分类
 
 ### 按 tag 分类
