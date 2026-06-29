@@ -315,6 +315,27 @@ agent 被 cron 唤醒后,**只做这 4 步**,不超出范围:
 
 **完整命令 + flag 裁剪逐项说明 + 官方文档出处**见 [`references/preset-window-starter.md`](references/preset-window-starter.md)。
 
+### #4 — `window-knock-chain`(动态自排程敲窗链)
+
+**最适合**:#3 的动态变体——要让 5h 滚动窗口在**每个真实重置点之后立刻被敲开**,且**精确跟随漂移的 `resetsAt`**(不像 #3 固定时钟)。单 agent 窗口保活。
+
+**核心机制**: **单个自编辑 cron** + 脚本三步循环:
+- ① `claude -p "hi"` 敲开窗口(保 OAuth,同 #3:`--strict-mcp-config` + 空 hooks settings,**绝不 `--bare`**)
+- ② 跑 budget 命令读 `fiveHour.resetsAt`
+- ③ 算 `resetsAt + 1min` 的 cron 字段(本地时区),按 desc 找到**自己**的 cron id → `cc-connect cron edit <id> cron_expr "<M H D Mon *>"` 重排到下次重置 → 无限循环
+
+**默认参数**(均可改):
+- 自排程 cron(desc 固定,如 `claude-window-knock-chain`),`--exec bash <脚本>`,`--timeout-mins 10`
+- 健壮性:敲失败仍重排;budget 查不到 → fallback `now+5h+1min` 防断链;只动这一个 cron(不滋生)
+- 绝对路径(cron PATH 极简):脚本 `export PATH` 含 node/claude/cc-connect 目录,python 用 `/usr/bin/python3`
+
+**何时**不用**此预设**:
+- 只要每天固定点敲一次、够用且简单 → #3 `window-starter`
+- 要烧额度做长跑 → #1 `burn-tail` / #2 `window-burn`
+- 无 budget/resetsAt 概念的纯定时 → 普通 `cc-connect cron add --prompt`
+
+**完整脚本 + 自排程命令 + #4 vs #3 对比 + bootstrap 自检**见 [`references/preset-window-knock-chain.md`](references/preset-window-knock-chain.md)。
+
 ## Boundaries(本 skill 不做的事)
 
 - **不实现 cron 引擎本身**(dep:cc-connect cron / system crontab)
@@ -351,6 +372,7 @@ agent 被 cron 唤醒后,**只做这 4 步**,不超出范围:
 - `references/preset-burn-tail.md` — **预设 #1 burn-tail** 完整实现(schedule.py / burn.sh / 工作目录 / 实战参数 + 第 1–7 条共用 robustness 规则)
 - `references/preset-window-burn.md` — **预设 #2 window-burn** 完整实现(指定夜间窗整段 burn / 线性预留 / wake-then-query / resetsAt 自排程)
 - `references/preset-window-starter.md` — **预设 #3 window-starter** 完整实现(5h 窗口提前撞开 / claude+codex 最省命令 / `--bare` 破坏 OAuth 的官方依据 / flag 逐项裁剪)
+- `references/preset-window-knock-chain.md` — **预设 #4 window-knock-chain** 完整实现(动态自排程敲窗链 / 自编辑 cron 跟随真实 resetsAt / 脚本全文 / #4 vs #3 对比 / bootstrap 自检)
 - `references/cron-prompt-template.md` — cron prompt 套话
 - `references/status-md-template.md` — STATUS.md 结构 + 字段说明
 - `references/halt-protocol.md` — 自删 + 通知协议
