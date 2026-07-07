@@ -1,14 +1,16 @@
 ---
 name: director-ops
 description: >
-  Use when 用户要在系统上安装或卸载工具 / 软件 / 包——本 skill 扮演"运维"角色，
+  Use when 用户要在系统上安装或卸载工具 / 软件 / 包 / agent skill——本 skill 扮演"运维"角色，
   按"环境检查 → 查资料 → 出计划 → 用户确认 → 执行 → 验证 → 记录知识库"的标准流程
-  完成软件的装与卸，确保过程可追溯、可重复、可记录。
-  触发短语包括："装一下 X"、"帮我装 X"、"安装 X"、"新装个 X"、"install X"、"set up X"、
-  "怎么装 X"、"卸载 X"、"删了 X"、"uninstall X"、"remove X"、"把 X 清掉"、"X 怎么卸载"。
-  Do NOT use for: 升级已装工具（直接 brew upgrade / pip install -U，无需走流程）/
-  配置已装工具（如改 Chrome 设置）/ 项目级依赖（npm install / pip install -r
-  requirements.txt → flow-dev-task）/ 一次性临时跑（npx <tool>）/ 删项目文件（普通 rm 即可）。
+  完成装与卸，确保过程可追溯、可重复、可记录。
+  触发短语包括："装一下 X"、"帮我装 X"、"安装 X"、"install X"、"set up X"、"怎么装 X"、
+  "卸载 X"、"删了 X"、"uninstall X"、"remove X"、"把 X 清掉"、"X 怎么卸载"、
+  "装个 skill"、"安装这个 skill"、"install this skill"。
+  Do NOT use for: 升级已装工具（brew upgrade / pip install -U / skillshare update，无需走流程）/
+  配置已装工具（如改 Chrome 设置）/ 项目级依赖（npm install / pip install -r → flow-dev-task）/
+  一次性临时跑（npx <tool>）/ 删项目文件（普通 rm 即可）/ 调研挑选装哪个 skill（→ flow-skill-research）/
+  写或改 skill（→ flow-skill-dev）。
 ---
 
 > 本 skill 受 `references/constitution.md` 约束(always-follow,跨 skill 通用价值观/安全/身份层)
@@ -109,6 +111,21 @@ description: >
 
 如果意图混合（"重装 X" = 先卸再装），按 `uninstall → install` 顺序串行执行，各自走完整流程。
 
+## 安装目标类型（install mode 内的二级判定）
+
+`install` mode 下再分**安装目标类型**（`target_type`），决定走哪条安装渠道：
+
+| target_type | 触发信号 | 安装渠道 | 知识库文件 |
+|---|---|---|---|
+| `system-package`（默认） | 装工具 / 软件 / 命令行 / 应用（ripgrep、ffmpeg、docker…） | 包管理器 / 官方脚本 / binary（Step 2 枚举） | `~/Documents/knowledge/<tool>-install.md` |
+| `skill` | 装 **agent skill**（"装个 skill" / "安装这个 skill" / "install this skill"） | **默认 `skillshare`（外网），见 Step 2 渠道判定** | `~/Documents/knowledge/skill-<name>-install.md` |
+
+判定不清时（名字既像工具又像 skill）→ 归 Question Gate 一次问清，不猜。
+
+`skill` 目标**只做安装**：已知要装哪个 skill → 装 + 追踪 + 验证 + 记录。
+不做「装哪个 skill 值不值得」的调研挑选（→ `flow-skill-research`），也不做写 / 改 skill（→ `flow-skill-dev`）。
+本次范围**不含** skill 卸载（`skillshare uninstall`），如需卸载 skill 另行扩展。
+
 ## 适用范围
 
 - 优先支持 `macOS`
@@ -159,11 +176,18 @@ which <tool> || command -v <tool>
 
 # 包管理器可用性
 command -v brew apt dnf pip pipx npm cargo mas 2>/dev/null
+
+# 若 target_type=skill：探测 skill 安装工具
+command -v skillshare 2>/dev/null   # 默认渠道（外网）
+skillshare list 2>/dev/null         # 已装 skill 清单 + 目标是否已装
+# skillhub 仅当用户显式要求走内网时才探测，默认不查
 ```
 
 至少明确：操作系统 + 版本 + CPU 架构、相关包管理器是否存在、目标软件**当前是否已安装 + 版本**。
 
 - `install` mode：若已装且版本满足 → 退出本 skill（无需安装）
+- `install` + `target_type=skill`：确认 `skillshare` 可用 + 目标 skill 是否已装（`skillshare list`）；
+  已装 → 退出本 skill，提示用 `skillshare update`（升级不走本流程）
 - `uninstall` mode：若无法确认目标软件是否存在 → **不要**生成删除步骤，先给定位方法
 
 ### Step 2 — 资料收集
@@ -185,6 +209,15 @@ command -v brew apt dnf pip pipx npm cargo mas 2>/dev/null
   语言生态全局包 > 第三方教程**。但必须按当前工具实际情况解释例外。
 - 如果本机包管理器搜不到,不能立刻放弃该方式；先查官方文档是否需要额外 tap/source。
 
+`install` + `target_type=skill` **不走上面的包管理器枚举**，改用固定**渠道判定**：
+
+- **默认走外网 `skillshare`**：`skillshare install <skill> --track`
+  - **`--track` 必带**：漏了就是 snapshot 模式——之后 `skillshare update --all` **不会**追远端更新，
+    等于装了个永不升级的死快照。装 skill 的默认目的就是持续追远端，所以默认**必须** `--track`。
+- **不主动走内网 skillhub**：只有用户在**当次**明确说"从 skillhub / 走内网 / 用内网源"时才改用 skillhub。
+  没有显式要求 → 一律 skillshare。**不要**因为"内网更快 / 更稳"擅自切换渠道。
+- 无需枚举 brew / npm / pipx 等方式（那是 `system-package` 的事）；skill 渠道是固定二选一（默认 skillshare / 显式 skillhub）。
+
 `uninstall` mode 额外做**适用性判断**：资料的平台 / 安装方式 / 版本 / 路径必须与当前系统匹配
 才能采用。安装记录只能证明"可能如何安装"时，不能据此直接删用户数据，最多输出候选路径 + 验证方法。
 
@@ -201,6 +234,15 @@ command -v brew apt dnf pip pipx npm cargo mas 2>/dev/null
 **install 计划**必须先列"候选安装方式对比"和"推荐方式"，再给执行步骤。
 步骤顺序：依赖检查 → 安装 → PATH/配置 → 验证。
 若用户追问"有没有 Homebrew / pipx / npm / 官方脚本方式"，必须回到 Step 2 补证据,不能为已有推荐辩护。
+
+**install + target_type=skill 计划**步骤顺序：
+1. 确认 skill 名 + 渠道（默认 `skillshare` 外网；仅用户显式要求才 skillhub 内网）
+2. 安装：`skillshare install <skill> --track`（默认；走 skillhub 则用其对应命令）
+3. 验证：`skillshare list` 能看到该 skill，且为 **tracked**（非 snapshot）
+4. 记录知识库（渠道 + 是否 `--track`）
+
+计划里必须写清楚：**默认走外网 skillshare + `--track`；本次未走内网 skillhub 的原因是用户未显式要求内网**。
+若用户本次点名了 skillhub，则改走 skillhub 并在计划里标注"按用户显式要求走内网源"。
 
 **uninstall 计划**步骤顺序（破坏性，顺序不可乱）：
 1. 停止运行中的相关进程 / 服务
@@ -242,6 +284,11 @@ uninstall 计划必须额外列出：需备份的路径、需保留的数据、�
   <tool> <basic-command> # 跑一个最小功能命令
   ```
   PATH 没生效时，明确告诉用户 source 哪个 rc 文件 + 建议加到 `~/.zshrc`。
+- `install` + `target_type=skill`：
+  ```bash
+  skillshare list        # 目标 skill 应出现在已装列表，且标为 tracked（非 snapshot）
+  ```
+  若发现是 snapshot（漏了 `--track`）→ **视为验证不通过**，重装并补 `--track`，不当作已完成。
 - `uninstall`：
   ```bash
   command -v <tool>                       # 应无输出
@@ -280,6 +327,9 @@ uninstall 计划必须额外列出：需备份的路径、需保留的数据、�
 记录模板（装 / 卸两套）见 `references/record-template.md`。
 
 - `install` 记录含：环境、安装日期、安装方式、安装步骤、验证命令、注意事项、参考链接
+- `install` + `target_type=skill` 记录含：skill 名、安装日期、**来源渠道（skillshare 外网 / 显式 skillhub 内网）**、
+  是否 `--track`、安装命令、验证结果（tracked 确认）、后续更新方式（`skillshare update`）；
+  写入 `~/Documents/knowledge/skill-<name>-install.md`
 - `uninstall` 记录含：卸载时间、系统版本、软件版本、安装来源、卸载方式、备份路径、删除的数据路径、
   验证结果、资料来源链接、注意事项
 
@@ -293,11 +343,14 @@ uninstall 计划必须额外列出：需备份的路径、需保留的数据、�
   "aggregate": 4.5,
   "must_fix": [],
   "artifact_path": ".agent/jobs/director-ops-<tool>-<mode>/output.md",
-  "tool": "<software-name>",
+  "tool": "<software-name | skill-name>",
   "mode": "install | uninstall",
+  "target_type": "system-package | skill",
+  "channel": "skillshare | skillhub | null",
+  "tracked": "true | false | null",
   "version_installed": "<x.y.z | null>",
   "verify_pass": true,
-  "knowledge_path": "~/Documents/knowledge/<tool>-{install|uninstall}.md"
+  "knowledge_path": "~/Documents/knowledge/<tool>-{install|uninstall}.md | skill-<name>-install.md"
 }
 ```
 

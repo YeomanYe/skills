@@ -143,6 +143,44 @@ Prompt：T1 同。
 - Step 3 推荐 Homebrew 官方 tap（若本机有 Homebrew 且用户偏好可维护安装），说明升级用 `brew upgrade bun`、卸载用 `brew uninstall bun`。
 - Step 4 计划展示候选方式对比和推荐理由，用户确认后才执行。
 
+## 七、安装 skill（target_type=skill）
+
+### S1. 装 skill 意图判定
+Prompt：> 帮我装个 skill，叫 pdf-filler。
+预期：触发；mode=install；target_type=skill；Step 1 探测 `skillshare`；渠道默认 skillshare。
+
+### S2. 默认走外网 skillshare + --track
+Prompt：> 安装这个 skill：web-scraper。
+预期：安装命令为 `skillshare install web-scraper --track`（必带 `--track`）；不主动走内网 skillhub；
+记录渠道=skillshare、tracked=true。
+
+### S3. 护栏：不擅自走内网 skillhub
+场景：用户只说"装个 skill xxx"，没提内网 / skillhub。
+预期：默认 skillshare，**不**因"内网更快 / 更稳"切到 skillhub；计划标注"未走 skillhub 因用户未显式要求"。
+
+### S4. 显式要求才走内网 skillhub
+Prompt：> 从内网 skillhub 装一下 team-linter 这个 skill。
+预期：识别为显式内网要求 → 走 skillhub；记录渠道=skillhub；说明按用户显式要求走内网。
+
+### S5. 边界：漏 --track → 验证不通过
+场景：装完 `skillshare list` 显示目标为 snapshot（未 tracked）。
+预期：Step 6 判定验证**不通过**，重装补 `--track`，不当作完成。
+
+### S6. 边界：skill 已装
+场景：`skillshare list` 已含目标 skill。
+预期：不走完整流程，提示 `skillshare update`（升级不走本 skill），退出。
+
+### S7. 反例：调研挑选 skill → 不触发
+Prompt：> 有没有好用的 PDF 处理 skill？帮我看看装哪个好。
+预期：**不**触发本 skill（这是调研挑选）→ 路由 `flow-skill-research`。
+
+### S8. 反例：写 / 改 skill → 不触发
+Prompt：> 帮我写个 skill 用来生成周报。
+预期：**不**触发本 skill（这是写 skill）→ 路由 `flow-skill-dev`。
+
+### S9. 记录知识库
+预期：写入 `~/Documents/knowledge/skill-<name>-install.md`，含渠道、是否 `--track`、验证结果、更新方式。
+
 ## 判定通过的核心标准
 
 1. ✅ 正确判定 mode（install / uninstall）
@@ -157,3 +195,4 @@ Prompt：T1 同。
 10. ✅ Step 7 知识库文件落盘
 11. ✅ Output Contract（Director-Ops Report）全字段
 12. ✅ 无 Red Flag 命中
+13. ✅ target_type=skill：默认外网 skillshare + `--track`；内网 skillhub 仅显式要求才走；记录渠道与是否 tracked
