@@ -4,7 +4,8 @@ scope: local-host-falcommac-mini
 tags: [local-host]
 first_seen: 2026-06-17
 last_updated: 2026-06-17
-hit_count: 0
+hit_count: 2
+last_hit: 2026-08-01
 ---
 
 ## knowledge-base-location — 个人知识库:写入目录 + 查询工具
